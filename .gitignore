@@ -1,0 +1,81 @@
+# Flutter/Dart/Pub
+**/dart_tool/
+**/.dart_tool/
+**/pub/
+**/.packages
+**/build/
+**/flutter_ephemeral/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+/local.properties
+.gradle/
+/gradlew
+/gradlew.bat
+/build/
+/captures/
+/.externalNativeBuild/
+
+# iOS
+/ios/Pods/
+/ios/.symlinks/
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+/ios/Flutter/generated.xcconfig
+/ios/Flutter/app.flx
+/ios/Flutter/app.zip
+/ios/Flutter/flutter_assets/
+/ios/Flutter/ephemeral/
+/ios/Flutter/app.dSYM
+/ios/.generated/
+
+# macOS
+/macos/Flutter/Flutter.framework
+/macos/Flutter/Flutter.podspec
+/macos/Flutter/generated.xcconfig
+/macos/Flutter/app.flx
+/macos/Flutter/app.zip
+/macos/Flutter/flutter_assets/
+/macos/Flutter/ephemeral/
+
+# Linux
+/linux/flutter/ephemeral/
+
+# Web
+/web/lib/generated_plugin_registrant.dart
+
+# Environment/Secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+*.lcov
+
+# Build outputs
+build/
+*.apk
+*.aab
+*.ipa

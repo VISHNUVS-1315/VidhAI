@@ -1,0 +1,97 @@
+name: vidhai
+description: "VidhAI - Agriculture Ecosystem"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_bloc: ^9.1.0
+  provider: ^6.1.2
+
+  # Network
+  http: ^1.2.0
+
+  # Local Storage
+  shared_preferences: ^2.2.2
+
+  # Connectivity
+  connectivity_plus: ^6.0.1
+
+  # Utilities
+  intl: ^0.20.2
+
+  # Architecture
+  equatable: ^2.0.5
+
+  # Firebase
+  firebase_core: ^3.8.0
+  firebase_auth: ^5.2.0
+  cloud_firestore: ^5.5.0
+  firebase_messaging: ^15.1.0
+
+  # Voice Input
+  speech_to_text: ^7.0.0
+
+  # Image Picker (avatar)
+  image_picker: ^1.1.2
+
+  # Geocoding (address search)
+  geocoding: ^5.0.0
+
+  # Geolocation (GPS)
+  geolocator: ^13.0.2
+
+  # Permissions
+  permission_handler: ^11.4.0
+
+  # Utilities
+  uuid: ^4.5.1
+
+  # UI
+  shimmer: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+  fonts:
+    - family: Oswald
+      fonts:
+        - asset: assets/fonts/Oswald-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Oswald-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Oswald-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Oswald-Bold.ttf
+          weight: 700
+    - family: Lora
+      fonts:
+        - asset: assets/fonts/Lora-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Lora-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Lora-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Lora-Bold.ttf
+          weight: 700
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+
