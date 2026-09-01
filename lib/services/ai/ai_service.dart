@@ -657,7 +657,10 @@ class AiService {
       });
     } else if (lower.contains('tomato') || lower.contains('rice') || lower.contains('wheat') || lower.contains('chilli') || lower.contains('onion') || lower.contains('potato') || lower.contains('cotton') || lower.contains('maize') || lower.contains('sugarcane') || lower.contains('chickpea') || lower.contains('gram') || lower.contains('mustard')) {
       if (!lower.contains('price') && !lower.contains('rate') && !lower.contains('cost')) {
-        return _handleCropAdvisory(lower, message);
+        final cropRegex = RegExp('\\b(tomato|rice|wheat|chilli|onion|potato|potatoes|onions|cotton|maize|sugarcane|chickpea|gram|mustard)\\b');
+        if (cropRegex.hasMatch(lower)) {
+          return _handleCropAdvisory(lower, message);
+        }
       }
     } else if (lower.contains('crop') || lower.contains('grow') || lower.contains('cultivate')) {
       response = jsonEncode({
@@ -764,7 +767,7 @@ class AiService {
 
     Map<String, String>? chosen;
     for (final entry in crops.entries) {
-      if (lower.contains(entry.key)) {
+      if (RegExp('\\b${RegExp.escape(entry.key)}\\b').hasMatch(lower)) {
         chosen = entry.value;
         break;
       }
@@ -818,7 +821,7 @@ class AiService {
 
     String? matched;
     for (final entry in priceMap.entries) {
-      if (lower.contains(entry.key)) {
+      if (RegExp('\\b${RegExp.escape(entry.key)}\\b').hasMatch(lower)) {
         matched = entry.value;
         break;
       }
