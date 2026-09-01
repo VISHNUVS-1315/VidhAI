@@ -522,10 +522,44 @@ class AiService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   AIResponse _mockChat(String message, {String? language}) {
-    final lower = message.toLowerCase();
-    String response;
+    final lower = message.toLowerCase().trim();
+    String response = '';
 
-    if (lower.contains('water') || lower.contains('irrigat')) {
+    if (lower.contains('price') || lower.contains('rate') || lower.contains('cost') || lower.contains('mandi') || lower.contains('விலை')) {
+      return _handlePriceQuery(lower);
+    } else if (lower.contains('what should i do') || lower.contains('what to do') || lower.contains('now') && lower.contains('do') || lower.contains('today')) {
+      response = jsonEncode({
+        'answer': 'Here is your quick action plan for today',
+        'details': [
+          'Walk your field early (5–7 AM) and check leaves for pests, yellowing or wilting.',
+          'Check soil moisture at 15 cm depth — irrigate only if dry to the touch.',
+          'Water early morning or evening to reduce evaporation loss.',
+          'Look up today’s mandi price for your crop before deciding where to sell.',
+          'Note observations in your farm records so patterns become visible over time.',
+          'If you suspect a pest, upload a leaf photo or describe the symptoms for analysis.',
+        ],
+        'source': 'VidhAI Mock Engine',
+      });
+    } else if (lower.contains('best crop') || lower.contains('which crop') || lower.contains('what to grow') || lower.contains('recommend crop') || lower.contains('crop suggest')) {
+      final month = DateTime.now().month;
+      final season = (month >= 6 && month <= 10)
+          ? 'Kharif (June–October)'
+          : (month >= 11 || month <= 2)
+              ? 'Rabi (November–March)'
+              : 'Zaid (April–May)';
+      response = jsonEncode({
+        'answer': 'Recommended crops for the current season — $season',
+        'details': [
+          'Rice (Paddy): high demand, assured MSP, protein-rich staple. Low risk.',
+          'Maize: versatile, used for food, feed and industry. Low risk.',
+          'Chickpea & pulses: low input cost, fixes nitrogen, improves soil.',
+          'Tomato / Chilli (vegetables): quick returns, high market demand.',
+          'Mustard / Groundnut (oilseeds): good for rabi or dryland areas.',
+          'For a personalised list, share your soil type, state and available water.',
+        ],
+        'source': 'VidhAI Mock Engine',
+      });
+    } else if (lower.contains('water') || lower.contains('irrigat')) {
       response = jsonEncode({
         'answer': 'Water Management Tips for Indian Farms',
         'details': [
@@ -537,7 +571,7 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('fertilis') || lower.contains('fertil') || lower.contains('nutrient')) {
+    } else if (lower.contains('fertil') || lower.contains('nutrient') || lower.contains('urea') || lower.contains('npk')) {
       response = jsonEncode({
         'answer': 'Fertilizer Recommendation',
         'details': [
@@ -549,7 +583,7 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('pest') || lower.contains('insect') || lower.contains('disease')) {
+    } else if (lower.contains('pest') || lower.contains('insect') || lower.contains('disease') || lower.contains('fungal') || lower.contains('aphid') || lower.contains('borer')) {
       response = jsonEncode({
         'answer': 'Pest & Disease Management Overview',
         'details': [
@@ -573,7 +607,7 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('weather') || lower.contains('rain') || lower.contains('monsoon')) {
+    } else if (lower.contains('weather') || lower.contains('rain') || lower.contains('monsoon') || lower.contains('forecast')) {
       response = jsonEncode({
         'answer': 'Weather & Seasonal Advisory',
         'details': [
@@ -585,31 +619,233 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('hello') || lower.contains('hi') || lower.contains('namaste')) {
+    } else if (lower.contains('sow') || lower.contains('planting') || lower.contains('seed')) {
+      response = jsonEncode({
+        'answer': 'Sowing & Planting Advice',
+        'details': [
+          'Time sowing to the first monsoonal rains for rain-fed crops.',
+          'Soak and treat seeds with fungicide before sowing to prevent early diseases.',
+          'Maintain proper seed spacing — overcrowding reduces yield.',
+          'Test germination rate of saved seed before the season.',
+          'Use certified/improved varieties from your nearest seed centre for better yield.',
+        ],
+        'source': 'VidhAI Mock Engine',
+      });
+    } else if (lower.contains('harvest')) {
+      response = jsonEncode({
+        'answer': 'Harvesting Guidance',
+        'details': [
+          'Harvest at the right maturity — check grain hardness and moisture (below 14%).',
+          'Harvest early morning or late afternoon to reduce moisture content.',
+          'Dry produce thoroughly on clean, raised surfaces before storage.',
+          'Grade your produce to get a better mandi price.',
+          'Book transport early during peak harvest to avoid delays.',
+        ],
+        'source': 'VidhAI Mock Engine',
+      });
+    } else if (lower.contains('scheme') || lower.contains('subsidy') || lower.contains('kisan') || lower.contains('pm')) {
+      response = jsonEncode({
+        'answer': 'Government Schemes You May Qualify For',
+        'details': [
+          'PM-KISAN: ₹6,000/year income support for landholding farmers.',
+          'PMFBY: Crop insurance with low premium under Pradhan Mantri Fasal Bima Yojana.',
+          'Kisan Credit Card (KCC): low-interest credit for inputs.',
+          'Soil Health Card scheme: free soil testing and guidance.',
+          'Visit your block development office or PM-KISAN portal to check eligibility.',
+        ],
+        'source': 'VidhAI Mock Engine',
+      });
+    } else if (lower.contains('tomato') || lower.contains('rice') || lower.contains('wheat') || lower.contains('chilli') || lower.contains('onion') || lower.contains('potato') || lower.contains('cotton') || lower.contains('maize') || lower.contains('sugarcane') || lower.contains('chickpea') || lower.contains('gram') || lower.contains('mustard')) {
+      if (!lower.contains('price') && !lower.contains('rate') && !lower.contains('cost')) {
+        return _handleCropAdvisory(lower, message);
+      }
+    } else if (lower.contains('crop') || lower.contains('grow') || lower.contains('cultivate')) {
+      response = jsonEncode({
+        'answer': 'Crop cultivation guidance',
+        'details': [
+          'Tell me which crop you are interested in — e.g. tomato, rice, wheat, onion, chilli.',
+          'Share your state and soil type for region-specific planting advice.',
+          'I can also check the current season’s best crops or recommend alternatives.',
+          'For exact yield and investment figures, use the Crop Recommendation tool.',
+        ],
+        'source': 'VidhAI Mock Engine',
+      });
+    } else if (lower.contains('hello') || lower.contains('hi') || lower.contains('namaste') || lower.contains('vanakkam') || lower.contains('good morning') || lower.contains('good evening')) {
       response = jsonEncode({
         'answer': 'Namaste! I am VidhAI, your smart farming assistant.',
         'details': [
           'I can help you with crop management, pest control, soil health, and more.',
-          'Try asking about: irrigation, fertilizers, pest control, or crop recommendations.',
+          'Try asking about: mandi prices, irrigation, fertilizers, pest control, or crop recommendations.',
           'I support multiple Indian languages — just ask in your preferred language.',
-          'Upload a photo of your crop for AI-powered analysis.',
+          'You can also upload a photo of your crop for AI-powered analysis.',
         ],
         'source': 'VidhAI Mock Engine',
       });
     } else {
       response = jsonEncode({
-        'answer': 'VidhAI Response',
+        'answer': 'Here is how I can help with “$message”',
         'details': [
-          'I understand your query: "$message"',
-          'For the most accurate advice, try providing more details like your crop type, location, and current observations.',
-          'You can ask me about: crops, soil, irrigation, fertilizers, pests, weather, or market prices.',
-          'Remember: local conditions matter — consult your KVK or agricultural officer for region-specific guidance.',
+          'To give precise advice, please tell me your crop, state and current field condition.',
+          'I can help with: mandi prices, irrigation, fertilizers, pest & disease control, soil health, weather, sowing, harvesting and government schemes.',
+          'For a fast pest diagnosis, upload a clear photo of the affected leaf.',
+          'Local conditions matter — always confirm region-specific guidance with your KVK or agriculture officer.',
         ],
         'source': 'VidhAI Mock Engine',
       });
     }
 
     return AIResponse.ok(response, provider: 'mock');
+  }
+
+  /// Shared crop advisory for known crops
+  AIResponse _handleCropAdvisory(String lower, String original) {
+    final Map<String, Map<String, String>> crops = {
+      'tomato': {
+        'name': 'Tomato',
+        'info': 'Grows best at 20–30°C in loamy soil. Expect 20–30 quintals/acre with good care.',
+        'care': 'Stake plants, prune suckers, remove yellow leaves, and water regularly.',
+      },
+      'rice': {
+        'name': 'Rice / Paddy',
+        'info': 'Needs high, standing water (1200–1500 mm). 120–150 day crop, high MSP demand.',
+        'care': 'Maintain 5 cm water in vegetative stage; watch for stem borer and blast.',
+      },
+      'wheat': {
+        'name': 'Wheat',
+        'info': 'Rabi crop, best at 10–25°C in loamy soil. 18–25 quintals/acre expected.',
+        'care': 'Regular light irrigation; watch for yellow rust in humid spells.',
+      },
+      'chilli': {
+        'name': 'Chilli',
+        'info': 'Warm season crop, 20–35°C. High-value spice with strong market demand.',
+        'care': 'Avoid overwatering; watch for fruit borer and powdery mildew.',
+      },
+      'onion': {
+        'name': 'Onion',
+        'info': 'Rabi crop with good storage value. 15–25 quintals/acre expected.',
+        'care': 'Well-drained loamy soil; reduce water as bulbs mature to aid curing.',
+      },
+      'potato': {
+        'name': 'Potato',
+        'info': 'Best at 15–25°C in sandy loam. High yield of 80–120 quintals/acre.',
+        'care': 'Ensure good drainage; watch for late blight in cool, wet weather.',
+      },
+      'cotton': {
+        'name': 'Cotton / Kapas',
+        'info': 'Good returns with Bt varieties; 20–25 quintals/acre.',
+        'care': 'Protect from bollworm and sucking pests; manage water carefully.',
+      },
+      'maize': {
+        'name': 'Maize',
+        'info': 'Versatile crop, 5–8 tonnes/acre, many market uses.',
+        'care': 'Fertile, well-drained soil; watch for stem borer.',
+      },
+      'sugarcane': {
+        'name': 'Sugarcane',
+        'info': 'Long-duration, high-water crop. Strong industrial demand.',
+        'care': 'Ridges and furrows for drainage; control weeds early.',
+      },
+      'chickpea': {
+        'name': 'Chickpea / Chana',
+        'info': 'Rabi pulse, low water, fixes nitrogen. 8–12 quintals/acre.',
+        'care': 'Well-drained loam; avoid waterlogging during pod filling.',
+      },
+      'gram': {
+        'name': 'Chickpea / Gram',
+        'info': 'Rabi pulse, low water, fixes nitrogen. 8–12 quintals/acre.',
+        'care': 'Well-drained loam; avoid waterlogging during pod filling.',
+      },
+      'mustard': {
+        'name': 'Mustard',
+        'info': 'Rabi oilseed, low water (350–500 mm). 6–10 quintals/acre.',
+        'care': 'Sow by October; watch for aphids during flowering.',
+      },
+    };
+
+    Map<String, String>? chosen;
+    for (final entry in crops.entries) {
+      if (lower.contains(entry.key)) {
+        chosen = entry.value;
+        break;
+      }
+    }
+    final name = chosen?['name'] ?? original;
+
+    return AIResponse.ok(jsonEncode({
+      'answer': '$name — farming guide',
+      'details': [
+        chosen?['info'] ?? 'Choose well-matched varieties and follow good agronomic practices.',
+        chosen?['care'] ?? 'Monitor regularly for pests, disease and nutrient stress.',
+        'Best planting months and yields vary by region — share your state for precision advice.',
+        'For disease detection, upload a leaf photo or call it out in the Pest Detection tool.',
+      ],
+      'source': 'VidhAI Mock Engine',
+    }), provider: 'mock');
+  }
+
+  /// Indicative market prices for common commodities.
+  AIResponse _handlePriceQuery(String lower) {
+    final Map<String, String> priceMap = {
+      'rice': '₹2,180–2,400 / quintal (grade-dependent)',
+      'paddy': '₹2,180–2,400 / quintal (grade-dependent)',
+      'wheat': '₹2,275–2,500 / quintal',
+      'maize': '₹1,870–2,100 / quintal',
+      'tomato': '₹28–45 / kg (seasonal, rises in lean months)',
+      'potato': '₹18–30 / kg',
+      'onion': '₹32–55 / kg',
+      'chilli': '₹55–90 / kg (dry chilli much higher)',
+      'cotton': '₹6,620–7,500 / quintal (kapas)',
+      'sugarcane': '₹340–380 / quintal (as per FRP)',
+      'chickpea': '₹5,230–5,700 / quintal',
+      'gram': '₹5,230–5,700 / quintal',
+      'mustard': '₹5,450–5,900 / quintal',
+      'groundnut': '₹5,550–6,200 / quintal',
+      'soybean': '₹4,300–4,800 / quintal',
+      'brinjal': '₹28–45 / kg',
+      'mango': '₹30–80 / kg (variety & season)',
+      'banana': '₹30–55 / dozen',
+      'onions': '₹32–55 / kg',
+      'tomatoes': '₹28–45 / kg (seasonal)',
+      'carrot': '₹35–60 / kg',
+      'cabbage': '₹12–25 / kg',
+      'cauliflower': '₹18–35 / kg',
+      'ladies finger': '₹30–50 / kg',
+      'okra': '₹30–50 / kg',
+      'pumpkin': '₹15–30 / kg',
+      'coconut': '₹15–25 / nut',
+      'potatoes': '₹18–30 / kg',
+    };
+
+    String? matched;
+    for (final entry in priceMap.entries) {
+      if (lower.contains(entry.key)) {
+        matched = entry.value;
+        break;
+      }
+    }
+
+    if (matched == null) {
+      return AIResponse.ok(jsonEncode({
+        'answer': 'Market price enquiry',
+        'details': [
+          'Prices vary daily by mandi, grade and season.',
+          'Open the Market Prices tool (updates live across states) for real figures.',
+          'To check a specific crop, try “rice price”, “tomato price”, “onion rate”, etc.',
+          'You can also select your crop in the Market Prices section for live data.',
+        ],
+        'source': 'VidhAI Mock Engine',
+      }), provider: 'mock');
+    }
+
+    return AIResponse.ok(jsonEncode({
+      'answer': 'Indicative market price',
+      'details': [
+        matched,
+        'Prices are indicative and vary by mandi and grade.',
+        'For the latest figure, open the Market Prices tool for live data from your state.',
+      ],
+      'source': 'VidhAI Mock Engine',
+    }), provider: 'mock');
   }
 
   AIResponse _mockCropAnalysis(CropAnalysisRequest request) {
