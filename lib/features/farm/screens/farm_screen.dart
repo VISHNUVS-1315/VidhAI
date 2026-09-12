@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/farm_profile.dart';
+import 'package:vidhai/data/models/crop_models.dart';
 import 'package:vidhai/services/data_service.dart';
-import 'package:vidhai/services/weather_service.dart';
 import 'package:vidhai/features/farm/screens/farm_details_screen.dart';
 import 'package:vidhai/features/farm/screens/add_farm_screen.dart';
+import 'package:vidhai/features/farm/crop_stage.dart';
+import 'package:vidhai/features/assistant/assistant_button.dart';
+import 'package:vidhai/features/assistant/assistant_field_registry.dart';
+import 'package:vidhai/locale/locale.dart';
 
 class FarmScreen extends StatefulWidget {
   const FarmScreen({super.key});
@@ -13,22 +18,53 @@ class FarmScreen extends StatefulWidget {
 }
 
 class _FarmScreenState extends State<FarmScreen> with WidgetsBindingObserver {
-  List<Map<String, dynamic>> _farms = [];
+  List<FarmProfile> _farms = [];
+  final Map<String, CropRecord> _primaryCrops = {};
   bool _isLoading = true;
-  final WeatherService _weatherService = WeatherService();
-  final Map<int, WeatherData?> _weatherCache = {};
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _registerAssistantActions();
     _loadFarms();
   }
 
   @override
   void dispose() {
+    AssistantFieldRegistry.instance.unregisterAction('farm', 'delete_farm');
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _registerAssistantActions() {
+    AssistantFieldRegistry.instance.registerAction(
+        'farm',
+        AssistantActionEntry(
+          action: 'delete_farm',
+          label: 'Delete the selected farm',
+          destructive: true,
+          run: (args) async {
+            if (!mounted) return {'error': 'Farm screen is not active.'};
+            final farmId = (args['farmId'] ?? '').toString();
+            if (farmId.isEmpty) {
+              return {'error': 'Please pass the farmId of the farm to delete.'};
+            }
+            FarmProfile? target;
+            for (final f in _farms) {
+              if (f.farmId == farmId) {
+                target = f;
+                break;
+              }
+            }
+            if (target == null) {
+              return {'error': 'No farm with that id exists.'};
+            }
+            final name = target.farmName;
+            await _deleteFarm(target);
+            return {'deleted': name};
+          },
+        ));
   }
 
   @override
@@ -47,138 +83,228 @@ class _FarmScreenState extends State<FarmScreen> with WidgetsBindingObserver {
   Future<void> _loadFarms() async {
     try {
       final farms = await DataService().loadFarms();
-      if (mounted) {
-        setState(() {
-          _farms = farms.map((f) => f.toMap()).toList();
-          _isLoading = false;
-        });
-        _loadWeatherForFarms();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _farms = [];
-          _isLoading = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _farms = farms;
+        _isLoading = false;
+      });
+      _loadCropsForFarms();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _farms = [];
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> _loadWeatherForFarms() async {
-    for (int i = 0; i < _farms.length; i++) {
-      final farm = _farms[i];
-      final location = farm['farmLocation'];
-      if (location != null &&
-          location['latitude'] != null &&
-          location['longitude'] != null) {
-        final lat = (location['latitude'] as num).toDouble();
-        final lng = (location['longitude'] as num).toDouble();
-        final weather =
-            await _weatherService.getWeather(lat, lng, farmId: 'farm_$i');
-        if (mounted) {
+  Future<void> _loadCropsForFarms() async {
+    for (final farm in _farms) {
+      try {
+        final crops = await DataService().loadCrops(farm.farmId);
+        if (!mounted) return;
+        CropRecord? primary;
+        for (final crop in crops) {
+          if (crop.status == 'active') {
+            primary = crop;
+            break;
+          }
+        }
+        primary ??= crops.isNotEmpty ? crops.first : null;
+        if (primary != null && mounted) {
           setState(() {
-            _weatherCache[i] = weather;
+            _primaryCrops[farm.farmId] = primary!;
           });
         }
-      }
+      } catch (_) {}
     }
   }
 
-  int get _totalFarms => _farms.length;
-
-  int get _activeFarms {
-    return _farms.where((f) {
-      final stage = f['stage'] ?? '';
-      return stage.isNotEmpty &&
-          stage.toLowerCase() != 'inactive' &&
-          stage.toLowerCase() != 'archived';
-    }).length;
+  Future<void> _openAddFarm() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddFarmScreen()),
+    );
+    _loadFarms();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1A),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0F1A),
-        elevation: 0,
-        leadingWidth: 80,
-        leading: const Padding(
-          padding: EdgeInsets.only(left: 16),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'VidhAI',
-              style: TextStyle(
-                color: Color(0xFF4CAF50),
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-        title: const Text(
-          'My Farms',
+  Future<void> _openEditFarm(FarmProfile farm) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => AddFarmScreen(initialFarm: farm)),
+    );
+    _loadFarms();
+  }
+
+  Future<void> _openFarmDetails(FarmProfile farm) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => FarmDetailsScreen(farmId: farm.farmId)),
+    );
+    _loadFarms();
+  }
+
+  Future<void> _confirmDelete(FarmProfile farm) async {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    final name = farm.farmName.isNotEmpty ? farm.farmName : loc.farm;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          loc.deleteFarm,
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
+            color: colors.onBackground,
             fontWeight: FontWeight.w600,
           ),
         ),
-        centerTitle: true,
+        content: Text(
+          loc.deleteFarmConfirm(name),
+          style: TextStyle(color: colors.onBackground, fontSize: 14),
+        ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
-            child: GestureDetector(
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AddFarmScreen(),
-                  ),
-                );
-                _loadFarms();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.add, color: Colors.white, size: 16),
-                    SizedBox(width: 4),
-                    Text(
-                      'Add Farm',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              loc.cancel,
+              style: TextStyle(color: colors.onSurfaceMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              loc.delete,
+              style: TextStyle(
+                color: colors.danger,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
-            )
-          : _farms.isEmpty
-              ? _buildEmptyState()
-              : _buildFarmList(),
+    );
+    if (confirmed == true) _deleteFarm(farm);
+  }
+
+  Future<void> _deleteFarm(FarmProfile farm) async {
+    final loc = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() {
+      _farms.removeWhere((f) => f.farmId == farm.farmId);
+      _primaryCrops.remove(farm.farmId);
+    });
+    try {
+      await DataService().deleteFarm(farm.farmId);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(loc.farmDeleted),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(loc.deleteFarmFailed),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      _loadFarms();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    return Scaffold(
+      backgroundColor: colors.bg,
+      appBar: AppBar(
+        backgroundColor: colors.bg,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          'VidhAI',
+          style: TextStyle(
+            color: colors.brandDeep,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          const VidhAIAssistantButton(screen: 'farm'),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader(context),
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(color: colors.brandDeep))
+                  : _farms.isEmpty
+                      ? _buildEmptyState(context)
+                      : _buildFarmList(context),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildSectionHeader(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      child: Row(
+        children: [
+          Text(
+            loc.myFarm,
+            style: TextStyle(
+              color: colors.onBackground,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: _openAddFarm,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: colors.brandDeep,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.add, color: Colors.white, size: 17),
+                  const SizedBox(width: 4),
+                  Text(
+                    loc.addFarm,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -186,35 +312,65 @@ class _FarmScreenState extends State<FarmScreen> with WidgetsBindingObserver {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 80,
-              height: 80,
+              width: 84,
+              height: 84,
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+                color: colors.brandDeep.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.landscape_rounded,
-                color: Color(0xFF4CAF50),
-                size: 40,
+                color: colors.brandDeep,
+                size: 42,
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'No farms yet',
+            Text(
+              loc.noFarmsYet,
               style: TextStyle(
-                color: Colors.white,
+                color: colors.onBackground,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             Text(
-              'Tap + Add Farm to create your first farm.',
+              loc.tapAddFarmToCreate,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
+                color: colors.onSurfaceMuted,
                 fontSize: 15,
               ),
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            GestureDetector(
+              onTap: _openAddFarm,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.brandDeep,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.add, color: Colors.white, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      loc.addFarm,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -222,245 +378,217 @@ class _FarmScreenState extends State<FarmScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildFarmList() {
+  Widget _buildFarmList(BuildContext context) {
+    final colors = VidhAIColorsX(context);
     return RefreshIndicator(
       onRefresh: _loadFarms,
-      color: const Color(0xFF4CAF50),
-      backgroundColor: const Color(0xFF111827),
+      color: colors.brandDeep,
+      backgroundColor: colors.surface,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         children: [
-          _buildStatsRow(),
-          const SizedBox(height: 16),
-          ...List.generate(_farms.length, (index) => _buildFarmCard(index)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            label: 'Total Farms',
-            value: '$_totalFarms',
-            icon: Icons.agriculture_rounded,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            label: 'Active Farms',
-            value: '$_activeFarms',
-            icon: Icons.check_circle_outline_rounded,
-            accentColor: _activeFarms > 0 ? const Color(0xFF4CAF50) : Colors.white38,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required String label,
-    required String value,
-    required IconData icon,
-    Color accentColor = const Color(0xFF4CAF50),
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF111827),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: accentColor, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  fontSize: 12,
-                ),
-              ),
-            ],
+          ...List.generate(
+            _farms.length,
+            (index) => _buildFarmCard(context, _farms[index]),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFarmCard(int index) {
-    final farm = _farms[index];
-    final farmProfile = FarmProfile.fromMap(farm);
-    final weather = _weatherCache[index];
-    final cropName = farm['cropName'] ?? '';
-    final stage = farm['stage'] ?? 'Not configured';
-    final waterAvail = farmProfile.waterAvailability.isNotEmpty
-        ? farmProfile.waterAvailability
-        : 'Not set';
-    final locationText = farmProfile.farmLocation != null
-        ? farmProfile.farmLocation!.fullAddress
-        : 'No location';
+  Widget _buildFarmCard(BuildContext context, FarmProfile farm) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    final crop = _primaryCrops[farm.farmId];
+    final cropName = crop?.cropName ?? '';
+    final hasCrop = cropName.isNotEmpty;
+    final district = districtLabel(
+      extractDistrict(farm.farmLocation),
+      loc.district,
+    );
+    final stageInfo = crop != null ? computeCropStage(crop) : null;
+    final stage = stageInfo?.stage;
+
+    final farmName = farm.farmName;
+    final title =
+        farmName.isNotEmpty ? farmName : (hasCrop ? cropName : loc.farm);
+    final showCropLine = farmName.isNotEmpty && hasCrop;
 
     return GestureDetector(
-      onTap: () async {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => FarmDetailsScreen(farmId: farmProfile.farmId),
-          ),
-        );
-        _loadFarms();
-      },
+      onTap: () => _openFarmDetails(farm),
+      behavior: HitTestBehavior.opaque,
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xFF111827),
+          color: colors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          border: Border.all(color: colors.borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.landscape_rounded,
-                    color: Color(0xFF4CAF50),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        farmProfile.farmName.isNotEmpty
-                            ? farmProfile.farmName
-                            : 'Farm ${index + 1}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        locationText,
+                        title,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.45),
-                          fontSize: 12,
+                          color: farmName.isNotEmpty
+                              ? colors.onBackground
+                              : colors.onSurfaceMuted,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (showCropLine) ...[
+                        const SizedBox(height: 7),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.eco_rounded,
+                              color: colors.brandDeep,
+                              size: 15,
+                            ),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                cropName,
+                                style: TextStyle(
+                                  color: colors.brandDeep,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: Colors.white.withValues(alpha: 0.3),
-                  size: 22,
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildInfoChip(
-                  Icons.straighten_rounded,
-                  '${farmProfile.farmSize.isNotEmpty ? farmProfile.farmSize : '-'} ${farmProfile.farmSizeUnit}',
-                ),
-                _buildInfoChip(
-                  Icons.agriculture_rounded,
-                  cropName.isNotEmpty ? cropName : 'No crop',
-                ),
-                _buildInfoChip(
-                  Icons.eco_rounded,
-                  stage,
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    color: colors.onSurfaceMuted,
+                    size: 20,
+                  ),
+                  color: colors.surface,
+                  onSelected: (value) {
+                    if (value == 'edit') _openEditFarm(farm);
+                    if (value == 'delete') _confirmDelete(farm);
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined,
+                              color: colors.brandDeep, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            loc.editFarm,
+                            style: TextStyle(color: colors.onBackground),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline,
+                              color: colors.danger, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            loc.deleteFarm,
+                            style: TextStyle(color: colors.danger),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Row(
               children: [
-                _buildInfoChip(
-                  Icons.water_drop_outlined,
-                  waterAvail,
+                Icon(
+                  Icons.location_on_outlined,
+                  color: colors.onSurfaceMuted,
+                  size: 14,
                 ),
-                if (weather != null)
-                  _buildInfoChip(
-                    Icons.wb_sunny_outlined,
-                    '${weather.temperature.toStringAsFixed(0)}°C ${weather.condition}',
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    district,
+                    style: TextStyle(
+                      color: colors.onSurfaceMuted,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                if (weather == null && farmProfile.farmLocation != null)
-                  _buildInfoChip(
-                    Icons.cloud_outlined,
-                    'Loading weather...',
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Divider(
+                height: 1, color: colors.borderColor.withValues(alpha: 0.7)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text(
+                  loc.stage,
+                  style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
+                ),
+                const Spacer(),
+                if (stage != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.brandDeep.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.spa_rounded,
+                            color: colors.brandDeep, size: 12),
+                        const SizedBox(width: 5),
+                        Text(
+                          stage,
+                          style: TextStyle(
+                            color: colors.brandDeep,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Text(
+                    loc.notSet,
+                    style:
+                        TextStyle(color: colors.onSurfaceMuted, fontSize: 13),
                   ),
               ],
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A0F1A),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF4CAF50), size: 14),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 11,
-            ),
-          ),
-        ],
       ),
     );
   }

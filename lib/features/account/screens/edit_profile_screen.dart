@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/services/voice_service.dart';
 import 'package:vidhai/services/location_service.dart';
 import 'package:vidhai/data/models/user_profile.dart';
+import 'package:vidhai/locale/locale.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -30,11 +32,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isListening = false;
-
-  static const Color _bgColor = Color(0xFF0A0F1A);
-  static const Color _cardColor = Color(0xFF111827);
-  static const Color _accent = Color(0xFF4CAF50);
-  static const Color _danger = Color(0xFFEF4444);
 
   @override
   void initState() {
@@ -84,6 +81,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickDateOfBirth() async {
+    final colors = VidhAIColorsX(context);
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -93,10 +91,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: _accent,
-              surface: _cardColor,
-              onSurface: Colors.white,
+            colorScheme: ColorScheme.dark(
+              primary: colors.brandDeep,
+              surface: colors.surface,
+              onSurface: colors.onBackground,
             ),
           ),
           child: child!,
@@ -113,6 +111,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     try {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -122,8 +122,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Location permission denied'),
-                backgroundColor: _danger,
+                content: Text(loc.locationPermissionDenied),
+                backgroundColor: colors.danger,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -139,8 +139,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Location services are disabled'),
-              backgroundColor: _danger,
+              content: Text(loc.locationServicesDisabled),
+              backgroundColor: colors.danger,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -196,8 +196,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Location detected successfully'),
-            backgroundColor: _accent,
+            content: Text(loc.locationDetectedSuccess),
+            backgroundColor: colors.brandDeep,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -207,10 +207,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final colors2 = VidhAIColorsX(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to get current location'),
-            backgroundColor: _danger,
+            content: Text(loc.getLocationFailed),
+            backgroundColor: colors2.danger,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -222,6 +223,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _startVoiceInput() async {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     if (_isListening) {
       await _voiceService.stopListening();
       setState(() => _isListening = false);
@@ -233,8 +236,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Voice input not available'),
-            backgroundColor: _danger,
+            content: Text(loc.voiceInputNotAvailable),
+            backgroundColor: colors.danger,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -263,11 +266,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Name cannot be empty'),
-          backgroundColor: _danger,
+          content: Text(loc.nameCannotBeEmpty),
+          backgroundColor: colors.danger,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -295,11 +300,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     await _dataService.saveProfile(updated);
 
     if (mounted) {
+      final colors2 = VidhAIColorsX(context);
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Profile saved successfully'),
-          backgroundColor: _accent,
+          content: Text(loc.profileSavedSuccess),
+          backgroundColor: colors2.brandDeep,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -320,36 +326,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: colors.bg,
       appBar: AppBar(
-        backgroundColor: _bgColor,
+        backgroundColor: colors.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: colors.onBackground),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Edit Profile',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        title: Text(
+          loc.editProfile,
+          style: TextStyle(
+              color: colors.onBackground, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         actions: [
           TextButton(
             onPressed: _isSaving ? null : _saveProfile,
             child: _isSaving
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                      color: _accent,
+                      color: colors.brandDeep,
                       strokeWidth: 2,
                     ),
                   )
-                : const Text(
-                    'Save',
+                : Text(
+                    loc.save,
                     style: TextStyle(
-                      color: _accent,
+                      color: colors.brandDeep,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -358,7 +367,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accent))
+          ? Center(child: CircularProgressIndicator(color: colors.brandDeep))
           : ListView(
               padding: const EdgeInsets.all(24),
               children: [
@@ -368,23 +377,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     children: [
                       CircleAvatar(
                         radius: 48,
-                        backgroundColor: _cardColor,
+                        backgroundColor: colors.surface,
                         child: Text(
                           _getInitial(),
-                          style: const TextStyle(
-                            color: _accent,
+                          style: TextStyle(
+                            color: colors.brandDeep,
                             fontSize: 40,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                      Positioned(
+                      PositionedDirectional(
                         bottom: 0,
-                        right: 0,
+                        end: 0,
                         child: Container(
                           padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: _accent,
+                          decoration: BoxDecoration(
+                            color: colors.brandDeep,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -398,55 +407,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                _buildLabel('Name'),
+                _buildLabel(loc.name),
                 const SizedBox(height: 8),
                 _buildTextField(
                   controller: _nameController,
-                  hint: 'Enter your name',
+                  hint: loc.enterNameHint,
                   suffix: IconButton(
                     icon: Icon(
                       _isListening ? Icons.mic : Icons.mic_none,
-                      color: _isListening ? _accent : Colors.white.withValues(alpha: 0.5),
+                      color: _isListening
+                          ? colors.brandDeep
+                          : colors.onSurfaceMuted,
                     ),
                     onPressed: _startVoiceInput,
                   ),
                 ),
                 const SizedBox(height: 20),
-                _buildLabel('Email'),
+                _buildLabel(loc.email),
                 const SizedBox(height: 8),
                 _buildTextField(
                   controller: _emailController,
-                  hint: 'Email',
+                  hint: loc.email,
                   readOnly: true,
                   suffix: _profile?.isEmailVerified == true
-                      ? const Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: Icon(Icons.verified, color: _accent, size: 20),
+                      ? Padding(
+                          padding: const EdgeInsetsDirectional.only(end: 12),
+                          child: Icon(Icons.verified,
+                              color: colors.brandDeep, size: 20),
                         )
                       : null,
                 ),
                 const SizedBox(height: 20),
-                _buildLabel('Gender'),
+                _buildLabel(loc.gender),
                 const SizedBox(height: 8),
                 _buildGenderDropdown(),
                 const SizedBox(height: 20),
-                _buildLabel('Date of Birth'),
+                _buildLabel(loc.dateOfBirth),
                 const SizedBox(height: 8),
                 _buildDateField(),
                 const SizedBox(height: 20),
-                _buildLabel('Age'),
+                _buildLabel(loc.age),
                 const SizedBox(height: 8),
                 _buildTextField(
                   controller: _ageController,
-                  hint: 'Age (auto-calculated)',
+                  hint: loc.ageAutoCalculated,
                   readOnly: true,
                 ),
                 const SizedBox(height: 20),
-                _buildLabel('Current Address'),
+                _buildLabel(loc.currentAddress),
                 const SizedBox(height: 8),
                 _buildTextField(
                   controller: _addressController,
-                  hint: 'Enter your address',
+                  hint: loc.enterAddressHint,
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -454,18 +466,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   height: 48,
                   child: OutlinedButton.icon(
                     onPressed: _getCurrentLocation,
-                    icon: const Icon(Icons.my_location, color: _accent, size: 20),
-                    label: const Text(
-                      'Use Current Location',
+                    icon: Icon(Icons.my_location,
+                        color: colors.brandDeep, size: 20),
+                    label: Text(
+                      loc.useCurrentLocation,
                       style: TextStyle(
-                        color: _accent,
+                        color: colors.brandDeep,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                        color: _accent.withValues(alpha: 0.4),
+                        color: colors.brandDeep.withValues(alpha: 0.4),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -480,10 +493,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildLabel(String text) {
+    final colors = VidhAIColorsX(context);
     return Text(
       text,
       style: TextStyle(
-        color: Colors.white.withValues(alpha: 0.7),
+        color: colors.onBackground,
         fontSize: 13,
         fontWeight: FontWeight.w500,
       ),
@@ -496,15 +510,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     bool readOnly = false,
     Widget? suffix,
   }) {
+    final colors = VidhAIColorsX(context);
     return TextField(
       controller: controller,
       readOnly: readOnly,
-      style: const TextStyle(color: Colors.white, fontSize: 15),
+      style: TextStyle(color: colors.onBackground, fontSize: 15),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+        hintStyle: TextStyle(color: colors.onSurfaceMuted),
         filled: true,
-        fillColor: _cardColor,
+        fillColor: colors.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -515,7 +530,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: _accent, width: 1),
+          borderSide: BorderSide(color: colors.brandDeep, width: 1),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -525,30 +540,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildGenderDropdown() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: _cardColor,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _gender.isNotEmpty ? _gender : null,
           hint: Text(
-            'Select gender',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+            loc.selectGender,
+            style: TextStyle(color: colors.onSurfaceMuted),
           ),
           isExpanded: true,
-          dropdownColor: _cardColor,
-          style: const TextStyle(color: Colors.white, fontSize: 15),
+          dropdownColor: colors.surface,
+          style: TextStyle(color: colors.onBackground, fontSize: 15),
           icon: Icon(
             Icons.keyboard_arrow_down,
-            color: Colors.white.withValues(alpha: 0.5),
+            color: colors.onSurfaceMuted,
           ),
-          items: const [
-            DropdownMenuItem(value: 'Male', child: Text('Male')),
-            DropdownMenuItem(value: 'Female', child: Text('Female')),
-            DropdownMenuItem(value: 'Other', child: Text('Other')),
+          items: [
+            DropdownMenuItem(value: 'Male', child: Text(loc.male)),
+            DropdownMenuItem(value: 'Female', child: Text(loc.female)),
+            DropdownMenuItem(value: 'Other', child: Text(loc.otherGender)),
           ],
           onChanged: (value) {
             setState(() => _gender = value ?? '');
@@ -559,6 +576,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildDateField() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     final displayText = _dateOfBirth != null
         ? '${_dateOfBirth!.day.toString().padLeft(2, '0')}/${_dateOfBirth!.month.toString().padLeft(2, '0')}/${_dateOfBirth!.year}'
         : '';
@@ -568,25 +587,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: _cardColor,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
-                displayText.isNotEmpty ? displayText : 'Select date of birth',
+                displayText.isNotEmpty ? displayText : loc.selectDateOfBirth,
                 style: TextStyle(
                   color: displayText.isNotEmpty
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.3),
+                      ? colors.onBackground
+                      : colors.onSurfaceMuted,
                   fontSize: 15,
                 ),
               ),
             ),
             Icon(
               Icons.calendar_today,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: colors.onSurfaceMuted,
               size: 20,
             ),
           ],

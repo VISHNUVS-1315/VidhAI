@@ -133,7 +133,8 @@ class AIResponse {
     this.error,
   });
 
-  factory AIResponse.ok(String content, {String provider = 'mock', Map<String, dynamic>? metadata}) {
+  factory AIResponse.ok(String content,
+      {String provider = 'mock', Map<String, dynamic>? metadata}) {
     return AIResponse(
       success: true,
       content: content,
@@ -191,16 +192,23 @@ class AiService {
     try {
       final doc = await FirebaseFirestore.instance.doc('config/ai').get();
       if (doc.exists && doc.data() != null) {
-        _config = AIConfig.fromMap(doc.data()!);
+        final loaded = AIConfig.fromMap(doc.data()!);
+        // Only apply if the stored config is not a downgrade to mock — the
+        // no-fake-data policy requires the backend to be the real default.
+        if (!loaded.isMock) {
+          _config = loaded;
+        }
       }
     } catch (_) {
-      _config = AIConfig.defaultConfig;
+      // Keep the current config (main.dart sets backend); never silently
+      // downgrade to mock when Firestore read fails.
     }
   }
 
   // ── Chat ───────────────────────────────────────────────────────────────────
 
-  Future<AIResponse> chat(String message, {String? language, Map<String, dynamic>? context}) async {
+  Future<AIResponse> chat(String message,
+      {String? language, Map<String, dynamic>? context}) async {
     switch (_config.provider) {
       case AIProvider.mock:
         return _mockChat(message, language: language);
@@ -257,16 +265,19 @@ class AiService {
 
   // ── Voice Form Assist ──────────────────────────────────────────────────────
 
-  Future<AIResponse> getVoiceFormAssist(String field, String speechInput) async {
+  Future<AIResponse> getVoiceFormAssist(
+      String field, String speechInput) async {
     switch (_config.provider) {
       case AIProvider.mock:
         return _mockVoiceForm(field, speechInput);
       case AIProvider.backend:
-        return _proxyPost('/ai/voice-form', {'field': field, 'speechInput': speechInput});
+        return _proxyPost(
+            '/ai/voice-form', {'field': field, 'speechInput': speechInput});
       case AIProvider.openai:
       case AIProvider.gemini:
       case AIProvider.ollama:
-        return _proxyPost('/ai/voice-form', {'field': field, 'speechInput': speechInput});
+        return _proxyPost(
+            '/ai/voice-form', {'field': field, 'speechInput': speechInput});
     }
   }
 
@@ -319,7 +330,8 @@ class AiService {
 
   // ── Crop Recommendation ────────────────────────────────────────────────────
 
-  Future<AIResponse> getCropRecommendation(RecommendationRequest request) async {
+  Future<AIResponse> getCropRecommendation(
+      RecommendationRequest request) async {
     switch (_config.provider) {
       case AIProvider.mock:
         return _mockCropRecommendation(request);
@@ -347,7 +359,8 @@ class AiService {
   // Backend Proxy Helpers
   // ═══════════════════════════════════════════════════════════════════════════
 
-  Future<AIResponse> _proxyChat(String message, {String? language, Map<String, dynamic>? context}) async {
+  Future<AIResponse> _proxyChat(String message,
+      {String? language, Map<String, dynamic>? context}) async {
     return _proxyPost('/ai/chat', {
       'message': message,
       if (language != null) 'language': language,
@@ -362,7 +375,8 @@ class AiService {
         url,
         headers: {
           'Content-Type': 'application/json',
-          if (_config.apiKey != null) 'Authorization': 'Bearer ${_config.apiKey}',
+          if (_config.apiKey != null)
+            'Authorization': 'Bearer ${_config.apiKey}',
         },
         body: jsonEncode(body),
       );
@@ -395,7 +409,8 @@ class AiService {
 
   Future<AIResponse> _geminiGenerate(String prompt) async {
     if (_config.apiKey == null) {
-      return AIResponse.fail('Gemini API key not configured', provider: 'gemini');
+      return AIResponse.fail('Gemini API key not configured',
+          provider: 'gemini');
     }
     try {
       final url = Uri.parse(
@@ -421,19 +436,23 @@ class AiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final content = data['candidates'][0]['content']['parts'][0]['text'] as String;
+        final content =
+            data['candidates'][0]['content']['parts'][0]['text'] as String;
         return AIResponse.ok(content, provider: 'gemini');
       } else {
-        return AIResponse.fail('Gemini error ${response.statusCode}', provider: 'gemini');
+        return AIResponse.fail('Gemini error ${response.statusCode}',
+            provider: 'gemini');
       }
     } catch (e) {
-      return AIResponse.fail('Gemini request failed: ${e.toString()}', provider: 'gemini');
+      return AIResponse.fail('Gemini request failed: ${e.toString()}',
+          provider: 'gemini');
     }
   }
 
   Future<AIResponse> _openAIChat(String message, {String? language}) async {
     if (_config.apiKey == null) {
-      return AIResponse.fail('OpenAI API key not configured', provider: 'openai');
+      return AIResponse.fail('OpenAI API key not configured',
+          provider: 'openai');
     }
     try {
       final url = Uri.parse('https://api.openai.com/v1/chat/completions');
@@ -465,16 +484,19 @@ class AiService {
         final content = data['choices'][0]['message']['content'] as String;
         return AIResponse.ok(content, provider: 'openai');
       } else {
-        return AIResponse.fail('OpenAI error ${response.statusCode}', provider: 'openai');
+        return AIResponse.fail('OpenAI error ${response.statusCode}',
+            provider: 'openai');
       }
     } catch (e) {
-      return AIResponse.fail('OpenAI request failed: ${e.toString()}', provider: 'openai');
+      return AIResponse.fail('OpenAI request failed: ${e.toString()}',
+          provider: 'openai');
     }
   }
 
   Future<AIResponse> _geminiChat(String message, {String? language}) async {
     if (_config.apiKey == null) {
-      return AIResponse.fail('Gemini API key not configured', provider: 'gemini');
+      return AIResponse.fail('Gemini API key not configured',
+          provider: 'gemini');
     }
     try {
       final url = Uri.parse(
@@ -510,10 +532,12 @@ class AiService {
             data['candidates'][0]['content']['parts'][0]['text'] as String;
         return AIResponse.ok(content, provider: 'gemini');
       } else {
-        return AIResponse.fail('Gemini error ${response.statusCode}', provider: 'gemini');
+        return AIResponse.fail('Gemini error ${response.statusCode}',
+            provider: 'gemini');
       }
     } catch (e) {
-      return AIResponse.fail('Gemini request failed: ${e.toString()}', provider: 'gemini');
+      return AIResponse.fail('Gemini request failed: ${e.toString()}',
+          provider: 'gemini');
     }
   }
 
@@ -525,9 +549,16 @@ class AiService {
     final lower = message.toLowerCase().trim();
     String response = '';
 
-    if (lower.contains('price') || lower.contains('rate') || lower.contains('cost') || lower.contains('mandi') || lower.contains('விலை')) {
+    if (lower.contains('price') ||
+        lower.contains('rate') ||
+        lower.contains('cost') ||
+        lower.contains('mandi') ||
+        lower.contains('விலை')) {
       return _handlePriceQuery(lower);
-    } else if (lower.contains('what should i do') || lower.contains('what to do') || lower.contains('now') && lower.contains('do') || lower.contains('today')) {
+    } else if (lower.contains('what should i do') ||
+        lower.contains('what to do') ||
+        lower.contains('now') && lower.contains('do') ||
+        lower.contains('today')) {
       response = jsonEncode({
         'answer': 'Here is your quick action plan for today',
         'details': [
@@ -540,7 +571,11 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('best crop') || lower.contains('which crop') || lower.contains('what to grow') || lower.contains('recommend crop') || lower.contains('crop suggest')) {
+    } else if (lower.contains('best crop') ||
+        lower.contains('which crop') ||
+        lower.contains('what to grow') ||
+        lower.contains('recommend crop') ||
+        lower.contains('crop suggest')) {
       final month = DateTime.now().month;
       final season = (month >= 6 && month <= 10)
           ? 'Kharif (June–October)'
@@ -571,7 +606,10 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('fertil') || lower.contains('nutrient') || lower.contains('urea') || lower.contains('npk')) {
+    } else if (lower.contains('fertil') ||
+        lower.contains('nutrient') ||
+        lower.contains('urea') ||
+        lower.contains('npk')) {
       response = jsonEncode({
         'answer': 'Fertilizer Recommendation',
         'details': [
@@ -583,7 +621,12 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('pest') || lower.contains('insect') || lower.contains('disease') || lower.contains('fungal') || lower.contains('aphid') || lower.contains('borer')) {
+    } else if (lower.contains('pest') ||
+        lower.contains('insect') ||
+        lower.contains('disease') ||
+        lower.contains('fungal') ||
+        lower.contains('aphid') ||
+        lower.contains('borer')) {
       response = jsonEncode({
         'answer': 'Pest & Disease Management Overview',
         'details': [
@@ -607,7 +650,10 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('weather') || lower.contains('rain') || lower.contains('monsoon') || lower.contains('forecast')) {
+    } else if (lower.contains('weather') ||
+        lower.contains('rain') ||
+        lower.contains('monsoon') ||
+        lower.contains('forecast')) {
       response = jsonEncode({
         'answer': 'Weather & Seasonal Advisory',
         'details': [
@@ -619,7 +665,9 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('sow') || lower.contains('planting') || lower.contains('seed')) {
+    } else if (lower.contains('sow') ||
+        lower.contains('planting') ||
+        lower.contains('seed')) {
       response = jsonEncode({
         'answer': 'Sowing & Planting Advice',
         'details': [
@@ -643,7 +691,10 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('scheme') || lower.contains('subsidy') || lower.contains('kisan') || lower.contains('pm')) {
+    } else if (lower.contains('scheme') ||
+        lower.contains('subsidy') ||
+        lower.contains('kisan') ||
+        lower.contains('pm')) {
       response = jsonEncode({
         'answer': 'Government Schemes You May Qualify For',
         'details': [
@@ -655,14 +706,30 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('tomato') || lower.contains('rice') || lower.contains('wheat') || lower.contains('chilli') || lower.contains('onion') || lower.contains('potato') || lower.contains('cotton') || lower.contains('maize') || lower.contains('sugarcane') || lower.contains('chickpea') || lower.contains('gram') || lower.contains('mustard')) {
-      if (!lower.contains('price') && !lower.contains('rate') && !lower.contains('cost')) {
-        final cropRegex = RegExp('\\b(tomato|rice|wheat|chilli|onion|potato|potatoes|onions|cotton|maize|sugarcane|chickpea|gram|mustard)\\b');
+    } else if (lower.contains('tomato') ||
+        lower.contains('rice') ||
+        lower.contains('wheat') ||
+        lower.contains('chilli') ||
+        lower.contains('onion') ||
+        lower.contains('potato') ||
+        lower.contains('cotton') ||
+        lower.contains('maize') ||
+        lower.contains('sugarcane') ||
+        lower.contains('chickpea') ||
+        lower.contains('gram') ||
+        lower.contains('mustard')) {
+      if (!lower.contains('price') &&
+          !lower.contains('rate') &&
+          !lower.contains('cost')) {
+        final cropRegex = RegExp(
+            '\\b(tomato|rice|wheat|chilli|onion|potato|potatoes|onions|cotton|maize|sugarcane|chickpea|gram|mustard)\\b');
         if (cropRegex.hasMatch(lower)) {
           return _handleCropAdvisory(lower, message);
         }
       }
-    } else if (lower.contains('crop') || lower.contains('grow') || lower.contains('cultivate')) {
+    } else if (lower.contains('crop') ||
+        lower.contains('grow') ||
+        lower.contains('cultivate')) {
       response = jsonEncode({
         'answer': 'Crop cultivation guidance',
         'details': [
@@ -673,7 +740,12 @@ class AiService {
         ],
         'source': 'VidhAI Mock Engine',
       });
-    } else if (lower.contains('hello') || lower.contains('hi') || lower.contains('namaste') || lower.contains('vanakkam') || lower.contains('good morning') || lower.contains('good evening')) {
+    } else if (lower.contains('hello') ||
+        lower.contains('hi') ||
+        lower.contains('namaste') ||
+        lower.contains('vanakkam') ||
+        lower.contains('good morning') ||
+        lower.contains('good evening')) {
       response = jsonEncode({
         'answer': 'Namaste! I am VidhAI, your smart farming assistant.',
         'details': [
@@ -705,38 +777,50 @@ class AiService {
     final Map<String, Map<String, String>> crops = {
       'tomato': {
         'name': 'Tomato',
-        'info': 'Grows best at 20–30°C in loamy soil. Expect 20–30 quintals/acre with good care.',
-        'care': 'Stake plants, prune suckers, remove yellow leaves, and water regularly.',
+        'info':
+            'Grows best at 20–30°C in loamy soil. Expect 20–30 quintals/acre with good care.',
+        'care':
+            'Stake plants, prune suckers, remove yellow leaves, and water regularly.',
       },
       'rice': {
         'name': 'Rice / Paddy',
-        'info': 'Needs high, standing water (1200–1500 mm). 120–150 day crop, high MSP demand.',
-        'care': 'Maintain 5 cm water in vegetative stage; watch for stem borer and blast.',
+        'info':
+            'Needs high, standing water (1200–1500 mm). 120–150 day crop, high MSP demand.',
+        'care':
+            'Maintain 5 cm water in vegetative stage; watch for stem borer and blast.',
       },
       'wheat': {
         'name': 'Wheat',
-        'info': 'Rabi crop, best at 10–25°C in loamy soil. 18–25 quintals/acre expected.',
-        'care': 'Regular light irrigation; watch for yellow rust in humid spells.',
+        'info':
+            'Rabi crop, best at 10–25°C in loamy soil. 18–25 quintals/acre expected.',
+        'care':
+            'Regular light irrigation; watch for yellow rust in humid spells.',
       },
       'chilli': {
         'name': 'Chilli',
-        'info': 'Warm season crop, 20–35°C. High-value spice with strong market demand.',
+        'info':
+            'Warm season crop, 20–35°C. High-value spice with strong market demand.',
         'care': 'Avoid overwatering; watch for fruit borer and powdery mildew.',
       },
       'onion': {
         'name': 'Onion',
-        'info': 'Rabi crop with good storage value. 15–25 quintals/acre expected.',
-        'care': 'Well-drained loamy soil; reduce water as bulbs mature to aid curing.',
+        'info':
+            'Rabi crop with good storage value. 15–25 quintals/acre expected.',
+        'care':
+            'Well-drained loamy soil; reduce water as bulbs mature to aid curing.',
       },
       'potato': {
         'name': 'Potato',
-        'info': 'Best at 15–25°C in sandy loam. High yield of 80–120 quintals/acre.',
-        'care': 'Ensure good drainage; watch for late blight in cool, wet weather.',
+        'info':
+            'Best at 15–25°C in sandy loam. High yield of 80–120 quintals/acre.',
+        'care':
+            'Ensure good drainage; watch for late blight in cool, wet weather.',
       },
       'cotton': {
         'name': 'Cotton / Kapas',
         'info': 'Good returns with Bt varieties; 20–25 quintals/acre.',
-        'care': 'Protect from bollworm and sucking pests; manage water carefully.',
+        'care':
+            'Protect from bollworm and sucking pests; manage water carefully.',
       },
       'maize': {
         'name': 'Maize',
@@ -774,16 +858,20 @@ class AiService {
     }
     final name = chosen?['name'] ?? original;
 
-    return AIResponse.ok(jsonEncode({
-      'answer': '$name — farming guide',
-      'details': [
-        chosen?['info'] ?? 'Choose well-matched varieties and follow good agronomic practices.',
-        chosen?['care'] ?? 'Monitor regularly for pests, disease and nutrient stress.',
-        'Best planting months and yields vary by region — share your state for precision advice.',
-        'For disease detection, upload a leaf photo or call it out in the Pest Detection tool.',
-      ],
-      'source': 'VidhAI Mock Engine',
-    }), provider: 'mock');
+    return AIResponse.ok(
+        jsonEncode({
+          'answer': '$name — farming guide',
+          'details': [
+            chosen?['info'] ??
+                'Choose well-matched varieties and follow good agronomic practices.',
+            chosen?['care'] ??
+                'Monitor regularly for pests, disease and nutrient stress.',
+            'Best planting months and yields vary by region — share your state for precision advice.',
+            'For disease detection, upload a leaf photo or call it out in the Pest Detection tool.',
+          ],
+          'source': 'VidhAI Mock Engine',
+        }),
+        provider: 'mock');
   }
 
   /// Indicative market prices for common commodities.
@@ -828,27 +916,31 @@ class AiService {
     }
 
     if (matched == null) {
-      return AIResponse.ok(jsonEncode({
-        'answer': 'Market price enquiry',
-        'details': [
-          'Prices vary daily by mandi, grade and season.',
-          'Open the Market Prices tool (updates live across states) for real figures.',
-          'To check a specific crop, try “rice price”, “tomato price”, “onion rate”, etc.',
-          'You can also select your crop in the Market Prices section for live data.',
-        ],
-        'source': 'VidhAI Mock Engine',
-      }), provider: 'mock');
+      return AIResponse.ok(
+          jsonEncode({
+            'answer': 'Market price enquiry',
+            'details': [
+              'Prices vary daily by mandi, grade and season.',
+              'Open the Market Prices tool (updates live across states) for real figures.',
+              'To check a specific crop, try “rice price”, “tomato price”, “onion rate”, etc.',
+              'You can also select your crop in the Market Prices section for live data.',
+            ],
+            'source': 'VidhAI Mock Engine',
+          }),
+          provider: 'mock');
     }
 
-    return AIResponse.ok(jsonEncode({
-      'answer': 'Indicative market price',
-      'details': [
-        matched,
-        'Prices are indicative and vary by mandi and grade.',
-        'For the latest figure, open the Market Prices tool for live data from your state.',
-      ],
-      'source': 'VidhAI Mock Engine',
-    }), provider: 'mock');
+    return AIResponse.ok(
+        jsonEncode({
+          'answer': 'Indicative market price',
+          'details': [
+            matched,
+            'Prices are indicative and vary by mandi and grade.',
+            'For the latest figure, open the Market Prices tool for live data from your state.',
+          ],
+          'source': 'VidhAI Mock Engine',
+        }),
+        provider: 'mock');
   }
 
   AIResponse _mockCropAnalysis(CropAnalysisRequest request) {
@@ -876,7 +968,8 @@ class AiService {
         ],
         'nextReviewDate': '2026-09-02',
       },
-      'source': 'VidhAI Mock Engine — Upload actual images for AI vision analysis',
+      'source':
+          'VidhAI Mock Engine — Upload actual images for AI vision analysis',
     });
     return AIResponse.ok(analysis, provider: 'mock');
   }
@@ -884,12 +977,14 @@ class AiService {
   AIResponse _mockPestDetection(PestDetectionRequest request) {
     final detection = jsonEncode({
       'cropName': request.cropName,
-      'detectedIssue': 'Potential Aphid Infestation (Common in ${request.cropName})',
+      'detectedIssue':
+          'Potential Aphid Infestation (Common in ${request.cropName})',
       'severity': 'Moderate',
       'severityScore': 5,
       'confidence': 0.72,
-      'description': 'Aphids are small sap-sucking insects that commonly attack ${request.cropName}. '
-          'They cluster on the underside of leaves and tender shoots, causing leaf curling and stunted growth.',
+      'description':
+          'Aphids are small sap-sucking insects that commonly attack ${request.cropName}. '
+              'They cluster on the underside of leaves and tender shoots, causing leaf curling and stunted growth.',
       'treatment': {
         'immediate': [
           'Spray neem oil solution (5 ml neem oil + 2 ml liquid soap per litre of water).',
@@ -913,7 +1008,8 @@ class AiService {
         'Use resistant/tolerant varieties where available.',
         'Keep field margins clean to reduce pest harbourage.',
       ],
-      'source': 'VidhAI Mock Engine — Upload images for precise AI-powered identification',
+      'source':
+          'VidhAI Mock Engine — Upload images for precise AI-powered identification',
     });
     return AIResponse.ok(detection, provider: 'mock');
   }
@@ -924,25 +1020,63 @@ class AiService {
 
     final lower = speechInput.toLowerCase().trim();
 
-    if (field.toLowerCase().contains('area') || field.toLowerCase().contains('acre') || field.toLowerCase().contains('hectare')) {
+    if (field.toLowerCase().contains('area') ||
+        field.toLowerCase().contains('acre') ||
+        field.toLowerCase().contains('hectare')) {
       extracted = _extractNumber(lower) ?? '2.5';
-      metadata = {'unit': 'acres', 'confidence': 0.85, 'originalInput': speechInput};
-    } else if (field.toLowerCase().contains('crop') || field.toLowerCase().contains('name')) {
-      final crops = ['rice', 'wheat', 'cotton', 'sugarcane', 'maize', 'tomato', 'potato', 'onion', 'chilli', 'groundnut'];
+      metadata = {
+        'unit': 'acres',
+        'confidence': 0.85,
+        'originalInput': speechInput
+      };
+    } else if (field.toLowerCase().contains('crop') ||
+        field.toLowerCase().contains('name')) {
+      final crops = [
+        'rice',
+        'wheat',
+        'cotton',
+        'sugarcane',
+        'maize',
+        'tomato',
+        'potato',
+        'onion',
+        'chilli',
+        'groundnut'
+      ];
       extracted = crops.firstWhere(
         (c) => lower.contains(c),
         orElse: () => speechInput,
       );
-      metadata = {'field': 'cropName', 'confidence': 0.9, 'originalInput': speechInput};
-    } else if (field.toLowerCase().contains('date') || field.toLowerCase().contains('day')) {
+      metadata = {
+        'field': 'cropName',
+        'confidence': 0.9,
+        'originalInput': speechInput
+      };
+    } else if (field.toLowerCase().contains('date') ||
+        field.toLowerCase().contains('day')) {
       extracted = _extractDate(lower) ?? '2026-08-26';
-      metadata = {'field': 'date', 'confidence': 0.8, 'originalInput': speechInput};
-    } else if (field.toLowerCase().contains('phone') || field.toLowerCase().contains('mobile')) {
-      extracted = RegExp(r'\d{10}').firstMatch(lower)?.group(0) ?? speechInput.replaceAll(RegExp(r'[^0-9]'), '');
-      metadata = {'field': 'phone', 'confidence': 0.7, 'originalInput': speechInput};
+      metadata = {
+        'field': 'date',
+        'confidence': 0.8,
+        'originalInput': speechInput
+      };
+    } else if (field.toLowerCase().contains('phone') ||
+        field.toLowerCase().contains('mobile')) {
+      extracted = RegExp(r'\d{10}').firstMatch(lower)?.group(0) ??
+          speechInput.replaceAll(RegExp(r'[^0-9]'), '');
+      metadata = {
+        'field': 'phone',
+        'confidence': 0.7,
+        'originalInput': speechInput
+      };
     } else {
       extracted = speechInput;
-      metadata = {'field': field, 'confidence': 0.6, 'originalInput': speechInput, 'note': 'Could not determine specific extraction pattern'};
+      metadata = {
+        'field': field,
+        'confidence': 0.6,
+        'originalInput': speechInput,
+        'note': 'Could not determine specific extraction pattern'
+      };
     }
 
     final result = jsonEncode({
@@ -969,15 +1103,27 @@ class AiService {
   }
 
   String? _extractDate(String text) {
-    final match = RegExp(r'(\d{1,2})\s*(?:st|nd|rd|th)?\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*').firstMatch(text);
+    final match = RegExp(
+            r'(\d{1,2})\s*(?:st|nd|rd|th)?\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*')
+        .firstMatch(text);
     if (match != null) {
       final months = {
-        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
-        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
-        'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12',
+        'jan': '01',
+        'feb': '02',
+        'mar': '03',
+        'apr': '04',
+        'may': '05',
+        'jun': '06',
+        'jul': '07',
+        'aug': '08',
+        'sep': '09',
+        'oct': '10',
+        'nov': '11',
+        'dec': '12',
       };
       final day = match.group(1)!.padLeft(2, '0');
-      final month = months[match.group(2)!.toLowerCase().substring(0, 3)] ?? '01';
+      final month =
+          months[match.group(2)!.toLowerCase().substring(0, 3)] ?? '01';
       return '2026-$month-$day';
     }
     return null;
@@ -1015,12 +1161,17 @@ class AiService {
                   : 'Poor',
       'nutrientEstimate': {
         'nitrogen': healthScore >= 70 ? 'Adequate' : 'May need supplementation',
-        'phosphorus': phValue >= 6.0 ? 'Likely adequate' : 'May be locked — apply rock phosphate',
+        'phosphorus': phValue >= 6.0
+            ? 'Likely adequate'
+            : 'May be locked — apply rock phosphate',
         'potassium': 'Test recommended for accurate assessment',
-        'organicMatter': request.soilType.toLowerCase().contains('black') ? 'Typically good in black cotton soil' : 'Add FYM to improve',
+        'organicMatter': request.soilType.toLowerCase().contains('black')
+            ? 'Typically good in black cotton soil'
+            : 'Add FYM to improve',
       },
       'recommendations': [
-        if (phValue < 6.0) 'Apply agricultural lime at 2–4 tonnes/hectare to raise pH.',
+        if (phValue < 6.0)
+          'Apply agricultural lime at 2–4 tonnes/hectare to raise pH.',
         if (phValue > 8.0) 'Apply gypsum at 2–3 tonnes/hectare to lower pH.',
         'Add 10–15 tonnes/hectare of farmyard manure (FYM) annually.',
         'Practice crop rotation with legumes to naturally fix nitrogen.',
@@ -1069,7 +1220,8 @@ class AiService {
           {
             'id': 't1_${farmName.hashCode}',
             'title': 'Morning field inspection',
-            'description': 'Walk through $farmName and check for any visible pest damage, wilting, or unusual growth patterns.',
+            'description':
+                'Walk through $farmName and check for any visible pest damage, wilting, or unusual growth patterns.',
             'category': 'inspection',
             'priority': 'high',
             'estimatedTime': '30 min',
@@ -1078,7 +1230,8 @@ class AiService {
           {
             'id': 't2_${farmName.hashCode}',
             'title': 'Irrigation check',
-            'description': 'Check soil moisture at 15 cm depth. Irrigate if soil is dry to touch. Ensure all drip/sprinkler systems are functioning.',
+            'description':
+                'Check soil moisture at 15 cm depth. Irrigate if soil is dry to touch. Ensure all drip/sprinkler systems are functioning.',
             'category': 'irrigation',
             'priority': crops.isNotEmpty ? 'high' : 'medium',
             'estimatedTime': '45 min',
@@ -1087,7 +1240,8 @@ class AiService {
           {
             'id': 't3_${farmName.hashCode}',
             'title': 'Weed management',
-            'description': 'Remove weeds from field borders and between crop rows. Prioritize areas near water channels.',
+            'description':
+                'Remove weeds from field borders and between crop rows. Prioritize areas near water channels.',
             'category': 'maintenance',
             'priority': 'medium',
             'estimatedTime': '1 hour',
@@ -1097,7 +1251,8 @@ class AiService {
             {
               'id': 't4_${farmName.hashCode}',
               'title': 'Crop health monitoring — ${crops.join(", ")}',
-              'description': 'Inspect ${crops.join(" and ")} for signs of pest infestation, nutrient deficiency, or disease. Take photos for AI analysis.',
+              'description':
+                  'Inspect ${crops.join(" and ")} for signs of pest infestation, nutrient deficiency, or disease. Take photos for AI analysis.',
               'category': 'monitoring',
               'priority': 'high',
               'estimatedTime': '30 min',
@@ -1106,7 +1261,8 @@ class AiService {
           {
             'id': 't5_${farmName.hashCode}',
             'title': 'Record keeping',
-            'description': 'Update farm diary: note any observations, input usage, and weather conditions for today.',
+            'description':
+                'Update farm diary: note any observations, input usage, and weather conditions for today.',
             'category': 'documentation',
             'priority': 'low',
             'estimatedTime': '15 min',
@@ -1123,7 +1279,8 @@ class AiService {
           {
             'id': 't1_gen',
             'title': 'Add your farms to get personalized tasks',
-            'description': 'Go to Farm Settings and add your farm details to receive AI-generated daily tasks.',
+            'description':
+                'Go to Farm Settings and add your farm details to receive AI-generated daily tasks.',
             'category': 'setup',
             'priority': 'medium',
             'estimatedTime': '5 min',
@@ -1136,7 +1293,8 @@ class AiService {
     final result = jsonEncode({
       'date': DateTime.now().toIso8601String().substring(0, 10),
       'farmCount': farms.length,
-      'totalTasks': tasks.fold<int>(0, (sumTotal, farm) => sumTotal + ((farm['tasks'] as List).length)),
+      'totalTasks': tasks.fold<int>(
+          0, (sumTotal, farm) => sumTotal + ((farm['tasks'] as List).length)),
       'farmTasks': tasks,
       'source': 'VidhAI Mock Engine',
     });
@@ -1145,7 +1303,8 @@ class AiService {
 
   AIResponse _mockCropRecommendation(RecommendationRequest request) {
     final farmProfile = request.farmProfile;
-    final soilType = (farmProfile['soilType'] ?? 'alluvial').toString().toLowerCase();
+    final soilType =
+        (farmProfile['soilType'] ?? 'alluvial').toString().toLowerCase();
     final area = farmProfile['area'] ?? 5;
     final season = request.season ?? 'kharif';
 
@@ -1159,7 +1318,8 @@ class AiService {
           'expectedYield': '4–6 tonnes/hectare',
           'waterRequirement': 'High (1200–1500 mm)',
           'investmentLevel': 'Medium',
-          'reasoning': 'Excellent match for $soilType soil during Kharif season. High market demand.',
+          'reasoning':
+              'Excellent match for $soilType soil during Kharif season. High market demand.',
           'riskLevel': 'Low',
           'marketPrice': '₹2,183/quintal (MSP)',
         },
@@ -1169,7 +1329,8 @@ class AiService {
           'expectedYield': '20–25 quintals/hectare',
           'waterRequirement': 'Medium (700–1300 mm)',
           'investmentLevel': 'High',
-          'reasoning': 'Good returns if Bt cotton variety is used. Requires careful pest management.',
+          'reasoning':
+              'Good returns if Bt cotton variety is used. Requires careful pest management.',
           'riskLevel': 'Medium',
           'marketPrice': '₹6,620/quintal (MSP)',
         },
@@ -1179,7 +1340,8 @@ class AiService {
           'expectedYield': '1.2–1.5 tonnes/hectare',
           'waterRequirement': 'Medium (450–650 mm)',
           'investmentLevel': 'Low',
-          'reasoning': 'Low-cost crop with good nitrogen fixation. Good rotation crop.',
+          'reasoning':
+              'Low-cost crop with good nitrogen fixation. Good rotation crop.',
           'riskLevel': 'Medium',
           'marketPrice': '₹4,300/quintal (MSP)',
         },
@@ -1189,7 +1351,8 @@ class AiService {
           'expectedYield': '5–8 tonnes/hectare',
           'waterRequirement': 'Medium (500–800 mm)',
           'investmentLevel': 'Medium',
-          'reasoning': 'Versatile crop with multiple market options (food, feed, industrial).',
+          'reasoning':
+              'Versatile crop with multiple market options (food, feed, industrial).',
           'riskLevel': 'Low',
           'marketPrice': '₹1,870/quintal (MSP)',
         },
@@ -1199,7 +1362,8 @@ class AiService {
           'expectedYield': '1.5–2.5 tonnes/hectare',
           'waterRequirement': 'Low–Medium (400–600 mm)',
           'investmentLevel': 'Low',
-          'reasoning': 'Good oilseed option. Fixes nitrogen and improves soil health.',
+          'reasoning':
+              'Good oilseed option. Fixes nitrogen and improves soil health.',
           'riskLevel': 'Low',
           'marketPrice': '₹5,550/quintal (MSP)',
         },
@@ -1212,7 +1376,8 @@ class AiService {
           'expectedYield': '4–5 tonnes/hectare',
           'waterRequirement': 'Medium (450–650 mm)',
           'investmentLevel': 'Medium',
-          'reasoning': 'Primary Rabi crop with assured MSP procurement. Excellent for $soilType soil.',
+          'reasoning':
+              'Primary Rabi crop with assured MSP procurement. Excellent for $soilType soil.',
           'riskLevel': 'Low',
           'marketPrice': '₹2,275/quintal (MSP)',
         },
@@ -1222,7 +1387,8 @@ class AiService {
           'expectedYield': '1.2–1.8 tonnes/hectare',
           'waterRequirement': 'Low (350–500 mm)',
           'investmentLevel': 'Low',
-          'reasoning': 'Excellent oilseed for Rabi season. Low water requirement.',
+          'reasoning':
+              'Excellent oilseed for Rabi season. Low water requirement.',
           'riskLevel': 'Low',
           'marketPrice': '₹5,450/quintal (MSP)',
         },
@@ -1232,7 +1398,8 @@ class AiService {
           'expectedYield': '1.5–2.0 tonnes/hectare',
           'waterRequirement': 'Low (300–400 mm)',
           'investmentLevel': 'Low',
-          'reasoning': 'High-protein pulse. Fixes atmospheric nitrogen. Very low water needs.',
+          'reasoning':
+              'High-protein pulse. Fixes atmospheric nitrogen. Very low water needs.',
           'riskLevel': 'Low',
           'marketPrice': '₹5,230/quintal (MSP)',
         },
@@ -1242,7 +1409,8 @@ class AiService {
           'expectedYield': '20–30 tonnes/hectare',
           'waterRequirement': 'Medium (500–700 mm)',
           'investmentLevel': 'Medium–High',
-          'reasoning': 'High-value crop with strong market demand. Requires good drainage.',
+          'reasoning':
+              'High-value crop with strong market demand. Requires good drainage.',
           'riskLevel': 'Medium',
           'marketPrice': 'Market-linked',
         },
@@ -1252,7 +1420,8 @@ class AiService {
           'expectedYield': '1.0–1.5 tonnes/hectare',
           'waterRequirement': 'Low (300–400 mm)',
           'investmentLevel': 'Low',
-          'reasoning': 'Good pulse crop. Improves soil fertility through nitrogen fixation.',
+          'reasoning':
+              'Good pulse crop. Improves soil fertility through nitrogen fixation.',
           'riskLevel': 'Low',
           'marketPrice': 'Market-linked',
         },
@@ -1264,7 +1433,8 @@ class AiService {
       'farmArea': '$area acres',
       'soilType': farmProfile['soilType'] ?? 'Not specified',
       'recommendations': recommendations,
-      'disclaimer': 'These are general recommendations. Consult your local KVK for region-specific advice.',
+      'disclaimer':
+          'These are general recommendations. Consult your local KVK for region-specific advice.',
       'source': 'VidhAI Mock Engine',
     });
     return AIResponse.ok(result, provider: 'mock');

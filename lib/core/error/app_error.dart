@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidhai/locale/locale.dart';
 
 class AppError implements Exception {
   final String message;
@@ -43,14 +44,14 @@ Widget buildErrorView(
             error.message,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Theme.of(context).colorScheme.error,
-            ),
+                  color: Theme.of(context).colorScheme.error,
+                ),
           ),
           const SizedBox(height: 24),
           if (onRetry != null) ...[
             TextButton(
               onPressed: onRetry,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context).t('retry')),
             ),
           ],
         ],

@@ -42,54 +42,20 @@ class AuthUnauthenticated extends AuthState {
   const AuthUnauthenticated() : super(status: AuthStatus.unauthenticated);
 }
 
-class AuthOnboardingRequired extends AuthState {
-  const AuthOnboardingRequired({
-    required String email,
-    required String userId,
-  }) : super(status: AuthStatus.unauthenticated, name: email);
-
-  @override
-  List<Object?> get props => [name, status];
-}
-
-class AuthUnverifiedEmail extends AuthState {
-  const AuthUnverifiedEmail()
-      : super(status: AuthStatus.unverifiedEmail, name: 'User');
-}
-
-class AuthVerificationRequired extends AuthState {
+class GoogleSignInSuccess extends AuthState {
   final String email;
-  final String maskedEmail;
+  final String? photoUrl;
+  final bool resumeToMain;
 
-  const AuthVerificationRequired({
+  const GoogleSignInSuccess({
+    required String name,
     required this.email,
-    required this.maskedEmail,
-    super.errorMessage,
-  }) : super(
-          status: AuthStatus.unverifiedEmail,
-          name: email,
-        );
+    this.photoUrl,
+    required this.resumeToMain,
+  }) : super(status: AuthStatus.authenticated, name: name);
 
   @override
-  List<Object?> get props => [email, maskedEmail, status, errorMessage];
-}
-
-class AuthVerificationResentSuccess extends AuthState {
-  final String email;
-  final String maskedEmail;
-
-  const AuthVerificationResentSuccess({
-    required this.email,
-    required this.maskedEmail,
-  }) : super(status: AuthStatus.unverifiedEmail, name: email);
-
-  @override
-  List<Object?> get props => [email, maskedEmail, status];
-}
-
-class AuthGuestMode extends AuthState {
-  const AuthGuestMode()
-      : super(status: AuthStatus.unauthenticated, name: 'Guest');
+  List<Object?> get props => [name, email, photoUrl, resumeToMain, status];
 }
 
 class AuthErrorState extends AuthState {

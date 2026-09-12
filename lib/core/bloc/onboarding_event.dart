@@ -25,6 +25,5 @@ class OnboardingSubmitPressed extends OnboardingEvent {
   });
 
   @override
-  List<Object> get props =>
-      [fullName, age, gender, address, role, userId];
+  List<Object> get props => [fullName, age, gender, address, role, userId];
 }

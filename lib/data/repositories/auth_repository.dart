@@ -1,12 +1,41 @@
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vidhai/core/error/app_error.dart';
+
+class GoogleSignInResult {
+  final String uid;
+  final String email;
+  final String displayName;
+  final String? photoUrl;
+  final bool onboardingComplete;
+
+  const GoogleSignInResult({
+    required this.uid,
+    required this.email,
+    required this.displayName,
+    this.photoUrl,
+    required this.onboardingComplete,
+  });
+}
 
 class AuthRepository {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  /// Web (server) OAuth client from android/app/google-services.json
+  /// (client_type: 3). Used as the serverClientId for the Google Credential
+  /// Manager ID-token request. Do NOT replace with an Android client id.
+  static const String _googleWebClientId =
+      '750262338889-cjg5g8jovjsu5igfp22c8c7nhcr26bud.apps.googleusercontent.com';
+
+  /// Single shared Google Sign-In instance. Everything (the login screen and
+  /// sign-out) routes through this one instance so no duplicate plumbing exists.
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  bool _googleSignInInitialized = false;
 
   User? get currentUser => _firebaseAuth.currentUser;
   bool get isLoggedIn => _firebaseAuth.currentUser != null;
@@ -21,219 +50,181 @@ class AuthRepository {
     }
   }
 
-  Future<Map<String, dynamic>?> checkEmailExists(String email) async {
+  /// Signs in with Google.
+  ///
+  /// The flow is the standard 7.x google_sign_in flow:
+  ///   initialize() exactly once -> authenticate() (Android account chooser)
+  ///   -> obtain idToken -> FirebaseAuth.signInWithCredential()
+  ///   -> sync Google profile to Firestore `users/{uid}` (merge semantics).
+  ///
+  /// Real errors are logged locally (type/code/description, never tokens); the
+  /// user only ever sees a clean, localized message.
+  Future<GoogleSignInResult> signInWithGoogle() async {
     try {
-      final snapshot = await _firestore
-          .collection('users')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-      if (snapshot.docs.isNotEmpty) {
-        return snapshot.docs.first.data();
-      }
-      return null;
-    } on FirebaseException {
-      return null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> registerEmail(String email) async {
-    final tempPassword = _generateTempPassword();
-
-    try {
-      final credential = await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: tempPassword,
-      );
-
-      try {
-        await _firestore.collection('users').doc(credential.user!.uid).set({
-          'uid': credential.user!.uid,
-          'email': email,
-          'displayName': '',
-          'role': '',
-          'isEmailVerified': false,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      } on FirebaseException {
-        // Firestore write failed — proceed; onboarding will create doc later.
-      }
-
-      // Send real Firebase verification email (sends an actual email with link)
-      try {
-        await credential.user!.sendEmailVerification();
-      } on FirebaseAuthException {
-        // Non-critical; user can resend later.
-      }
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-        // Email exists — sign in anonymously to get a user handle for verification
-        final existing = await checkEmailExists(email);
-        if (existing != null && existing['isEmailVerified'] == true) {
-          return;
-        }
-        // Try to sign in to this account to send verification
-        await _signInOrCreateForVerification(email, tempPassword);
-        return;
-      }
-      if (e.code == 'invalid-email') {
-        throw AppError(
-          message: 'Please enter a valid email address.',
-          prefix: 'AuthError',
+      if (!_googleSignInInitialized) {
+        await _googleSignIn.initialize(
+          serverClientId: _googleWebClientId,
         );
+        _googleSignInInitialized = true;
       }
-      if (e.code == 'operation-not-allowed') {
-        throw AppError(
-          message:
-              'Email sign-up is not available right now. Please try again later.',
-          prefix: 'AuthError',
-        );
-      }
-      throw AppError(
-        message: _getAuthErrorMessage(e),
-        prefix: 'AuthError',
-      );
-    } catch (e) {
-      if (e is AppError) rethrow;
-      throw AppError(
-        message: 'Something went wrong. Please try again.',
-        prefix: 'AuthError',
-      );
-    }
-  }
 
-  Future<void> _signInOrCreateForVerification(
-      String email, String password) async {
-    try {
-      // Sign in to send verification email
-      final credential = await _firebaseAuth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      if (credential.user != null && !credential.user!.emailVerified) {
-        await credential.user!.sendEmailVerification();
-      }
-    } on FirebaseAuthException {
-      // If sign-in fails (e.g. wrong password for existing account),
-      // the user account exists but we can't access it. The verification
-      // flow will still work via polling if they already have a user session.
-    } catch (_) {
-      // Non-critical
-    }
-  }
+      // Presents the Android Google account chooser on every fresh sign-in.
+      final GoogleSignInAccount account = await _googleSignIn.authenticate();
 
-  Future<bool> checkIfEmailVerified() async {
-    try {
-      final user = _firebaseAuth.currentUser;
-      if (user == null) return false;
-      await user.reload();
-      if (user.emailVerified) {
-        // Update Firestore
-        try {
-          await _firestore.collection('users').doc(user.uid).set({
-            'isEmailVerified': true,
-          }, SetOptions(merge: true));
-        } on FirebaseException {
-          // Non-critical
-        }
-        return true;
+      final GoogleSignInAuthentication googleAuth = account.authentication;
+      final String? idToken = googleAuth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        debugPrint('GoogleSignIn missing idToken from authenticate()');
+        throw AppError(message: 'google-sign-in-config-error');
       }
-      return false;
-    } catch (_) {
-      return false;
-    }
-  }
 
-  Future<void> sendVerificationEmail() async {
-    try {
-      final user = _firebaseAuth.currentUser;
-      if (user != null && !user.emailVerified) {
-        await user.sendEmailVerification();
+      final AuthCredential credential =
+          GoogleAuthProvider.credential(idToken: idToken);
+      final UserCredential userCredential =
+          await _firebaseAuth.signInWithCredential(credential);
+      final User? user = userCredential.user;
+      if (user == null) {
+        throw AppError(message: 'google-sign-in-failed');
       }
-    } on FirebaseAuthException {
-      // Rate limited or other error
-      throw AppError(
-        message: 'Could not send verification email. Please try again in a moment.',
-        prefix: 'AuthError',
-      );
-    } catch (_) {
-      throw AppError(
-        message: 'Could not send verification email. Please try again.',
-        prefix: 'AuthError',
-      );
-    }
-  }
 
-  Future<void> saveSession({
-    required String email,
-    required String displayName,
-    required String role,
-    required bool isEmailVerified,
-  }) async {
-    try {
+      final uid = user.uid;
+      final email = user.email ?? '';
+      final displayName = user.displayName ?? '';
+      final photoUrl = user.photoURL;
+
+      Map<String, dynamic>? existingDoc;
+      try {
+        final snapshot = await _firestore.collection('users').doc(uid).get();
+        if (snapshot.exists) existingDoc = snapshot.data();
+      } catch (_) {
+        // Firestore read failed; continue as a new-user merge below.
+      }
+
+      final existingUser = existingDoc != null &&
+          ((existingDoc['displayName'] as String?) ?? '').isNotEmpty;
+      final role = existingUser ? ((existingDoc['role'] as String?) ?? '') : '';
+
+      // Sync Google account info to Firestore (merge keeps onboarded data).
+      final data = <String, dynamic>{
+        'uid': uid,
+        'email': email,
+        'displayName': displayName,
+        'role': role,
+        'isEmailVerified': true,
+        'authProvider': 'google',
+        'lastLoginAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (photoUrl != null && photoUrl.isNotEmpty) {
+        data['photoUrl'] = photoUrl;
+      }
+      if (existingDoc == null) {
+        data['createdAt'] = FieldValue.serverTimestamp();
+      }
+      try {
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .set(data, SetOptions(merge: true));
+      } catch (_) {
+        // Firestore write failed; the local session below is the fallback.
+      }
+
       final prefs = await SharedPreferences.getInstance();
-      final uid = _firebaseAuth.currentUser?.uid ?? '';
       await prefs.setString('user_uid', uid);
       await prefs.setString('user_email', email);
       await prefs.setString('user_display_name', displayName);
-      await prefs.setString('selected_domain', role);
-      await prefs.setBool('user_is_email_verified', isEmailVerified);
-    } catch (_) {
-      throw AppError(
-        message: 'Failed to save session. Please try again.',
-        prefix: 'SessionError',
+      if (role.isNotEmpty) await prefs.setString('selected_domain', role);
+      await prefs.setBool('user_is_email_verified', true);
+
+      final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+
+      return GoogleSignInResult(
+        uid: uid,
+        email: email,
+        displayName: displayName,
+        photoUrl: photoUrl,
+        onboardingComplete: onboardingComplete,
       );
+    } on GoogleSignInException catch (e) {
+      debugPrint(
+          'GoogleSignIn GoogleSignInException code=${e.code.name} description=${e.description} details=${e.details}');
+      throw AppError(
+          message: _classifyGoogleSignException(e.code, e.description));
+    } on FirebaseAuthException catch (e) {
+      debugPrint(
+          'GoogleSignIn FirebaseAuthException type=${e.runtimeType} code=${e.code} msg=${e.message} credential=${e.credential?.providerId}');
+      throw AppError(message: _classifyFirebaseSignInError(e.code));
+    } on PlatformException catch (e) {
+      debugPrint(
+          'GoogleSignIn PlatformException type=${e.runtimeType} code=${e.code} details=${e.details}');
+      throw AppError(message: _classifyPlatformSignInError(e.code));
+    } on AppError {
+      rethrow;
+    } catch (e) {
+      debugPrint('GoogleSignIn unknown error type=${e.runtimeType} error=$e');
+      throw AppError(message: 'google-sign-in-failed');
     }
   }
 
-  Future<void> saveGuestSession({required String email}) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_email', email);
-      await prefs.setBool('email_skipped', true);
-      await prefs.setBool('user_is_email_verified', false);
-    } catch (_) {
-      throw AppError(
-        message: 'Failed to save session. Please try again.',
-        prefix: 'SessionError',
-      );
+  String _classifyGoogleSignException(
+      GoogleSignInExceptionCode code, String? description) {
+    final desc = (description ?? '').toLowerCase();
+    switch (code) {
+      case GoogleSignInExceptionCode.canceled:
+      case GoogleSignInExceptionCode.interrupted:
+      case GoogleSignInExceptionCode.uiUnavailable:
+        return 'google-sign-in-cancelled';
+      case GoogleSignInExceptionCode.clientConfigurationError:
+      case GoogleSignInExceptionCode.providerConfigurationError:
+        return 'google-sign-in-config-error';
+      case GoogleSignInExceptionCode.userMismatch:
+        return 'google-sign-in-failed';
+      case GoogleSignInExceptionCode.unknownError:
+        if (desc.contains('network') || desc.contains('host')) {
+          return 'network-error';
+        }
+        return 'google-sign-in-failed';
     }
   }
 
-  Future<void> saveProfileToFirestore({
-    required String email,
-    required String fullName,
-    required int age,
-    required String gender,
-    required String address,
-    required String role,
-  }) async {
-    final uid = _firebaseAuth.currentUser?.uid;
-    if (uid == null) return;
+  String _classifyFirebaseSignInError(String code) {
+    switch (code) {
+      case 'popup-closed-by-user':
+      case 'cancelled-popup-request':
+      case 'canceled':
+      case 'user-cancelled':
+        return 'google-sign-in-cancelled';
+      case 'network-request-failed':
+      case 'network-error':
+        return 'network-error';
+      case 'operation-not-allowed':
+        return 'google-sign-in-not-enabled';
+      case 'internal-error':
+        return 'google-sign-in-config-error';
+      case 'invalid-credential':
+        return 'google-sign-in-config-error';
+      default:
+        return 'google-sign-in-failed';
+    }
+  }
 
-    try {
-      await _firestore.collection('users').doc(uid).set({
-        'uid': uid,
-        'email': email,
-        'displayName': fullName,
-        'age': age,
-        'gender': gender,
-        'address': address,
-        'role': role,
-        'isEmailVerified': true,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_display_name', fullName);
-      await prefs.setString('selected_domain', role);
-    } catch (_) {
-      throw AppError(
-        message: 'Failed to save profile. Please try again.',
-        prefix: 'ProfileError',
-      );
+  String _classifyPlatformSignInError(String code) {
+    switch (code) {
+      case 'sign_in_cancelled':
+      case 'canceled':
+        return 'google-sign-in-cancelled';
+      case 'network_error':
+        return 'network-error';
+      case '10':
+      case '12500':
+      case '12501':
+      case 'internal_error':
+      case '4':
+      case 'developer_error':
+        return 'google-sign-in-config-error';
+      default:
+        return 'google-sign-in-failed';
     }
   }
 
@@ -279,35 +270,21 @@ class AuthRepository {
     }
   }
 
-  Future<void> saveFarmData({
-    required List<Map<String, dynamic>> farms,
-  }) async {
-    final uid = _firebaseAuth.currentUser?.uid;
-    if (uid == null) return;
-
-    try {
-      await _firestore.collection('users').doc(uid).set({
-        'farms': farms,
-        'numberOfFarms': farms.length,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    } catch (_) {
-      throw AppError(
-        message: 'Failed to save farm data. Please try again.',
-        prefix: 'FarmError',
-      );
-    }
-  }
-
   Future<void> logout() async {
     try {
+      if (_googleSignInInitialized) {
+        try {
+          await _googleSignIn.signOut();
+        } catch (e) {
+          debugPrint('GoogleSignIn signOut failed: $e');
+        }
+      }
       await _firebaseAuth.signOut();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('user_uid');
       await prefs.remove('user_email');
       await prefs.remove('user_display_name');
       await prefs.remove('user_is_email_verified');
-      await prefs.remove('email_skipped');
       await prefs.setBool('onboarding_complete', false);
       await prefs.remove('cached_farms');
       await prefs.remove('cached_profile');
@@ -316,36 +293,6 @@ class AuthRepository {
         message: 'Failed to log out. Please try again.',
         prefix: 'AuthError',
       );
-    }
-  }
-
-  String _generateTempPassword() {
-    final random = Random.secure();
-    final chars =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#\$%^&*';
-    return List.generate(16, (_) => chars[random.nextInt(chars.length)]).join();
-  }
-
-  String _getAuthErrorMessage(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'user-not-found':
-        return 'No user found with this email.';
-      case 'wrong-password':
-        return 'Wrong password provided.';
-      case 'user-disabled':
-        return 'This account has been disabled.';
-      case 'invalid-email':
-        return 'Please enter a valid email address.';
-      case 'weak-password':
-        return 'Password is too weak.';
-      case 'email-already-in-use':
-        return 'An account already exists with this email.';
-      case 'operation-not-allowed':
-        return 'Email sign-up is not available right now. Please try again later.';
-      case 'too-many-requests':
-        return 'Too many attempts. Please try again later.';
-      default:
-        return 'Something went wrong. Please try again.';
     }
   }
 }

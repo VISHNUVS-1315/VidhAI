@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/farm_records.dart';
 import 'package:vidhai/services/data_service.dart';
+import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class PesticideScreen extends StatefulWidget {
   final String farmId;
@@ -17,10 +20,7 @@ class _PesticideScreenState extends State<PesticideScreen> {
   List<PesticideRecord> _records = [];
   bool _isLoading = true;
 
-  static const Color _bgColor = Color(0xFF0A0F1A);
-  static const Color _cardColor = Color(0xFF111827);
-  static const Color _greenAccent = Color(0xFF4CAF50);
-  static const Color _dangerColor = Color(0xFFEF4444);
+  VidhAIColorsX get _colors => VidhAIColorsX(context);
 
   @override
   void didChangeDependencies() {
@@ -44,30 +44,33 @@ class _PesticideScreenState extends State<PesticideScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: _colors.bg,
       appBar: AppBar(
-        backgroundColor: _bgColor,
+        backgroundColor: _colors.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: Icon(directionalIcon(context, Icons.arrow_back_ios),
+              color: _colors.onBackground, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Pesticide Records',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        title: Text(
+          loc.pesticideRecords,
+          style: TextStyle(
+              color: _colors.onBackground, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: _greenAccent,
+        backgroundColor: _colors.brandDeep,
         onPressed: () => _showForm(),
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _greenAccent))
+          ? Center(child: CircularProgressIndicator(color: _colors.brandDeep))
           : RefreshIndicator(
-              color: _greenAccent,
+              color: _colors.brandDeep,
               onRefresh: _loadRecords,
               child: _records.isEmpty
                   ? _buildEmptyState()
@@ -81,15 +84,16 @@ class _PesticideScreenState extends State<PesticideScreen> {
   }
 
   Widget _buildItem(PesticideRecord record) {
+    final loc = AppLocalizations.of(context);
     return Dismissible(
       key: Key(record.id),
       direction: DismissDirection.endToStart,
       background: Container(
-        alignment: Alignment.centerRight,
+        alignment: AlignmentDirectional.centerEnd,
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsetsDirectional.only(end: 20),
         decoration: BoxDecoration(
-          color: _dangerColor,
+          color: _colors.danger,
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Icon(Icons.delete, color: Colors.white),
@@ -99,9 +103,9 @@ class _PesticideScreenState extends State<PesticideScreen> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: _cardColor,
+          color: _colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+          border: Border.all(color: _colors.borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,8 +132,8 @@ class _PesticideScreenState extends State<PesticideScreen> {
                     children: [
                       Text(
                         record.productName,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: _colors.onBackground,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -140,7 +144,7 @@ class _PesticideScreenState extends State<PesticideScreen> {
                       Text(
                         _formatDate(record.date),
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
+                          color: _colors.onSurfaceMuted,
                           fontSize: 11,
                         ),
                       ),
@@ -154,11 +158,11 @@ class _PesticideScreenState extends State<PesticideScreen> {
               spacing: 8,
               runSpacing: 6,
               children: [
-                _infoChip(Icons.straighten, 'Qty', record.quantity),
-                _infoChip(Icons.landscape, 'Area', record.applicationArea),
-                _infoChip(Icons.track_changes, 'Purpose', record.purpose),
+                _infoChip(Icons.straighten, loc.qty, record.quantity),
+                _infoChip(Icons.landscape, loc.area, record.applicationArea),
+                _infoChip(Icons.track_changes, loc.purpose, record.purpose),
                 if (record.crop != null && record.crop!.isNotEmpty)
-                  _infoChip(Icons.eco, 'Crop', record.crop!),
+                  _infoChip(Icons.eco, loc.crop, record.crop!),
               ],
             ),
             if (record.notes != null && record.notes!.isNotEmpty) ...[
@@ -166,7 +170,7 @@ class _PesticideScreenState extends State<PesticideScreen> {
               Text(
                 record.notes!,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.45),
+                  color: _colors.onSurfaceMuted,
                   fontSize: 12,
                 ),
                 maxLines: 2,
@@ -183,19 +187,19 @@ class _PesticideScreenState extends State<PesticideScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: _colors.surfaceMuted,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: Colors.white.withValues(alpha: 0.4)),
+          Icon(icon, size: 12, color: _colors.onSurfaceMuted),
           const SizedBox(width: 4),
           Flexible(
             child: Text(
               '$label: $value',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
+                color: _colors.onSurfaceMuted,
                 fontSize: 11,
               ),
               maxLines: 1,
@@ -208,25 +212,29 @@ class _PesticideScreenState extends State<PesticideScreen> {
   }
 
   Future<bool?> _confirmDelete(PesticideRecord record) {
+    final loc = AppLocalizations.of(context);
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: _cardColor,
+        backgroundColor: _colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Delete Record',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        title: Text(
+          loc.deleteRecord,
+          style: TextStyle(
+              color: _colors.onBackground, fontWeight: FontWeight.w600),
         ),
         content: Text(
-          'Delete pesticide record for "${record.productName}"?',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+          loc
+              .t('delete_pesticide_record_confirm')
+              .replaceAll('{product}', record.productName),
+          style: TextStyle(color: _colors.onBackground, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              loc.cancel,
+              style: TextStyle(color: _colors.onSurfaceMuted),
             ),
           ),
           TextButton(
@@ -237,7 +245,7 @@ class _PesticideScreenState extends State<PesticideScreen> {
               }
               _loadRecords();
             },
-            child: const Text('Delete', style: TextStyle(color: _dangerColor)),
+            child: Text(loc.delete, style: TextStyle(color: _colors.danger)),
           ),
         ],
       ),
@@ -245,6 +253,7 @@ class _PesticideScreenState extends State<PesticideScreen> {
   }
 
   void _showForm({PesticideRecord? existing}) {
+    final loc = AppLocalizations.of(context);
     final nameCtrl = TextEditingController(text: existing?.productName ?? '');
     final dateCtrl = TextEditingController(
       text: existing != null ? _formatDate(existing.date) : '',
@@ -268,9 +277,10 @@ class _PesticideScreenState extends State<PesticideScreen> {
             height: MediaQuery.of(context).viewInsets.bottom > 0
                 ? MediaQuery.of(context).size.height * 0.9
                 : MediaQuery.of(context).size.height * 0.8,
-            decoration: const BoxDecoration(
-              color: _bgColor,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            decoration: BoxDecoration(
+              color: _colors.bg,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
               children: [
@@ -279,7 +289,7 @@ class _PesticideScreenState extends State<PesticideScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: _colors.borderColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -289,39 +299,39 @@ class _PesticideScreenState extends State<PesticideScreen> {
                     children: [
                       Text(
                         existing != null
-                            ? 'Edit Pesticide Record'
-                            : 'Add Pesticide Record',
-                        style: const TextStyle(
-                          color: Colors.white,
+                            ? loc.editPesticideRecord
+                            : loc.addPesticideRecord,
+                        style: TextStyle(
+                          color: _colors.onBackground,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white54),
+                        icon: Icon(Icons.close, color: _colors.onSurfaceMuted),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
                   ),
                 ),
-                const Divider(color: Colors.white10, height: 1),
+                Divider(color: _colors.borderColor, height: 1),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _label('Product Name'),
+                        _label(loc.productName),
                         const SizedBox(height: 8),
-                        _input(nameCtrl, 'e.g. Cypermethrin 25 EC'),
+                        _input(nameCtrl, loc.hintProductNamePesticide),
                         const SizedBox(height: 16),
-                        _label('Date'),
+                        _label(loc.date),
                         const SizedBox(height: 8),
                         TextField(
                           controller: dateCtrl,
                           readOnly: true,
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: _colors.onBackground),
                           onTap: () async {
                             final picked = await showDatePicker(
                               context: ctx,
@@ -331,11 +341,12 @@ class _PesticideScreenState extends State<PesticideScreen> {
                               builder: (context, child) {
                                 return Theme(
                                   data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.dark(
-                                      primary: _greenAccent,
-                                      surface: _cardColor,
+                                    colorScheme: ColorScheme.dark(
+                                      primary: _colors.brandDeep,
+                                      surface: _colors.surface,
                                     ),
-                                    dialogBackgroundColor: _cardColor,
+                                    dialogTheme: DialogThemeData(
+                                        backgroundColor: _colors.surface),
                                   ),
                                   child: child!,
                                 );
@@ -348,32 +359,32 @@ class _PesticideScreenState extends State<PesticideScreen> {
                               });
                             }
                           },
-                          decoration: _inputDecoration('Select date'),
+                          decoration: _inputDecoration(loc.selectDate),
                         ),
                         const SizedBox(height: 16),
-                        _label('Quantity'),
+                        _label(loc.quantity),
                         const SizedBox(height: 8),
-                        _input(qtyCtrl, 'e.g. 500 ml'),
+                        _input(qtyCtrl, loc.hintQuantityMl),
                         const SizedBox(height: 16),
-                        _label('Application Area'),
+                        _label(loc.applicationArea),
                         const SizedBox(height: 8),
-                        _input(areaCtrl, 'e.g. 2 acres, North Field'),
+                        _input(areaCtrl, loc.hintApplicationArea),
                         const SizedBox(height: 16),
-                        _label('Purpose'),
+                        _label(loc.purpose),
                         const SizedBox(height: 8),
-                        _input(purposeCtrl, 'e.g. Aphid control'),
+                        _input(purposeCtrl, loc.hintPurpose),
                         const SizedBox(height: 16),
-                        _label('Crop (optional)'),
+                        _label(loc.cropOptional),
                         const SizedBox(height: 8),
-                        _input(cropCtrl, 'e.g. Wheat, Rice'),
+                        _input(cropCtrl, loc.hintCropWheatRice),
                         const SizedBox(height: 16),
-                        _label('Notes (optional)'),
+                        _label(loc.notesOptional),
                         const SizedBox(height: 8),
                         TextField(
                           controller: notesCtrl,
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: _colors.onBackground),
                           maxLines: 3,
-                          decoration: _inputDecoration('Additional notes'),
+                          decoration: _inputDecoration(loc.hintNotes),
                         ),
                       ],
                     ),
@@ -401,9 +412,8 @@ class _PesticideScreenState extends State<PesticideScreen> {
                             quantity: qtyCtrl.text,
                             applicationArea: areaCtrl.text,
                             purpose: purposeCtrl.text,
-                            crop: cropCtrl.text.isNotEmpty
-                                ? cropCtrl.text
-                                : null,
+                            crop:
+                                cropCtrl.text.isNotEmpty ? cropCtrl.text : null,
                             notes: notesCtrl.text.isNotEmpty
                                 ? notesCtrl.text
                                 : null,
@@ -418,9 +428,8 @@ class _PesticideScreenState extends State<PesticideScreen> {
                             quantity: qtyCtrl.text,
                             applicationArea: areaCtrl.text,
                             purpose: purposeCtrl.text,
-                            crop: cropCtrl.text.isNotEmpty
-                                ? cropCtrl.text
-                                : null,
+                            crop:
+                                cropCtrl.text.isNotEmpty ? cropCtrl.text : null,
                             notes: notesCtrl.text.isNotEmpty
                                 ? notesCtrl.text
                                 : null,
@@ -433,13 +442,13 @@ class _PesticideScreenState extends State<PesticideScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _greenAccent,
+                        backgroundColor: _colors.brandDeep,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: Text(
-                        existing != null ? 'Update' : 'Save',
+                        existing != null ? loc.update : loc.save,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -460,8 +469,8 @@ class _PesticideScreenState extends State<PesticideScreen> {
   Widget _label(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        color: Colors.white70,
+      style: TextStyle(
+        color: _colors.onBackground,
         fontSize: 13,
         fontWeight: FontWeight.w500,
       ),
@@ -471,7 +480,7 @@ class _PesticideScreenState extends State<PesticideScreen> {
   Widget _input(TextEditingController ctrl, String hint) {
     return TextField(
       controller: ctrl,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: _colors.onBackground),
       decoration: _inputDecoration(hint),
     );
   }
@@ -479,9 +488,9 @@ class _PesticideScreenState extends State<PesticideScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+      hintStyle: TextStyle(color: _colors.onSurfaceMuted),
       filled: true,
-      fillColor: _cardColor,
+      fillColor: _colors.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide.none,
@@ -491,6 +500,7 @@ class _PesticideScreenState extends State<PesticideScreen> {
   }
 
   Widget _buildEmptyState() {
+    final loc = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -499,23 +509,23 @@ class _PesticideScreenState extends State<PesticideScreen> {
           children: [
             Icon(
               Icons.bug_report,
-              color: Colors.white.withValues(alpha: 0.15),
+              color: _colors.onSurfaceMuted,
               size: 64,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No pesticide records',
+            Text(
+              loc.noPesticideRecords,
               style: TextStyle(
-                color: Colors.white,
+                color: _colors.onBackground,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Track pesticide applications by tapping the + button.',
+              loc.trackPesticideApplications,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
+                color: _colors.onSurfaceMuted,
                 fontSize: 15,
               ),
               textAlign: TextAlign.center,

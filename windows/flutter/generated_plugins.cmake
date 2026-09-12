@@ -3,17 +3,23 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  audioplayers_windows
   cloud_firestore
   connectivity_plus
   file_selector_windows
   firebase_auth
   firebase_core
+  flutter_tts
   geolocator_windows
   permission_handler_windows
+  record_windows
+  share_plus
   speech_to_text_windows
+  url_launcher_windows
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
+  jni
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

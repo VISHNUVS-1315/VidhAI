@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:vidhai/services/weather_service.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
+import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class WeatherDetailsScreen extends StatefulWidget {
   final String farmName;
@@ -45,34 +48,37 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1A),
+      backgroundColor: colors.bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0F1A),
+        backgroundColor: colors.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: Icon(directionalIcon(context, Icons.arrow_back_ios),
+              color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.farmName,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
+          ? Center(child: CircularProgressIndicator(color: colors.brandDeep))
           : _weather == null
               ? Center(
                   child: Text(
-                    'Weather data unavailable',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                    loc.weatherDataUnavailable,
+                    style: TextStyle(color: colors.onSurfaceMuted),
                   ),
                 )
               : RefreshIndicator(
                   onRefresh: _loadWeather,
-                  color: const Color(0xFF4CAF50),
+                  color: colors.brandDeep,
                   child: ListView(
                     padding: const EdgeInsets.all(20),
                     children: [
@@ -81,10 +87,10 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
                       _buildDetailGrid(),
                       const SizedBox(height: 20),
                       if (_weather!.hourly.isNotEmpty) ...[
-                        const Text(
-                          'Hourly Forecast',
+                        Text(
+                          loc.hourlyForecastHeading,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: colors.onBackground,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -94,10 +100,10 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
                       ],
                       const SizedBox(height: 20),
                       if (_weather!.daily.isNotEmpty) ...[
-                        const Text(
-                          '7-Day Forecast',
+                        Text(
+                          loc.dailyForecastHeading,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: colors.onBackground,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -107,9 +113,9 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
                       ],
                       const SizedBox(height: 12),
                       Text(
-                        'Last updated: ${_formatTime(_weather!.timestamp)}',
+                        '${loc.weatherLastUpdated} ${_formatTime(_weather!.timestamp)}',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: colors.onSurfaceMuted,
                           fontSize: 12,
                         ),
                         textAlign: TextAlign.center,
@@ -121,14 +127,16 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
   }
 
   Widget _buildCurrentWeather() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     final w = _weather!;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF1B5E20).withValues(alpha: 0.8),
-            const Color(0xFF2E7D32).withValues(alpha: 0.6),
+            colors.brandDeep.withValues(alpha: 0.8),
+            colors.brandDeep.withValues(alpha: 0.6),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
@@ -142,8 +150,8 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
           const SizedBox(height: 8),
           Text(
             '${w.temperature.round()}°C',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colors.onBackground,
               fontSize: 52,
               fontWeight: FontWeight.bold,
             ),
@@ -151,15 +159,15 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
           Text(
             w.condition,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: colors.onSurfaceMuted,
               fontSize: 16,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Feels like ${w.feelsLike.round()}°C',
+            '${loc.weatherFeelsLike} ${w.feelsLike.round()}°C',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: colors.onSurfaceMuted,
               fontSize: 14,
             ),
           ),
@@ -169,16 +177,21 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
   }
 
   Widget _buildDetailGrid() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     final w = _weather!;
     final items = [
-      _DetailItem(Icons.water_drop_outlined, 'Humidity', '${w.humidity}%'),
-      _DetailItem(Icons.air, 'Wind', '${w.windSpeed.round()} km/h'),
-      _DetailItem(Icons.navigation_rounded, 'Direction',
+      _DetailItem(
+          Icons.water_drop_outlined, loc.weatherHumidity, '${w.humidity}%'),
+      _DetailItem(Icons.air, loc.weatherWind, '${w.windSpeed.round()} km/h'),
+      _DetailItem(Icons.navigation_rounded, loc.weatherDirection,
           WeatherData.windDirectionLabel(w.windDirection)),
-      _DetailItem(Icons.compress, 'Pressure', '${w.pressure.round()} hPa'),
-      _DetailItem(Icons.speed, 'Gusts', '${w.windGusts.round()} km/h'),
+      _DetailItem(
+          Icons.compress, loc.weatherPressure, '${w.pressure.round()} hPa'),
+      _DetailItem(Icons.speed, loc.weatherGusts, '${w.windGusts.round()} km/h'),
       if (w.precipitation != null)
-        _DetailItem(Icons.umbrella, 'Rain', '${w.precipitation!.round()} mm'),
+        _DetailItem(
+            Icons.umbrella, loc.weatherRain, '${w.precipitation!.round()} mm'),
     ];
 
     return GridView.count(
@@ -192,19 +205,18 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
           .map((item) => Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF111827),
+                  color: colors.surface,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(item.icon,
-                        color: const Color(0xFF4CAF50), size: 18),
+                    Icon(item.icon, color: colors.brandDeep, size: 18),
                     const SizedBox(height: 6),
                     Text(
                       item.value,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colors.onBackground,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -212,7 +224,7 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
                     Text(
                       item.label,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: colors.onSurfaceMuted,
                         fontSize: 10,
                       ),
                     ),
@@ -224,6 +236,8 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
   }
 
   Widget _buildHourlyForecast() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return SizedBox(
       height: 100,
       child: ListView.builder(
@@ -232,35 +246,37 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
         itemBuilder: (context, i) {
           final h = _weather!.hourly[i];
           final hour = h.time.hour;
-          final label = hour == DateTime.now().hour ? 'Now' : '${hour.toString().padLeft(2, '0')}:00';
+          final label = hour == DateTime.now().hour
+              ? loc.weatherHourNow
+              : '${hour.toString().padLeft(2, '0')}:00';
           return Container(
             width: 64,
-            margin: const EdgeInsets.only(right: 8),
+            margin: const EdgeInsetsDirectional.only(end: 8),
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               color: hour == DateTime.now().hour
-                  ? const Color(0xFF4CAF50).withValues(alpha: 0.2)
-                  : const Color(0xFF111827),
+                  ? colors.brandDeep.withValues(alpha: 0.2)
+                  : colors.surface,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: hour == DateTime.now().hour
-                    ? const Color(0xFF4CAF50).withValues(alpha: 0.3)
-                    : Colors.white.withValues(alpha: 0.04),
+                    ? colors.brandDeep.withValues(alpha: 0.3)
+                    : colors.borderColor,
               ),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(label,
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
+                    style:
+                        TextStyle(color: colors.onSurfaceMuted, fontSize: 11)),
                 const SizedBox(height: 4),
                 Text(WeatherData.weatherIcon(h.weatherCode),
                     style: const TextStyle(fontSize: 18)),
                 const SizedBox(height: 4),
                 Text('${h.temperature.round()}°',
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: colors.onBackground,
                         fontSize: 14,
                         fontWeight: FontWeight.bold)),
               ],
@@ -272,12 +288,14 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
   }
 
   Widget _buildDailyItem(DailyForecast d) {
-    final dayName = _dayName(d.date);
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    final dayName = _dayName(d.date, loc);
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF111827),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -285,23 +303,27 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
           SizedBox(
             width: 50,
             child: Text(dayName,
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
+                style: TextStyle(color: colors.onSurfaceMuted, fontSize: 13)),
           ),
           Text(WeatherData.weatherIcon(d.weatherCode),
               style: const TextStyle(fontSize: 20)),
           const SizedBox(width: 10),
           Text('${d.maxTemp.round()}°',
-              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                  color: colors.onBackground,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold)),
           Text(' / ${d.minTemp.round()}°',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13)),
+              style: TextStyle(color: colors.onSurfaceMuted, fontSize: 13)),
           const Spacer(),
           if (d.precipitationSum > 0)
             Row(
               children: [
-                Icon(Icons.umbrella, color: Colors.white.withValues(alpha: 0.4), size: 14),
+                Icon(Icons.umbrella, color: colors.onSurfaceMuted, size: 14),
                 const SizedBox(width: 3),
                 Text('${d.precipitationSum.round()}mm',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11)),
+                    style:
+                        TextStyle(color: colors.onSurfaceMuted, fontSize: 11)),
               ],
             ),
         ],
@@ -309,12 +331,21 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
     );
   }
 
-  String _dayName(DateTime date) {
+  String _dayName(DateTime date, AppLocalizations loc) {
     final now = DateTime.now();
-    if (date.day == now.day && date.month == now.month) return 'Today';
-    if (date.day == now.day + 1) return 'Tomorrow';
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days[date.weekday - 1];
+    if (date.day == now.day && date.month == now.month) {
+      return loc.weatherDayToday;
+    }
+    if (date.day == now.day + 1) return loc.weatherDayTomorrow;
+    return [
+      loc.weekdayMon,
+      loc.weekdayTue,
+      loc.weekdayWed,
+      loc.weekdayThu,
+      loc.weekdayFri,
+      loc.weekdaySat,
+      loc.weekdaySun
+    ][date.weekday - 1];
   }
 
   String _formatTime(DateTime time) {

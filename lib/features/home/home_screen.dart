@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:vidhai/core/bloc/auth_bloc.dart';
 import 'package:vidhai/core/bloc/auth_state.dart';
+import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -9,10 +11,11 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('VidhAI Dashboard'),
+        title: Text(loc.t('dashboard')),
         centerTitle: true,
         actions: [
           IconButton(
@@ -26,13 +29,15 @@ class HomeScreen extends StatelessWidget {
       body: Center(
         child: authState is AuthAuthenticated
             ? _buildDashboard(context)
-            : const Text('Please complete onboarding first'),
+            : Text(loc.completeOnboarding),
       ),
     );
   }
 
   Widget _buildDashboard(BuildContext context) {
-    final userName = context.watch<AuthBloc>().state.name ?? 'Farmer';
+    final loc = AppLocalizations.of(context);
+    final userName =
+        context.watch<AuthBloc>().state.name ?? loc.defaultUserNameFarmer;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -41,7 +46,7 @@ class HomeScreen extends StatelessWidget {
         children: [
           // Welcome message
           Text(
-            'Welcome, $userName!',
+            loc.helloNamed.replaceFirst('{name}', userName),
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -50,97 +55,108 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 32),
 
           // Quick action cards
-          const Text(
-            'Quick Actions',
-            style: TextStyle(
+          Text(
+            loc.quickActions,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 16),
           _buildQuickActionCard(
+            context,
             icon: Icons.auto_awesome,
-            title: 'AI Quick Action',
+            title: loc.aiQuickAction,
           ),
           _buildQuickActionCard(
+            context,
             icon: Icons.agriculture,
-            title: 'Crop / Plantation Support',
+            title: loc.cropSupport,
           ),
           _buildQuickActionCard(
+            context,
             icon: Icons.bug_report,
-            title: 'Pest & Disease Detection',
+            title: loc.pestDetection,
           ),
           _buildQuickActionCard(
+            context,
             icon: Icons.science,
-            title: 'AI Guidance',
+            title: loc.aiGuidance,
           ),
           const SizedBox(height: 24),
 
           // Market insights
-          const Text(
-            'Market & Price Insights',
-            style: TextStyle(
+          Text(
+            loc.marketInsights,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 16),
           _buildInfoCard(
+            context,
             icon: Icons.show_chart,
-            title: 'Market Prices',
-            subtitle: 'Current crop prices in your area',
+            title: loc.marketPrices,
+            subtitle: loc.t('current_crop_prices'),
           ),
           _buildInfoCard(
+            context,
             icon: Icons.trending_up,
-            title: 'Demand Forecast',
-            subtitle: 'Upcoming demand trends',
+            title: loc.demandForecast,
+            subtitle: loc.t('demand_trends'),
           ),
           const SizedBox(height: 24),
 
           // Community and marketplace
-          const Text(
-            'Community & Marketplace',
-            style: TextStyle(
+          Text(
+            loc.t('community_and_marketplace'),
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 16),
           _buildQuickActionCard(
+            context,
             icon: Icons.people,
-            title: 'Community',
+            title: loc.community,
           ),
           _buildQuickActionCard(
+            context,
             icon: Icons.store,
-            title: 'Marketplace Connection',
+            title: loc.marketplace,
           ),
           const SizedBox(height: 24),
 
           // Farm information and profile
-          const Text(
-            'Your Farm',
-            style: TextStyle(
+          Text(
+            loc.yourFarm,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 16),
           _buildInfoCard(
+            context,
             icon: Icons.agriculture,
-            title: 'Farm Information',
-            subtitle: 'Your farm details and statistics',
+            title: loc.farmInfo,
+            subtitle: loc.t('farm_details_stats'),
           ),
           _buildInfoCard(
+            context,
             icon: Icons.person,
-            title: 'Profile',
-            subtitle: 'View and edit your profile',
+            title: loc.profile,
+            subtitle: loc.t('view_edit_profile'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActionCard({
+  Widget _buildQuickActionCard(
+    BuildContext context, {
     required IconData icon,
     required String title,
   }) {
@@ -149,12 +165,14 @@ class HomeScreen extends StatelessWidget {
       child: ListTile(
         leading: Icon(icon, size: 28),
         title: Text(title),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        trailing:
+            Icon(directionalIcon(context, Icons.arrow_forward_ios), size: 16),
       ),
     );
   }
 
-  Widget _buildInfoCard({
+  Widget _buildInfoCard(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
@@ -165,7 +183,8 @@ class HomeScreen extends StatelessWidget {
         leading: Icon(icon, size: 28),
         title: Text(title),
         subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        trailing:
+            Icon(directionalIcon(context, Icons.arrow_forward_ios), size: 16),
       ),
     );
   }

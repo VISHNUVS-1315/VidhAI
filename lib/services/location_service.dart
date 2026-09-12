@@ -19,7 +19,8 @@ class LocationService {
   Future<List<Placemark>> getPlacemarksFromCoordinates(
       double latitude, double longitude) async {
     try {
-      final placemarks = await _geocoding.placemarkFromCoordinates(latitude, longitude);
+      final placemarks =
+          await _geocoding.placemarkFromCoordinates(latitude, longitude);
       return placemarks;
     } catch (_) {
       return [];
@@ -54,12 +55,10 @@ class LocationService {
         if (pm.subLocality != null && pm.subLocality!.isNotEmpty)
           pm.subLocality!,
         if (pm.locality != null && pm.locality!.isNotEmpty) pm.locality!,
-        if (pm.administrativeArea != null &&
-            pm.administrativeArea!.isNotEmpty)
+        if (pm.administrativeArea != null && pm.administrativeArea!.isNotEmpty)
           pm.administrativeArea!,
         if (pm.country != null && pm.country!.isNotEmpty) pm.country!,
-        if (pm.postalCode != null && pm.postalCode!.isNotEmpty)
-          pm.postalCode!,
+        if (pm.postalCode != null && pm.postalCode!.isNotEmpty) pm.postalCode!,
       ];
 
       final fullAddress = parts.isNotEmpty ? parts.join(', ') : query;
@@ -100,13 +99,11 @@ class LocationService {
             if (pm.street != null && pm.street!.isNotEmpty) pm.street!,
             if (pm.subLocality != null && pm.subLocality!.isNotEmpty)
               pm.subLocality!,
-            if (pm.locality != null && pm.locality!.isNotEmpty)
-              pm.locality!,
+            if (pm.locality != null && pm.locality!.isNotEmpty) pm.locality!,
             if (pm.administrativeArea != null &&
                 pm.administrativeArea!.isNotEmpty)
               pm.administrativeArea!,
-            if (pm.country != null && pm.country!.isNotEmpty)
-              pm.country!,
+            if (pm.country != null && pm.country!.isNotEmpty) pm.country!,
           ];
           results.add(AddressSearchResult(
             displayText: parts.isNotEmpty ? parts.join(', ') : query,

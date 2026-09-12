@@ -3,10 +3,11 @@ enum AIProvider { backend, openai, gemini, ollama, mock }
 class AIConfig {
   final AIProvider provider;
   final String backendUrl;
-  final String? apiKey; // Only used if provider != backend (for local dev/testing)
+  final String?
+      apiKey; // Only used if provider != backend (for local dev/testing)
 
   const AIConfig({
-    this.provider = AIProvider.mock,
+    this.provider = AIProvider.backend,
     this.backendUrl = 'https://vidhai-backend.example.com',
     this.apiKey,
   });

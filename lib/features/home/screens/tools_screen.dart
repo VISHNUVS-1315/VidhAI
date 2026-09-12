@@ -1,39 +1,49 @@
 import 'package:flutter/material.dart';
-import 'package:vidhai/features/tools/screens/pest_detection_screen.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
+import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/features/tools/screens/multi_pest_detection_screen.dart';
 import 'package:vidhai/features/tools/screens/fertilizer_guide_screen.dart';
 import 'package:vidhai/features/tools/screens/market_prices_screen.dart';
 import 'package:vidhai/features/tools/screens/crop_search_screen.dart';
+import 'package:vidhai/features/tools/screens/community_placeholder_screen.dart';
 import 'package:vidhai/features/farm/screens/crop_setup_screen.dart';
-import 'package:vidhai/features/home/screens/ai_chat_screen.dart';
-import 'package:vidhai/features/community/screens/community_feed_screen.dart';
+import 'package:vidhai/features/assistant/assistant_button.dart';
+import 'package:vidhai/features/assistant/assistant_overlay.dart';
+import 'package:vidhai/features/assistant/assistant_session.dart';
 
 class ToolsScreen extends StatelessWidget {
   const ToolsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1A),
+      backgroundColor: colors.bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0F1A),
+        backgroundColor: colors.bg,
         elevation: 0,
-        title: const Text(
-          'Tools',
+        title: Text(
+          loc.tools,
           style: TextStyle(
-            color: Colors.white,
+            color: colors.onBackground,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
+        actions: [
+          const VidhAIAssistantButton(screen: 'tools'),
+          const SizedBox(width: 8),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           Text(
-            'Smart farming utilities at your fingertips',
+            loc.smartFarmingUtilities,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.45),
+              color: colors.onSurfaceMuted,
               fontSize: 13,
             ),
           ),
@@ -48,19 +58,19 @@ class ToolsScreen extends StatelessWidget {
             children: [
               _ToolCard(
                 icon: Icons.bug_report_rounded,
-                title: 'Pest Detection',
-                description: 'Identify pests & diseases with AI',
+                title: loc.pestDetection,
+                description: loc.pestDetectDesc,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const PestDetectionScreen(),
+                    builder: (_) => const MultiPestDetectionScreen(),
                   ),
                 ),
               ),
               _ToolCard(
                 icon: Icons.grass_rounded,
-                title: 'Fertilizer Guide',
-                description: 'Complete fertilizer reference',
+                title: loc.fertilizerGuide,
+                description: loc.fertilizerGuideDesc,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -70,8 +80,8 @@ class ToolsScreen extends StatelessWidget {
               ),
               _ToolCard(
                 icon: Icons.trending_up_rounded,
-                title: 'Market Prices',
-                description: 'Live mandi prices & trends',
+                title: loc.marketPrices,
+                description: loc.liveMandiPrices,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -81,8 +91,8 @@ class ToolsScreen extends StatelessWidget {
               ),
               _ToolCard(
                 icon: Icons.search_rounded,
-                title: 'Crop Search',
-                description: 'Browse crop knowledge base',
+                title: loc.cropSearch,
+                description: loc.cropSearchDesc,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -92,8 +102,8 @@ class ToolsScreen extends StatelessWidget {
               ),
               _ToolCard(
                 icon: Icons.terrain_rounded,
-                title: 'Soil Scanner',
-                description: 'Analyze & setup your soil',
+                title: loc.soilScanner,
+                description: loc.soilScannerDesc,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -103,29 +113,28 @@ class ToolsScreen extends StatelessWidget {
               ),
               _ToolCard(
                 icon: Icons.auto_awesome_rounded,
-                title: 'AI Assistant',
-                description: 'Ask anything about farming',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AiChatScreen(),
-                  ),
-                ),
+                title: loc.vidhaiAssistant,
+                description: loc.askFarmingDesc,
+                onTap: () {
+                  AssistantSession.instance.open('tools');
+                  showVidhAIAssistantOverlay(context);
+                },
               ),
               _ToolCard(
                 icon: Icons.account_balance_rounded,
-                title: 'Govt Schemes',
-                description: 'Schemes & subsidies for farmers',
-                onTap: () => Navigator.pushNamed(context, '/government-schemes'),
+                title: loc.govtSchemes,
+                description: loc.govtSchemesDesc,
+                onTap: () =>
+                    Navigator.pushNamed(context, '/government-schemes'),
               ),
               _ToolCard(
                 icon: Icons.forum_rounded,
-                title: 'Community',
-                description: 'Connect with farmers nearby',
+                title: loc.community,
+                description: loc.communityDesc,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const CommunityFeedScreen(),
+                    builder: (_) => const CommunityPlaceholderScreen(),
                   ),
                 ),
               ),
@@ -152,15 +161,16 @@ class _ToolCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF111827),
+          color: colors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: colors.borderColor,
             width: 1,
           ),
         ),
@@ -168,33 +178,35 @@ class _ToolCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+                color: colors.brandDeep.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
-                color: const Color(0xFF4CAF50),
-                size: 24,
+                color: colors.brandDeep,
+                size: 22,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
+              style: TextStyle(
+                color: colors.onBackground,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               description,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
+                color: colors.onSurfaceMuted,
                 fontSize: 11,
               ),
               textAlign: TextAlign.center,

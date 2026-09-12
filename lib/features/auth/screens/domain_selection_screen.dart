@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class DomainSelectionScreen extends StatefulWidget {
   const DomainSelectionScreen({super.key});
@@ -12,6 +14,7 @@ class DomainSelectionScreen extends StatefulWidget {
 class _DomainSelectionScreenState extends State<DomainSelectionScreen> {
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
     final loc = AppLocalizations.of(context);
 
     return PopScope(
@@ -22,16 +25,16 @@ class _DomainSelectionScreenState extends State<DomainSelectionScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF0A0F1A),
+        backgroundColor: colors.bg,
         body: SafeArea(
           child: Stack(
             children: [
-              Positioned(
+              PositionedDirectional(
                 top: 8,
-                left: 8,
+                start: 8,
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios,
-                      color: Colors.white, size: 20),
+                  icon: Icon(directionalIcon(context, Icons.arrow_back_ios),
+                      color: colors.onBackground, size: 20),
                   onPressed: () => Navigator.of(context)
                       .pushReplacementNamed('/language_selection'),
                 ),
@@ -53,7 +56,7 @@ class _DomainSelectionScreenState extends State<DomainSelectionScreen> {
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A2332),
+                              color: colors.surface,
                               borderRadius: BorderRadius.circular(16),
                               image: const DecorationImage(
                                 image: AssetImage('assets/images/logo.png'),
@@ -64,10 +67,10 @@ class _DomainSelectionScreenState extends State<DomainSelectionScreen> {
                           const SizedBox(height: 24),
                           Text(
                             loc.chooseDomain,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: colors.onBackground,
                               height: 1.2,
                             ),
                             textAlign: TextAlign.center,
@@ -77,20 +80,22 @@ class _DomainSelectionScreenState extends State<DomainSelectionScreen> {
                             loc.selectOneLanguage,
                             style: TextStyle(
                               fontSize: 15,
-                              color: Colors.white.withValues(alpha: 0.45),
+                              color: colors.onSurfaceMuted,
                             ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 48),
                           _buildDomainCard(
+                            colors: colors,
                             icon: Icons.agriculture_rounded,
                             title: loc.farmerConsole,
                             subtitle: loc.farmerDescription,
-                            color: const Color(0xFF4CAF50),
+                            color: colors.brandDeep,
                             onTap: () => _selectDomain('farmer'),
                           ),
                           const SizedBox(height: 16),
                           _buildDomainCard(
+                            colors: colors,
                             icon: Icons.shopping_cart_rounded,
                             title: loc.consumerConsole,
                             subtitle: loc.consumerDescription,
@@ -102,7 +107,8 @@ class _DomainSelectionScreenState extends State<DomainSelectionScreen> {
                             loc.appName,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color:
+                                  colors.onSurfaceMuted.withValues(alpha: 0.4),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -120,6 +126,7 @@ class _DomainSelectionScreenState extends State<DomainSelectionScreen> {
   }
 
   Widget _buildDomainCard({
+    required VidhAIColorsX colors,
     required IconData icon,
     required String title,
     required String subtitle,
@@ -160,10 +167,10 @@ class _DomainSelectionScreenState extends State<DomainSelectionScreen> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: colors.onBackground,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -171,14 +178,14 @@ class _DomainSelectionScreenState extends State<DomainSelectionScreen> {
                       subtitle,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white.withValues(alpha: 0.45),
+                        color: colors.onSurfaceMuted,
                       ),
                     ),
                   ],
                 ),
               ),
               Icon(
-                Icons.arrow_forward_ios_rounded,
+                directionalIcon(context, Icons.arrow_forward_ios_rounded),
                 color: color.withValues(alpha: 0.5),
                 size: 18,
               ),
@@ -191,8 +198,7 @@ class _DomainSelectionScreenState extends State<DomainSelectionScreen> {
 
   void _selectDomain(String domain) {
     _saveDomain(domain);
-
-    Navigator.of(context).pushReplacementNamed('/personal_details');
+    Navigator.of(context).pushReplacementNamed('/google_sign_in');
   }
 
   Future<void> _saveDomain(String domain) async {

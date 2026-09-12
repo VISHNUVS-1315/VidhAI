@@ -52,6 +52,5 @@ class OnboardingRepository {
   }
 
   /// Check if onboarding is complete (has data locally)
-  bool get isOnboardingComplete =>
-      _localDatasource.hasOnboardingData;
+  bool get isOnboardingComplete => _localDatasource.hasOnboardingData;
 }

@@ -20,19 +20,25 @@ class SoilAiResult {
   });
 
   Map<String, dynamic> toMap() => {
-    'soilType': soilType, 'characteristics': characteristics,
-    'confidence': confidence, 'suitability': suitability,
-    'observations': observations, 'imagePath': imagePath,
-    'analyzedAt': analyzedAt?.toIso8601String(),
-  };
+        'soilType': soilType,
+        'characteristics': characteristics,
+        'confidence': confidence,
+        'suitability': suitability,
+        'observations': observations,
+        'imagePath': imagePath,
+        'analyzedAt': analyzedAt?.toIso8601String(),
+      };
 
   factory SoilAiResult.fromMap(Map<String, dynamic> m) => SoilAiResult(
-    soilType: m['soilType'] ?? '', characteristics: m['characteristics'] ?? '',
-    confidence: (m['confidence'] as num?)?.toDouble() ?? 0.0,
-    suitability: m['suitability'] ?? '', observations: m['observations'] ?? '',
-    imagePath: m['imagePath'],
-    analyzedAt: m['analyzedAt'] != null ? DateTime.tryParse(m['analyzedAt']) : null,
-  );
+        soilType: m['soilType'] ?? '',
+        characteristics: m['characteristics'] ?? '',
+        confidence: (m['confidence'] as num?)?.toDouble() ?? 0.0,
+        suitability: m['suitability'] ?? '',
+        observations: m['observations'] ?? '',
+        imagePath: m['imagePath'],
+        analyzedAt:
+            m['analyzedAt'] != null ? DateTime.tryParse(m['analyzedAt']) : null,
+      );
 }
 
 class FarmProfile {
@@ -69,57 +75,81 @@ class FarmProfile {
   });
 
   Map<String, dynamic> toMap() => {
-    'farmId': farmId, 'index': index,
-    'farmName': farmName, 'farmSize': farmSize, 'farmSizeUnit': farmSizeUnit,
-    'farmLocation': farmLocation?.toMap(),
-    'irrigationType': irrigationType, 'waterSource': waterSource,
-    'soilType': soilType, 'waterAvailability': waterAvailability,
-    'farmingMethod': farmingMethod, 'soilAiResult': soilAiResult?.toMap(),
-    'isActive': isActive, 'createdAt': createdAt?.toIso8601String(),
-  };
+        'farmId': farmId,
+        'index': index,
+        'farmName': farmName,
+        'farmSize': farmSize,
+        'farmSizeUnit': farmSizeUnit,
+        'farmLocation': farmLocation?.toMap(),
+        'irrigationType': irrigationType,
+        'waterSource': waterSource,
+        'soilType': soilType,
+        'waterAvailability': waterAvailability,
+        'farmingMethod': farmingMethod,
+        'soilAiResult': soilAiResult?.toMap(),
+        'isActive': isActive,
+        'createdAt': createdAt?.toIso8601String(),
+      };
 
   factory FarmProfile.fromMap(Map<String, dynamic> m) => FarmProfile(
-    farmId: m['farmId'] ?? '',
-    index: m['index'] ?? 0,
-    farmName: m['farmName'] ?? '', farmSize: m['farmSize'] ?? '',
-    farmSizeUnit: m['farmSizeUnit'] ?? 'Acre',
-    farmLocation: m['farmLocation'] != null
-        ? AddressData.fromMap(Map<String, dynamic>.from(m['farmLocation']))
-        : null,
-    irrigationType: m['irrigationType'] ?? '', waterSource: m['waterSource'] ?? '',
-    soilType: m['soilType'] ?? '', waterAvailability: m['waterAvailability'] ?? '',
-    farmingMethod: m['farmingMethod'] ?? '',
-    soilAiResult: m['soilAiResult'] != null
-        ? SoilAiResult.fromMap(Map<String, dynamic>.from(m['soilAiResult']))
-        : null,
-    isActive: m['isActive'] ?? true,
-    createdAt: m['createdAt'] != null ? DateTime.tryParse(m['createdAt']) ?? DateTime.now() : DateTime.now(),
-  );
+        farmId: m['farmId'] ?? '',
+        index: m['index'] ?? 0,
+        farmName: m['farmName'] ?? '',
+        farmSize: m['farmSize'] ?? '',
+        farmSizeUnit: m['farmSizeUnit'] ?? 'Acre',
+        farmLocation: m['farmLocation'] != null
+            ? AddressData.fromMap(Map<String, dynamic>.from(m['farmLocation']))
+            : null,
+        irrigationType: m['irrigationType'] ?? '',
+        waterSource: m['waterSource'] ?? '',
+        soilType: m['soilType'] ?? '',
+        waterAvailability: m['waterAvailability'] ?? '',
+        farmingMethod: m['farmingMethod'] ?? '',
+        soilAiResult: m['soilAiResult'] != null
+            ? SoilAiResult.fromMap(Map<String, dynamic>.from(m['soilAiResult']))
+            : null,
+        isActive: m['isActive'] ?? true,
+        createdAt: m['createdAt'] != null
+            ? DateTime.tryParse(m['createdAt']) ?? DateTime.now()
+            : DateTime.now(),
+      );
 
   FarmProfile copyWith({
-    String? farmName, String? farmSize, String? farmSizeUnit,
-    AddressData? farmLocation, String? irrigationType, String? waterSource,
-    String? soilType, String? waterAvailability, String? farmingMethod,
-    SoilAiResult? soilAiResult, bool? isActive,
-  }) => FarmProfile(
-    farmId: farmId, index: index,
-    farmName: farmName ?? this.farmName,
-    farmSize: farmSize ?? this.farmSize,
-    farmSizeUnit: farmSizeUnit ?? this.farmSizeUnit,
-    farmLocation: farmLocation ?? this.farmLocation,
-    irrigationType: irrigationType ?? this.irrigationType,
-    waterSource: waterSource ?? this.waterSource,
-    soilType: soilType ?? this.soilType,
-    waterAvailability: waterAvailability ?? this.waterAvailability,
-    farmingMethod: farmingMethod ?? this.farmingMethod,
-    soilAiResult: soilAiResult ?? this.soilAiResult,
-    isActive: isActive ?? this.isActive,
-    createdAt: createdAt,
-  );
+    String? farmName,
+    String? farmSize,
+    String? farmSizeUnit,
+    AddressData? farmLocation,
+    String? irrigationType,
+    String? waterSource,
+    String? soilType,
+    String? waterAvailability,
+    String? farmingMethod,
+    SoilAiResult? soilAiResult,
+    bool? isActive,
+  }) =>
+      FarmProfile(
+        farmId: farmId,
+        index: index,
+        farmName: farmName ?? this.farmName,
+        farmSize: farmSize ?? this.farmSize,
+        farmSizeUnit: farmSizeUnit ?? this.farmSizeUnit,
+        farmLocation: farmLocation ?? this.farmLocation,
+        irrigationType: irrigationType ?? this.irrigationType,
+        waterSource: waterSource ?? this.waterSource,
+        soilType: soilType ?? this.soilType,
+        waterAvailability: waterAvailability ?? this.waterAvailability,
+        farmingMethod: farmingMethod ?? this.farmingMethod,
+        soilAiResult: soilAiResult ?? this.soilAiResult,
+        isActive: isActive ?? this.isActive,
+        createdAt: createdAt,
+      );
 
   bool get isComplete =>
-      farmName.isNotEmpty && farmSize.isNotEmpty &&
-      farmLocation != null && irrigationType.isNotEmpty &&
-      waterSource.isNotEmpty && soilType.isNotEmpty &&
+      farmName.isNotEmpty &&
+      farmSize.isNotEmpty &&
+      farmLocation != null &&
+      irrigationType.isNotEmpty &&
+      waterSource.isNotEmpty &&
+      soilType.isNotEmpty &&
       waterAvailability.isNotEmpty;
 }

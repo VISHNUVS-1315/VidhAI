@@ -1,12 +1,13 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:vidhai/core/error/app_error.dart';
+import 'package:vidhai/locale/locale.dart';
 
 String formatDate(DateTime date, {String pattern = 'dd MMM yyyy'}) {
   return DateFormat(pattern).format(date);
 }
 
-String formatCurrency(double amount, {String symbol = '\$'}) {
+String formatCurrency(double amount, {String symbol = '₹'}) {
   return '$symbol${amount.toStringAsFixed(2)}';
 }
 
@@ -18,11 +19,12 @@ double parseCurrency(String? value, {double defaultValue = 0.0}) {
 
 void showSnackbar(BuildContext context, String message,
     {Color? backgroundColor, Color? actionColor}) {
+  final loc = AppLocalizations.of(context);
   final snackBar = SnackBar(
     content: Text(message),
     backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.error,
     action: SnackBarAction(
-      label: 'OK',
+      label: loc.t('ok'),
       textColor: actionColor,
       onPressed: () {},
     ),
@@ -38,21 +40,24 @@ void showErrorDialog(
   showDialog(
     context: context,
     barrierDismissible: false,
-    builder: (context) => AlertDialog(
-      title: const Text('Error'),
-      content: Text(error.message),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('OK'),
-        ),
-        if (onRetry != null)
+    builder: (context) {
+      final loc = AppLocalizations.of(context);
+      return AlertDialog(
+        title: Text(loc.t('error')),
+        content: Text(error.message),
+        actions: [
           TextButton(
-            onPressed: onRetry,
-            child: const Text('Retry'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(loc.t('ok')),
           ),
-      ],
-    ),
+          if (onRetry != null)
+            TextButton(
+              onPressed: onRetry,
+              child: Text(loc.t('retry')),
+            ),
+        ],
+      );
+    },
   );
 }
 

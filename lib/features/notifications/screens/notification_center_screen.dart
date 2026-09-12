@@ -3,12 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/services/notification_service.dart';
 import 'package:vidhai/data/models/notification_model.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
+import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class NotificationCenterScreen extends StatefulWidget {
   const NotificationCenterScreen({super.key});
 
   @override
-  State<NotificationCenterScreen> createState() => _NotificationCenterScreenState();
+  State<NotificationCenterScreen> createState() =>
+      _NotificationCenterScreenState();
 }
 
 class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
@@ -54,7 +58,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     await _markAsRead(notification);
     if (!mounted) return;
 
-    final deepLinkRoute = NotificationService.getDeepLinkRoute(notification.deepLink);
+    final deepLinkRoute =
+        NotificationService.getDeepLinkRoute(notification.deepLink);
     Navigator.of(context).pop();
 
     if (deepLinkRoute != null && mounted) {
@@ -96,32 +101,41 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     }
   }
 
-  String _formatTimestamp(DateTime dateTime) {
+  String _formatTimestamp(DateTime dateTime, AppLocalizations loc) {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inMinutes < 1) return loc.timeAgoJustNow;
+    if (diff.inMinutes < 60) {
+      return loc.timeAgoM.replaceAll('{count}', '${diff.inMinutes}');
+    }
+    if (diff.inHours < 24) {
+      return loc.timeAgoH.replaceAll('{count}', '${diff.inHours}');
+    }
+    if (diff.inDays < 7) {
+      return loc.timeAgoD.replaceAll('{count}', '${diff.inDays}');
+    }
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1A),
+      backgroundColor: colors.bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0F1A),
+        backgroundColor: colors.bg,
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          icon: Icon(directionalIcon(context, Icons.arrow_back_ios_new),
+              color: Colors.white, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Notification Center',
+        title: Text(
+          loc.notificationCenterTitle,
           style: TextStyle(
-            color: Colors.white,
+            color: colors.onBackground,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -130,10 +144,10 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
           if (_notifications.any((n) => !n.isRead))
             TextButton(
               onPressed: _markAllAsRead,
-              child: const Text(
-                'Mark all as read',
+              child: Text(
+                loc.markAllAsRead,
                 style: TextStyle(
-                  color: Color(0xFF4CAF50),
+                  color: colors.brandDeep,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -146,16 +160,16 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
-                color: Color(0xFF4CAF50),
+                color: colors.brandDeep,
                 strokeWidth: 2,
               ),
             )
           : RefreshIndicator(
               onRefresh: _loadNotifications,
-              color: const Color(0xFF4CAF50),
-              backgroundColor: const Color(0xFF111827),
+              color: colors.brandDeep,
+              backgroundColor: colors.surface,
               child: _notifications.isEmpty
                   ? _buildEmptyState()
                   : _buildNotificationList(),
@@ -164,6 +178,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   }
 
   Widget _buildEmptyState() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -178,23 +194,23 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF111827),
+                      color: colors.surface,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.06),
+                        color: colors.borderColor,
                       ),
                     ),
                     child: Icon(
                       Icons.notifications_none_rounded,
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: colors.onSurfaceMuted,
                       size: 40,
                     ),
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'No notifications yet',
+                    loc.noNotificationsYet,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: colors.onSurfaceMuted,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -203,10 +219,10 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 48),
                     child: Text(
-                      'Weather alerts, market updates, and AI recommendations will appear here.',
+                      loc.notificationsEmptyHint,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: colors.onSurfaceMuted,
                         fontSize: 13,
                         height: 1.4,
                       ),
@@ -233,19 +249,22 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   }
 
   Widget _buildNotificationItem(NotificationModel notification) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Dismissible(
       key: Key(notification.id),
       direction: DismissDirection.endToStart,
       onDismissed: (_) => _deleteNotification(notification),
       background: Container(
         margin: const EdgeInsets.only(bottom: 8),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
+        alignment: AlignmentDirectional.centerEnd,
+        padding: const EdgeInsetsDirectional.only(end: 24),
         decoration: BoxDecoration(
           color: const Color(0xFFEF5350).withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF5350)),
+        child:
+            const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF5350)),
       ),
       child: GestureDetector(
         onTap: () => _onNotificationTap(notification),
@@ -254,13 +273,13 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: notification.isRead
-                ? const Color(0xFF111827)
-                : const Color(0xFF111827).withValues(alpha: 0.8),
+                ? colors.surface
+                : colors.surface.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: notification.isRead
-                  ? Colors.white.withValues(alpha: 0.04)
-                  : const Color(0xFF4CAF50).withValues(alpha: 0.15),
+                  ? colors.borderColor
+                  : colors.brandDeep.withValues(alpha: 0.15),
             ),
           ),
           child: Row(
@@ -270,7 +289,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: _categoryColor(notification.category).withValues(alpha: 0.12),
+                  color: _categoryColor(notification.category)
+                      .withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -290,9 +310,9 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                           Container(
                             width: 7,
                             height: 7,
-                            margin: const EdgeInsets.only(right: 8),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF4CAF50),
+                            margin: const EdgeInsetsDirectional.only(end: 8),
+                            decoration: BoxDecoration(
+                              color: colors.brandDeep,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -300,7 +320,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                           child: Text(
                             notification.title,
                             style: TextStyle(
-                              color: Colors.white,
+                              color: colors.onBackground,
                               fontSize: 14,
                               fontWeight: notification.isRead
                                   ? FontWeight.w500
@@ -316,7 +336,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                     Text(
                       notification.message,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.45),
+                        color: colors.onSurfaceMuted,
                         fontSize: 12.5,
                         height: 1.4,
                       ),
@@ -325,9 +345,9 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _formatTimestamp(notification.createdAt),
+                      _formatTimestamp(notification.createdAt, loc),
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.25),
+                        color: colors.onSurfaceMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -336,8 +356,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
               ),
               const SizedBox(width: 8),
               Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.white.withValues(alpha: 0.1),
+                directionalIcon(context, Icons.chevron_right_rounded),
+                color: colors.onSurfaceMuted,
                 size: 18,
               ),
             ],

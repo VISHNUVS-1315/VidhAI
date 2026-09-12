@@ -2,8 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/farm_records.dart';
 import 'package:vidhai/services/data_service.dart';
+import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class ExpensesScreen extends StatefulWidget {
   final String farmId;
@@ -22,10 +25,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   String? _selectedCategory;
   File? _receiptFile;
 
-  static const Color _bgColor = Color(0xFF0A0F1A);
-  static const Color _cardColor = Color(0xFF111827);
-  static const Color _greenAccent = Color(0xFF4CAF50);
-  static const Color _dangerColor = Color(0xFFEF4444);
+  VidhAIColorsX get _colors => VidhAIColorsX(context);
 
   static const List<String> _categories = [
     'Seeds',
@@ -55,8 +55,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     }
   }
 
-  double get _totalExpenses =>
-      _expenses.fold(0.0, (sum, e) => sum + e.amount);
+  double get _totalExpenses => _expenses.fold(0.0, (sum, e) => sum + e.amount);
 
   String _formatDate(DateTime d) => DateFormat('dd MMM yyyy').format(d);
   String _formatCurrency(double v) => '₹${v.toStringAsFixed(2)}';
@@ -82,30 +81,33 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: _colors.bg,
       appBar: AppBar(
-        backgroundColor: _bgColor,
+        backgroundColor: _colors.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: Icon(directionalIcon(context, Icons.arrow_back_ios),
+              color: _colors.onBackground, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Expenses',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        title: Text(
+          loc.expenses,
+          style: TextStyle(
+              color: _colors.onBackground, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: _greenAccent,
+        backgroundColor: _colors.brandDeep,
         onPressed: () => _showExpenseForm(),
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _greenAccent))
+          ? Center(child: CircularProgressIndicator(color: _colors.brandDeep))
           : RefreshIndicator(
-              color: _greenAccent,
+              color: _colors.brandDeep,
               onRefresh: _loadExpenses,
               child: _expenses.isEmpty
                   ? _buildEmptyState()
@@ -122,12 +124,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   Widget _buildTotalSummary() {
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardColor,
+        color: _colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+        border: Border.all(color: _colors.borderColor),
       ),
       child: Row(
         children: [
@@ -135,10 +138,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: _greenAccent.withValues(alpha: 0.15),
+              color: _colors.brandDeep.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.receipt_long, color: _greenAccent, size: 22),
+            child: Icon(Icons.receipt_long, color: _colors.brandDeep, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -146,17 +149,17 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${_expenses.length} expense${_expenses.length == 1 ? '' : 's'}',
+                  loc.expenseCountLabel(_expenses.length.toString()),
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: _colors.onSurfaceMuted,
                     fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   _formatCurrency(_totalExpenses),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: _colors.onBackground,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
@@ -174,11 +177,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       key: Key(expense.id),
       direction: DismissDirection.endToStart,
       background: Container(
-        alignment: Alignment.centerRight,
+        alignment: AlignmentDirectional.centerEnd,
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsetsDirectional.only(end: 20),
         decoration: BoxDecoration(
-          color: _dangerColor,
+          color: _colors.danger,
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Icon(Icons.delete, color: Colors.white),
@@ -190,9 +193,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: _cardColor,
+            color: _colors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+            border: Border.all(color: _colors.borderColor),
           ),
           child: Row(
             children: [
@@ -200,7 +203,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _categoryColor(expense.category).withValues(alpha: 0.15),
+                  color:
+                      _categoryColor(expense.category).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -222,8 +226,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color:
-                                _categoryColor(expense.category).withValues(alpha: 0.15),
+                            color: _categoryColor(expense.category)
+                                .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -241,8 +245,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     if (expense.description.isNotEmpty)
                       Text(
                         expense.description,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: _colors.onBackground,
                           fontSize: 13,
                         ),
                         maxLines: 1,
@@ -252,7 +256,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     Text(
                       _formatDate(expense.date),
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: _colors.onSurfaceMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -266,8 +270,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   children: [
                     Text(
                       _formatCurrency(expense.amount),
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: _colors.onBackground,
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
@@ -276,7 +280,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       Text(
                         expense.vendor!,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
+                          color: _colors.onSurfaceMuted,
                           fontSize: 11,
                         ),
                         maxLines: 1,
@@ -312,26 +316,29 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   Future<bool?> _confirmDelete(ExpenseRecord expense) {
+    final loc = AppLocalizations.of(context);
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: _cardColor,
+        backgroundColor: _colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Delete Expense',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        title: Text(
+          loc.deleteExpense,
+          style: TextStyle(
+              color: _colors.onBackground, fontWeight: FontWeight.w600),
         ),
         content: Text(
-          'Are you sure you want to delete this ${expense.category} expense of ${_formatCurrency(expense.amount)}?',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+          loc.deleteExpenseConfirm(
+              expense.category, _formatCurrency(expense.amount)),
+          style: TextStyle(color: _colors.onBackground, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
-              'Cancel',
+              loc.cancel,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: _colors.onSurfaceMuted,
               ),
             ),
           ),
@@ -343,9 +350,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               }
               _loadExpenses();
             },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: _dangerColor),
+            child: Text(
+              loc.delete,
+              style: TextStyle(color: _colors.danger),
             ),
           ),
         ],
@@ -356,6 +363,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   void _showExpenseForm({ExpenseRecord? expense}) {
     _selectedCategory = expense?.category;
     _receiptFile = null;
+    final loc = AppLocalizations.of(context);
     final amountCtrl = TextEditingController(
       text: expense != null ? expense.amount.toString() : '',
     );
@@ -376,9 +384,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             height: MediaQuery.of(context).viewInsets.bottom > 0
                 ? MediaQuery.of(context).size.height * 0.9
                 : MediaQuery.of(context).size.height * 0.75,
-            decoration: const BoxDecoration(
-              color: _bgColor,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            decoration: BoxDecoration(
+              color: _colors.bg,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
               children: [
@@ -387,7 +396,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: _colors.borderColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -396,32 +405,32 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   child: Row(
                     children: [
                       Text(
-                        expense != null ? 'Edit Expense' : 'Add Expense',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        expense != null ? loc.editExpense : loc.addExpense,
+                        style: TextStyle(
+                          color: _colors.onBackground,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white54),
+                        icon: Icon(Icons.close, color: _colors.onSurfaceMuted),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
                   ),
                 ),
-                const Divider(color: Colors.white10, height: 1),
+                Divider(color: _colors.borderColor, height: 1),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Category',
+                        Text(
+                          loc.category,
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: _colors.onBackground,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -430,10 +439,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           decoration: BoxDecoration(
-                            color: _cardColor,
+                            color: _colors.surface,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.08),
+                              color: _colors.borderColor,
                             ),
                           ),
                           child: DropdownButtonHideUnderline(
@@ -441,14 +450,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               isExpanded: true,
                               value: _selectedCategory,
                               hint: Text(
-                                'Select category',
+                                loc.selectCategoryHint,
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.35),
+                                  color: _colors.onSurfaceMuted,
                                 ),
                               ),
-                              dropdownColor: _cardColor,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              dropdownColor: _colors.surface,
+                              style: TextStyle(
+                                color: _colors.onBackground,
                                 fontSize: 14,
                               ),
                               items: _categories
@@ -463,10 +472,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Amount (₹)',
+                        Text(
+                          loc.amount,
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: _colors.onBackground,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -475,19 +484,19 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         TextField(
                           controller: amountCtrl,
                           keyboardType: TextInputType.number,
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: _colors.onBackground),
                           decoration: InputDecoration(
                             hintText: '0.00',
                             hintStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.3),
+                              color: _colors.onSurfaceMuted,
                             ),
-                            prefixIcon: const Icon(
+                            prefixIcon: Icon(
                               Icons.currency_rupee,
-                              color: _greenAccent,
+                              color: _colors.brandDeep,
                               size: 20,
                             ),
                             filled: true,
-                            fillColor: _cardColor,
+                            fillColor: _colors.surface,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide.none,
@@ -499,10 +508,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Date',
+                        Text(
+                          loc.date,
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: _colors.onBackground,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -511,7 +520,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         TextField(
                           controller: dateCtrl,
                           readOnly: true,
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: _colors.onBackground),
                           onTap: () async {
                             final picked = await showDatePicker(
                               context: ctx,
@@ -521,11 +530,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               builder: (context, child) {
                                 return Theme(
                                   data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.dark(
-                                      primary: _greenAccent,
-                                      surface: _cardColor,
+                                    colorScheme: ColorScheme.dark(
+                                      primary: _colors.brandDeep,
+                                      surface: _colors.surface,
                                     ),
-                                    dialogBackgroundColor: _cardColor,
+                                    dialogTheme: DialogThemeData(
+                                        backgroundColor: _colors.surface),
                                   ),
                                   child: child!,
                                 );
@@ -539,17 +549,17 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             }
                           },
                           decoration: InputDecoration(
-                            hintText: 'Select date',
+                            hintText: loc.selectDate,
                             hintStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.3),
+                              color: _colors.onSurfaceMuted,
                             ),
-                            prefixIcon: const Icon(
+                            prefixIcon: Icon(
                               Icons.calendar_today,
-                              color: _greenAccent,
+                              color: _colors.brandDeep,
                               size: 20,
                             ),
                             filled: true,
-                            fillColor: _cardColor,
+                            fillColor: _colors.surface,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide.none,
@@ -561,10 +571,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Description',
+                        Text(
+                          loc.description,
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: _colors.onBackground,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -572,15 +582,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         const SizedBox(height: 8),
                         TextField(
                           controller: descCtrl,
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: _colors.onBackground),
                           maxLines: 2,
                           decoration: InputDecoration(
-                            hintText: 'What was this expense for?',
+                            hintText: loc.hintDescription,
                             hintStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.3),
+                              color: _colors.onSurfaceMuted,
                             ),
                             filled: true,
-                            fillColor: _cardColor,
+                            fillColor: _colors.surface,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide.none,
@@ -592,10 +602,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Vendor (optional)',
+                        Text(
+                          loc.vendorOptional,
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: _colors.onBackground,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -603,14 +613,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         const SizedBox(height: 8),
                         TextField(
                           controller: vendorCtrl,
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: _colors.onBackground),
                           decoration: InputDecoration(
-                            hintText: 'Vendor name',
+                            hintText: loc.hintVendor,
                             hintStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.3),
+                              color: _colors.onSurfaceMuted,
                             ),
                             filled: true,
-                            fillColor: _cardColor,
+                            fillColor: _colors.surface,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide.none,
@@ -622,10 +632,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Receipt Photo (optional)',
+                        Text(
+                          loc.receiptPhotoOptional,
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: _colors.onBackground,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -633,9 +643,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         const SizedBox(height: 8),
                         GestureDetector(
                           onTap: () async {
-                            final source = await showModalBottomSheet<ImageSource>(
+                            final source =
+                                await showModalBottomSheet<ImageSource>(
                               context: ctx,
-                              backgroundColor: _cardColor,
+                              backgroundColor: _colors.surface,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.vertical(
                                   top: Radius.circular(16),
@@ -648,14 +659,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       ListTile(
-                                        leading: const Icon(
+                                        leading: Icon(
                                           Icons.camera_alt,
-                                          color: _greenAccent,
+                                          color: _colors.brandDeep,
                                         ),
-                                        title: const Text(
-                                          'Camera',
+                                        title: Text(
+                                          loc.camera,
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: _colors.onBackground,
                                           ),
                                         ),
                                         onTap: () => Navigator.pop(
@@ -664,14 +675,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                         ),
                                       ),
                                       ListTile(
-                                        leading: const Icon(
+                                        leading: Icon(
                                           Icons.photo_library,
-                                          color: _greenAccent,
+                                          color: _colors.brandDeep,
                                         ),
-                                        title: const Text(
-                                          'Gallery',
+                                        title: Text(
+                                          loc.gallery,
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: _colors.onBackground,
                                           ),
                                         ),
                                         onTap: () => Navigator.pop(
@@ -699,10 +710,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             width: double.infinity,
                             height: _receiptFile != null ? 120 : 80,
                             decoration: BoxDecoration(
-                              color: _cardColor,
+                              color: _colors.surface,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.08),
+                                color: _colors.borderColor,
                               ),
                               image: _receiptFile != null
                                   ? DecorationImage(
@@ -717,26 +728,26 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                     children: [
                                       Icon(
                                         Icons.add_a_photo,
-                                        color: Colors.white.withValues(alpha: 0.3),
+                                        color: _colors.onSurfaceMuted,
                                         size: 28,
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        'Tap to add receipt',
+                                        loc.tapToAddReceipt,
                                         style: TextStyle(
-                                          color: Colors.white.withValues(alpha: 0.3),
+                                          color: _colors.onSurfaceMuted,
                                           fontSize: 12,
                                         ),
                                       ),
                                     ],
                                   )
                                 : Align(
-                                    alignment: Alignment.topRight,
+                                    alignment: AlignmentDirectional.topEnd,
                                     child: Container(
                                       margin: const EdgeInsets.all(6),
                                       padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: _dangerColor,
+                                      decoration: BoxDecoration(
+                                        color: _colors.danger,
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(
@@ -793,13 +804,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _greenAccent,
+                        backgroundColor: _colors.brandDeep,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: Text(
-                        expense != null ? 'Update' : 'Save',
+                        expense != null ? loc.update : loc.save,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -818,6 +829,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   Widget _buildEmptyState() {
+    final loc = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -826,23 +838,23 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           children: [
             Icon(
               Icons.receipt_long,
-              color: Colors.white.withValues(alpha: 0.15),
+              color: _colors.onSurfaceMuted,
               size: 64,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No expenses yet',
+            Text(
+              loc.noExpensesYet,
               style: TextStyle(
-                color: Colors.white,
+                color: _colors.onBackground,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Track your farm expenses by tapping the + button.',
+              loc.trackFarmExpenses,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
+                color: _colors.onSurfaceMuted,
                 fontSize: 15,
               ),
               textAlign: TextAlign.center,

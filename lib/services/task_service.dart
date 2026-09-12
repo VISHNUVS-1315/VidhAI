@@ -68,8 +68,22 @@ class TaskService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  List<FarmTask> generateTasksFromFarms(List<Map<String, dynamic>> farms) {
+  /// Generates the farmer's daily tasks from real farm records. Optional
+  /// device-side context (today's weather and the active crop's stage) makes
+  /// the plan relevant without inventing data:
+  ///   [weatherByFarmIndex] — map of `farm.index` to a weather map with
+  ///     keys `rainAlert`, `heatAlert`, `humidity`.
+  ///   [cropNameByFarmIndex] / [stageByFarmIndex] — active crop name and its
+  ///     computed stage (from `kCropStages`) per farm index.
+  static List<FarmTask> generateTasksFromFarms(
+    List<Map<String, dynamic>> farms, {
+    Map<int, Map<String, dynamic>>? weatherByFarmIndex,
+    Map<int, String>? cropNameByFarmIndex,
+    Map<int, String>? stageByFarmIndex,
+  }) {
     final tasks = <FarmTask>[];
+    final now = DateTime.now();
+    final base = now.millisecondsSinceEpoch;
 
     for (final farm in farms) {
       final farmName = farm['farmName'] ?? 'Farm';
@@ -77,69 +91,143 @@ class TaskService {
       final soil = farm['soilType'] ?? '';
       final water = farm['waterAvailability'] ?? '';
 
-      tasks.add(FarmTask(
-        id: 'irr_${farmIndex}_${DateTime.now().millisecondsSinceEpoch}',
-        farmName: farmName,
-        farmIndex: farmIndex,
-        title: 'Check irrigation system - $farmName',
-        category: 'irrigation',
-        scheduledTime: '8:00 AM',
-        createdAt: DateTime.now(),
+      FarmTask make(String prefix, String title, String category, String time,
+              [int shift = 0]) =>
+          FarmTask(
+            id: '${prefix}_${farmIndex}_${base + shift}',
+            farmName: farmName,
+            farmIndex: farmIndex,
+            title: title,
+            category: category,
+            scheduledTime: time,
+            createdAt: now,
+          );
+
+      var shift = 0;
+
+      final cropName = cropNameByFarmIndex?[farmIndex];
+      final stage = stageByFarmIndex?[farmIndex];
+      final hasCrop = cropName != null && cropName.isNotEmpty;
+
+      tasks.add(make(
+        'irr',
+        'Check irrigation system - $farmName',
+        'irrigation',
+        '8:00 AM',
+        shift++,
       ));
 
       if (water.toLowerCase().contains('low') ||
           water.toLowerCase().contains('very low')) {
-        tasks.add(FarmTask(
-          id: 'water_${farmIndex}_${DateTime.now().millisecondsSinceEpoch + 1}',
-          farmName: farmName,
-          farmIndex: farmIndex,
-          title: 'Water supply check needed - $farmName',
-          category: 'irrigation',
-          scheduledTime: '9:00 AM',
-          createdAt: DateTime.now(),
+        tasks.add(make(
+          'water',
+          'Water supply check needed - $farmName',
+          'irrigation',
+          '9:00 AM',
+          shift++,
         ));
       }
 
-      tasks.add(FarmTask(
-        id: 'crop_${farmIndex}_${DateTime.now().millisecondsSinceEpoch + 2}',
-        farmName: farmName,
-        farmIndex: farmIndex,
-        title: 'Monitor crop health - $farmName',
-        category: 'monitoring',
-        scheduledTime: '10:00 AM',
-        createdAt: DateTime.now(),
+      tasks.add(make(
+        'crop',
+        hasCrop
+            ? 'Monitor $cropName health'
+                '${stage != null && stage.isNotEmpty ? ' ($stage)' : ''} - $farmName'
+            : 'Monitor crop health - $farmName',
+        'monitoring',
+        '10:00 AM',
+        shift++,
       ));
 
-      tasks.add(FarmTask(
-        id: 'pest_${farmIndex}_${DateTime.now().millisecondsSinceEpoch + 3}',
-        farmName: farmName,
-        farmIndex: farmIndex,
-        title: 'Pest inspection - $farmName',
-        category: 'pest',
-        scheduledTime: '11:00 AM',
-        createdAt: DateTime.now(),
+      if (hasCrop) {
+        final s = (stage ?? '').toLowerCase();
+        if (s == 'flowering') {
+          tasks.add(make(
+            'stage',
+            'Check flowering progress of $cropName - $farmName',
+            'monitoring',
+            '10:30 AM',
+            shift++,
+          ));
+        } else if (s == 'maturity' ||
+            s == 'harvest ready' ||
+            s == 'harvested') {
+          tasks.add(make(
+            'stage',
+            'Prepare for harvest of $cropName - $farmName',
+            'monitoring',
+            '8:30 AM',
+            shift++,
+          ));
+        } else if (s == 'seedling' || s == 'vegetative') {
+          tasks.add(make(
+            'stage',
+            'Check soil moisture for $cropName - $farmName',
+            'irrigation',
+            '9:30 AM',
+            shift++,
+          ));
+        }
+      }
+
+      tasks.add(make(
+        'pest',
+        'Pest inspection - $farmName',
+        'pest',
+        '11:00 AM',
+        shift++,
       ));
+
+      final weather = weatherByFarmIndex?[farmIndex];
+      if (weather != null) {
+        final rain = (weather['rainAlert'] ?? false) as bool;
+        final heat = (weather['heatAlert'] ?? false) as bool;
+        final humidity = (weather['humidity'] as num?)?.toInt() ?? 0;
+        if (rain) {
+          tasks.add(make(
+            'wxr',
+            'Delay spraying — rain expected - $farmName',
+            'weather',
+            '6:30 AM',
+            shift++,
+          ));
+        }
+        if (heat) {
+          tasks.add(make(
+            'wxh',
+            'High heat alert — irrigate in the evening - $farmName',
+            'weather',
+            '6:00 PM',
+            shift++,
+          ));
+        }
+        if (humidity >= 85) {
+          tasks.add(make(
+            'wxhum',
+            'High humidity — watch for fungal disease - $farmName',
+            'pest',
+            '5:30 PM',
+            shift++,
+          ));
+        }
+      }
 
       if (soil.isNotEmpty) {
-        tasks.add(FarmTask(
-          id: 'soil_${farmIndex}_${DateTime.now().millisecondsSinceEpoch + 4}',
-          farmName: farmName,
-          farmIndex: farmIndex,
-          title: 'Soil condition review - $farmName',
-          category: 'soil',
-          scheduledTime: '2:00 PM',
-          createdAt: DateTime.now(),
+        tasks.add(make(
+          'soil',
+          'Soil condition review - $farmName',
+          'soil',
+          '2:00 PM',
+          shift++,
         ));
       }
 
-      tasks.add(FarmTask(
-        id: 'log_${farmIndex}_${DateTime.now().millisecondsSinceEpoch + 5}',
-        farmName: farmName,
-        farmIndex: farmIndex,
-        title: 'Update farm log - $farmName',
-        category: 'general',
-        scheduledTime: '4:00 PM',
-        createdAt: DateTime.now(),
+      tasks.add(make(
+        'log',
+        'Update farm log - $farmName',
+        'general',
+        '4:00 PM',
+        shift++,
       ));
     }
 

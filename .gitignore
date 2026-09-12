@@ -79,3 +79,12 @@ build/
 *.apk
 *.aab
 *.ipa
+
+# Scratch / analysis artifacts (repo root only)
+/*.txt
+/*.py
+/*.ps1
+/*.cs
+/*.json
+# Report with embedded key material
+FINAL_REPORT.md

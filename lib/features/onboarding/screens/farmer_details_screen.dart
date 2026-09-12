@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/farm_profile.dart';
 import 'package:vidhai/features/onboarding/widgets/farm_card.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class FarmerDetailsScreen extends StatefulWidget {
   const FarmerDetailsScreen({super.key});
@@ -17,6 +19,7 @@ class _FarmerDetailsScreenState extends State<FarmerDetailsScreen> {
   bool _isLoading = false;
 
   void _incrementFarms() {
+    if (_numberOfFarms >= 10) return;
     setState(() => _numberOfFarms++);
   }
 
@@ -32,14 +35,7 @@ class _FarmerDetailsScreenState extends State<FarmerDetailsScreen> {
     }
 
     final loc = AppLocalizations.of(context);
-    final farmsWithData = <int>[];
-    for (var i = 1; i <= _numberOfFarms; i++) {
-      final farm = _farmData[i];
-      if (farm != null && farm.isComplete) {
-        farmsWithData.add(i);
-      }
-    }
-
+    final colors = VidhAIColorsX(context);
     final newCount = _numberOfFarms - 1;
     final farmsToRemove = <int>[];
     for (var i = newCount + 1; i <= _numberOfFarms; i++) {
@@ -55,15 +51,15 @@ class _FarmerDetailsScreenState extends State<FarmerDetailsScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1A2332),
+          backgroundColor: colors.surface,
           title: Text(
             loc.confirmDeleteFarm,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(color: colors.onBackground, fontSize: 16),
           ),
           content: Text(
             'Farm ${farmsToRemove.join(', ')} data will be removed.',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: colors.onBackground,
               fontSize: 14,
             ),
           ),
@@ -71,21 +67,85 @@ class _FarmerDetailsScreenState extends State<FarmerDetailsScreen> {
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: Text(loc.cancel,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
+                  style: TextStyle(color: colors.onSurfaceMuted)),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 _applyDecrement(newCount, farmsToRemove);
               },
-              child:
-                  const Text('OK', style: TextStyle(color: Color(0xFF4CAF50))),
+              child: Text(loc.ok, style: TextStyle(color: colors.brandDeep)),
             ),
           ],
         ),
       );
     } else {
       _applyDecrement(newCount, farmsToRemove);
+    }
+  }
+
+  void _quickSelect(int count) {
+    if (count <= 0) {
+      setState(() {
+        _numberOfFarms = 0;
+        _farmData.clear();
+      });
+      return;
+    }
+    if (count >= _numberOfFarms) {
+      setState(() => _numberOfFarms = count.clamp(0, 10));
+      return;
+    }
+    _decrementTo(count);
+  }
+
+  void _decrementTo(int target) {
+    final loc = AppLocalizations.of(context);
+    final colors = VidhAIColorsX(context);
+    final farmsToRemove = <int>[];
+    for (var i = target + 1; i <= _numberOfFarms; i++) {
+      farmsToRemove.add(i);
+    }
+
+    final hasDataToRemove = farmsToRemove.any((i) =>
+        _farmData.containsKey(i) &&
+        _farmData[i] != null &&
+        _farmData[i]!.farmName.isNotEmpty);
+
+    if (hasDataToRemove) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: colors.surface,
+          title: Text(
+            loc.confirmDeleteFarm,
+            style: TextStyle(color: colors.onBackground, fontSize: 16),
+          ),
+          content: Text(
+            'Farm ${farmsToRemove.join(', ')} data will be removed.',
+            style: TextStyle(
+              color: colors.onBackground,
+              fontSize: 14,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(loc.cancel,
+                  style: TextStyle(color: colors.onSurfaceMuted)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _applyDecrement(target, farmsToRemove);
+              },
+              child: Text(loc.ok, style: TextStyle(color: colors.brandDeep)),
+            ),
+          ],
+        ),
+      );
+    } else {
+      _applyDecrement(target, farmsToRemove);
     }
   }
 
@@ -96,110 +156,61 @@ class _FarmerDetailsScreenState extends State<FarmerDetailsScreen> {
     setState(() => _numberOfFarms = newCount);
   }
 
+  int get _completedFarms => _farmData.values.where((f) => f.isComplete).length;
+
   void _onFarmDataChanged(int index, FarmProfile data) {
-    debugPrint(
-        'FarmCard [$index] data changed: name=${data.farmName}, size=${data.farmSize}, complete=${data.isComplete}');
     _farmData[index] = data;
+    if (mounted) setState(() {});
   }
 
   bool _validateAllFarms() {
-    debugPrint(
-        'Validating farms: count=$_numberOfFarms, farmData keys=${_farmData.keys.toList()}');
     for (var i = 1; i <= _numberOfFarms; i++) {
       final farm = _farmData[i];
-      if (farm == null) {
-        debugPrint('Farm $i: NULL - not yet filled');
-        return false;
-      }
-      if (!farm.isComplete) {
-        debugPrint(
-            'Farm $i: INCOMPLETE - name=${farm.farmName}, size=${farm.farmSize}, loc=${farm.farmLocation != null}, irr=${farm.irrigationType}, ws=${farm.waterSource}, soil=${farm.soilType}, wa=${farm.waterAvailability}');
-        return false;
-      }
+      if (farm == null || !farm.isComplete) return false;
     }
-    debugPrint('All $_numberOfFarms farms are COMPLETE');
     return true;
   }
 
   Future<void> _submitFarmData() async {
-    debugPrint('[FarmSave] Button pressed');
     if (!_validateAllFarms()) {
-      debugPrint('[FarmSave] Validation FAILED — showing field error');
       final loc = AppLocalizations.of(context);
+      final colors = VidhAIColorsX(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(loc.requiredField),
-        backgroundColor: const Color(0xFFEF4444),
+        content: Text('${loc.requiredField} - ${loc.pleaseFillFarmDetails}'),
+        backgroundColor: colors.danger,
       ));
       return;
     }
-    debugPrint('[FarmSave] Validation PASSED');
 
     setState(() => _isLoading = true);
-    debugPrint('[FarmSave] Loading state set');
 
     final farms = <Map<String, dynamic>>[];
     for (var i = 1; i <= _numberOfFarms; i++) {
-      final map = _farmData[i]!.toMap();
-      farms.add(map);
-      debugPrint(
-          '[FarmSave] Farm $i model created: name=${map['farmName']}, size=${map['farmSize']}, location=${map['farmLocation'] != null}');
+      farms.add(_farmData[i]!.toMap());
     }
-    debugPrint('[FarmSave] All ${farms.length} farm models created');
 
     try {
-      debugPrint('[FarmSave] Creating FarmProfile objects from maps...');
       final profileFarms = <FarmProfile>[];
       for (final m in farms) {
-        try {
-          profileFarms.add(FarmProfile.fromMap(Map<String, dynamic>.from(m)));
-          debugPrint('[FarmSave]   FarmProfile.fromMap OK: ${m['farmName']}');
-        } catch (e, st) {
-          debugPrint('[FarmSave]   FarmProfile.fromMap FAILED: $e');
-          debugPrint('[FarmSave]   Stack: $st');
-          rethrow;
-        }
-      }
-      debugPrint(
-          '[FarmSave] FarmProfile objects created: ${profileFarms.length}');
-
-      debugPrint('[FarmSave] Calling DataService().saveFarms()...');
-      try {
-        await DataService().saveFarms(profileFarms);
-        debugPrint('[FarmSave] DataService().saveFarms() COMPLETED');
-      } catch (e, st) {
-        debugPrint('[FarmSave] DataService().saveFarms() FAILED: $e');
-        debugPrint('[FarmSave] Stack: $st');
-        rethrow;
+        profileFarms.add(FarmProfile.fromMap(Map<String, dynamic>.from(m)));
       }
 
-      debugPrint(
-          '[FarmSave] Calling DataService().setOnboardingComplete(true)...');
+      await DataService().saveFarms(profileFarms);
       try {
         await DataService().setOnboardingComplete(true);
-        debugPrint('[FarmSave] setOnboardingComplete(true) COMPLETED');
-      } catch (e, st) {
-        debugPrint('[FarmSave] setOnboardingComplete FAILED: $e');
-        debugPrint('[FarmSave] Stack: $st');
-      }
+      } catch (_) {}
 
-      debugPrint('[FarmSave] Checking mounted: $mounted');
       if (mounted) {
-        debugPrint('[FarmSave] NAVIGATING to /main_shell');
         Navigator.of(context).pushReplacementNamed('/main_shell');
-        debugPrint('[FarmSave] Navigator.pushReplacementNamed called');
-      } else {
-        debugPrint('[FarmSave] Widget NOT mounted — cannot navigate');
       }
     } catch (e, st) {
       debugPrint('[FarmSave] TOP-LEVEL EXCEPTION: $e');
       debugPrint('[FarmSave] Stack: $st');
       if (mounted) {
-        debugPrint('[FarmSave] Forcing onboarding complete despite error');
         try {
           await DataService().setOnboardingComplete(true);
         } catch (_) {}
         if (mounted) {
-          debugPrint('[FarmSave] Force navigating to /main_shell');
           Navigator.of(context).pushReplacementNamed('/main_shell');
         }
       }
@@ -213,6 +224,7 @@ class _FarmerDetailsScreenState extends State<FarmerDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final colors = VidhAIColorsX(context);
 
     return PopScope(
       canPop: false,
@@ -220,29 +232,33 @@ class _FarmerDetailsScreenState extends State<FarmerDetailsScreen> {
         if (!didPop) _goBack();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF0A0F1A),
+        backgroundColor: colors.bg,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0A0F1A),
+          backgroundColor: colors.bg,
           elevation: 0,
           leading: IconButton(
-            icon:
-                const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+            icon: Icon(directionalIcon(context, Icons.arrow_back_ios),
+                color: colors.onBackground, size: 20),
             onPressed: _goBack,
           ),
           title: Text(
             loc.farmDetails,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w600),
+            style: TextStyle(
+                color: colors.onBackground, fontWeight: FontWeight.w600),
           ),
           centerTitle: true,
         ),
         body: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
-            const SizedBox(height: 8),
-            _buildFarmCountSelector(loc),
+            const SizedBox(height: 4),
+            _buildHero(loc, colors),
+            const SizedBox(height: 20),
+            _buildCountSelector(loc, colors),
             if (_numberOfFarms > 0) ...[
               const SizedBox(height: 24),
+              _buildProgressHeader(loc, colors),
+              const SizedBox(height: 12),
               ...List.generate(_numberOfFarms, (i) {
                 final farmIndex = i + 1;
                 return FarmCard(
@@ -253,142 +269,325 @@ class _FarmerDetailsScreenState extends State<FarmerDetailsScreen> {
                   onDataChanged: (data) => _onFarmDataChanged(farmIndex, data),
                 );
               }),
+              const SizedBox(height: 16),
+              _buildSubmitButton(loc),
             ],
-            const SizedBox(height: 16),
-            if (_numberOfFarms > 0) _buildSubmitButton(loc),
-            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFarmCountSelector(AppLocalizations loc) {
-    return Card(
-      color: const Color(0xFF111827),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+  Widget _buildHero(AppLocalizations loc, VidhAIColorsX colors) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            colors.brandDeep.withValues(alpha: 0.15),
+            colors.brandDeep.withValues(alpha: 0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.brandDeep.withValues(alpha: 0.2)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.agriculture_rounded,
-                      color: Color(0xFF4CAF50), size: 22),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: colors.brandDeep,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.brandDeep.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    loc.selectNumberOfFarms,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+              ],
+            ),
+            child: const Icon(Icons.agriculture_rounded,
+                color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  loc.selectNumberOfFarms,
+                  style: TextStyle(
+                    color: colors.onBackground,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  loc.numberOfFarms,
+                  style: TextStyle(
+                    color: colors.onSurfaceMuted,
+                    fontSize: 13,
+                    height: 1.3,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Center(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A2332),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCountSelector(AppLocalizations loc, VidhAIColorsX colors) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: colors.brandDeep.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStepperButton(
+                icon: Icons.remove_rounded,
+                onTap: _numberOfFarms == 0 ? null : _decrementFarms,
+              ),
+              Column(
+                children: [
+                  Text(
+                    '$_numberOfFarms',
+                    style: TextStyle(
+                      color: colors.brandDeep,
+                      fontSize: 44,
+                      fontWeight: FontWeight.w800,
+                      height: 1.1,
+                    ),
+                  ),
+                  Text(
+                    loc.numberOfFarms,
+                    style: TextStyle(
+                      color: colors.onSurfaceMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              _buildStepperButton(
+                icon: Icons.add_rounded,
+                onTap: _numberOfFarms >= 10 ? null : _incrementFarms,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Divider(height: 1, thickness: 1),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                loc.farmsNumberHelper,
+                style: TextStyle(
+                  color: colors.onSurfaceMuted,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (var n = 1; n <= 5; n++) ...[
+                if (n > 1) const SizedBox(width: 8),
+                Expanded(
+                  child: _buildQuickChip(
+                    colors: colors,
+                    count: n,
+                    selected: _numberOfFarms == n,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildStepperButton(
-                      icon: Icons.remove_rounded,
-                      onTap: _decrementFarms,
-                    ),
-                    Container(
-                      width: 80,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '$_numberOfFarms',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            loc.numberOfFarms,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.4),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _buildStepperButton(
-                      icon: Icons.add_rounded,
-                      onTap: _incrementFarms,
-                    ),
-                  ],
-                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickChip({
+    required VidhAIColorsX colors,
+    required int count,
+    required bool selected,
+  }) {
+    return GestureDetector(
+      onTap: () => _quickSelect(count),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 44,
+        decoration: BoxDecoration(
+          color: selected ? colors.brandDeep : colors.surfaceMuted,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? colors.brandDeep : colors.borderColor,
+            width: 1.2,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            '$count',
+            style: TextStyle(
+              color: selected ? Colors.white : colors.onSurfaceMuted,
+              fontSize: 16,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressHeader(AppLocalizations loc, VidhAIColorsX colors) {
+    final done = _completedFarms;
+    final progress = _numberOfFarms == 0 ? 0.0 : done / _numberOfFarms;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              loc.yourFarms,
+              style: TextStyle(
+                color: colors.onBackground,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              '$done/$_numberOfFarms',
+              style: TextStyle(
+                color: done == _numberOfFarms
+                    ? colors.brandDeep
+                    : colors.onSurfaceMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 6,
+            backgroundColor: colors.borderColor,
+            valueColor: AlwaysStoppedAnimation<Color>(colors.brandDeep),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: List.generate(_numberOfFarms, (i) {
+            final idx = i + 1;
+            final farm = _farmData[idx];
+            final isDone = farm?.isComplete ?? false;
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: isDone
+                    ? colors.brandDeep.withValues(alpha: 0.12)
+                    : colors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDone ? colors.brandDeep : colors.borderColor,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isDone ? Icons.check_circle : Icons.circle_outlined,
+                    color: isDone ? colors.brandDeep : colors.onSurfaceMuted,
+                    size: 13,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${loc.farmCard} $idx',
+                    style: TextStyle(
+                      color: isDone ? colors.brandDeep : colors.onSurfaceMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 
   Widget _buildStepperButton({
     required IconData icon,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
+    final colors = VidhAIColorsX(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 48,
-        height: 48,
+        width: 52,
+        height: 52,
         decoration: BoxDecoration(
-          color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
+          color: onTap == null
+              ? colors.surfaceMuted
+              : colors.brandDeep.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: onTap == null
+                ? colors.borderColor
+                : colors.brandDeep.withValues(alpha: 0.3),
+          ),
         ),
         child: Icon(
           icon,
-          color: const Color(0xFF4CAF50),
-          size: 24,
+          color: onTap == null ? colors.onSurfaceMuted : colors.brandDeep,
+          size: 26,
         ),
       ),
     );
   }
 
   Widget _buildSubmitButton(AppLocalizations loc) {
+    final colors = VidhAIColorsX(context);
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _submitFarmData,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF4CAF50),
+          backgroundColor: colors.brandDeep,
           foregroundColor: Colors.white,
-          disabledBackgroundColor:
-              const Color(0xFF4CAF50).withValues(alpha: 0.5),
+          disabledBackgroundColor: colors.brandDeep.withValues(alpha: 0.5),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 0,

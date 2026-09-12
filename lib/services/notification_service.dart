@@ -25,7 +25,9 @@ class NotificationService {
 
   Future<void> _requestPermission() async {
     await _messaging.requestPermission(
-      alert: true, badge: true, sound: true,
+      alert: true,
+      badge: true,
+      sound: true,
       provisional: false,
       criticalAlert: false,
     );
@@ -100,13 +102,16 @@ class NotificationService {
   }
 
   // Remote persistence via Firestore
-  Future<void> saveNotificationToFirestore(NotificationModel notification) async {
+  Future<void> saveNotificationToFirestore(
+      NotificationModel notification) async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
       await _firestore
-          .collection('users').doc(uid)
-          .collection('notifications').doc(notification.id)
+          .collection('users')
+          .doc(uid)
+          .collection('notifications')
+          .doc(notification.id)
           .set(notification.toMap());
     } catch (_) {}
   }
@@ -121,7 +126,9 @@ class NotificationService {
   Future<void> markAsRead(String id) async {
     final prefs = await SharedPreferences.getInstance();
     final existing = prefs.getString('notification_history') ?? '[]';
-    final list = (json.decode(existing) as List).map((m) => Map<String, dynamic>.from(m)).toList();
+    final list = (json.decode(existing) as List)
+        .map((m) => Map<String, dynamic>.from(m))
+        .toList();
     for (var item in list) {
       if (item['id'] == id) {
         item['isRead'] = true;
@@ -134,7 +141,9 @@ class NotificationService {
   Future<void> markAllAsRead() async {
     final prefs = await SharedPreferences.getInstance();
     final existing = prefs.getString('notification_history') ?? '[]';
-    final list = (json.decode(existing) as List).map((m) => Map<String, dynamic>.from(m)).toList();
+    final list = (json.decode(existing) as List)
+        .map((m) => Map<String, dynamic>.from(m))
+        .toList();
     for (var item in list) {
       item['isRead'] = true;
     }
@@ -144,7 +153,9 @@ class NotificationService {
   Future<void> deleteNotification(String id) async {
     final prefs = await SharedPreferences.getInstance();
     final existing = prefs.getString('notification_history') ?? '[]';
-    final list = (json.decode(existing) as List).map((m) => Map<String, dynamic>.from(m)).toList();
+    final list = (json.decode(existing) as List)
+        .map((m) => Map<String, dynamic>.from(m))
+        .toList();
     list.removeWhere((item) => item['id'] == id);
     await prefs.setString('notification_history', json.encode(list));
   }

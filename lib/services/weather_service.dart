@@ -45,12 +45,14 @@ class WeatherData {
       final now = DateTime.now();
       for (var i = 0; i < (hourly['time'] as List).length && i < 24; i++) {
         final time = DateTime.tryParse(hourly['time'][i]);
-        if (time != null && time.isAfter(now.subtract(const Duration(hours: 1)))) {
+        if (time != null &&
+            time.isAfter(now.subtract(const Duration(hours: 1)))) {
           hourlyList.add(HourlyForecast(
             time: time,
             temperature: (hourly['temperature_2m'][i] as num?)?.toDouble() ?? 0,
             weatherCode: hourly['weather_code'][i] ?? 0,
-            precipitation: (hourly['precipitation'][i] as num?)?.toDouble() ?? 0,
+            precipitation:
+                (hourly['precipitation'][i] as num?)?.toDouble() ?? 0,
           ));
         }
       }
@@ -75,37 +77,67 @@ class WeatherData {
     final weatherCode = current['weather_code'] ?? 0;
     return WeatherData(
       temperature: (current['temperature_2m'] as num?)?.toDouble() ?? 0,
-      feelsLike:
-          (current['apparent_temperature'] as num?)?.toDouble() ?? 0,
+      feelsLike: (current['apparent_temperature'] as num?)?.toDouble() ?? 0,
       weatherCode: weatherCode,
       condition: _weatherCodeToCondition(weatherCode),
       humidity: (current['relative_humidity_2m'] as num?)?.toInt() ?? 0,
-      windSpeed:
-          (current['wind_speed_10m'] as num?)?.toDouble() ?? 0,
-      windDirection:
-          (current['wind_direction_10m'] as num?)?.toInt() ?? 0,
-      windGusts:
-          (current['wind_gusts_10m'] as num?)?.toDouble() ?? 0,
+      windSpeed: (current['wind_speed_10m'] as num?)?.toDouble() ?? 0,
+      windDirection: (current['wind_direction_10m'] as num?)?.toInt() ?? 0,
+      windGusts: (current['wind_gusts_10m'] as num?)?.toDouble() ?? 0,
       pressure: (current['pressure_msl'] as num?)?.toDouble() ?? 0,
-      precipitation:
-          (current['precipitation'] as num?)?.toDouble(),
+      precipitation: (current['precipitation'] as num?)?.toDouble(),
       timestamp: DateTime.now(),
       hourly: hourlyList,
       daily: dailyList,
     );
   }
 
+  /// Compact, honest alert context for a farm location, matching the exact
+  /// thresholds used by the AI context builder ([AIContextBuilder]).
+  static Map<String, dynamic> alertContext(WeatherData w, [DateTime? now]) {
+    final n = now ?? DateTime.now();
+    final today = w.daily.isNotEmpty ? w.daily.first : null;
+    final next = w.daily.length > 1 ? w.daily[1] : null;
+    bool sameDay(DateTime a, DateTime b) =>
+        a.year == b.year && a.month == b.month && a.day == b.day;
+    final rainToday = today != null && sameDay(today.date, n)
+        ? today.precipitationSum
+        : (w.precipitation ?? 0);
+    final nextRain = today == null || sameDay(today.date, n)
+        ? (next?.precipitationSum ?? 0)
+        : (today.precipitationSum);
+    return {
+      'heatAlert': w.temperature >= 38,
+      'rainAlert': rainToday >= 5 || nextRain >= 10,
+      'humidity': w.humidity,
+    };
+  }
+
   static String _weatherCodeToCondition(int code) {
     const conditions = {
       0: 'Clear sky',
-      1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
-      45: 'Fog', 48: 'Depositing rime fog',
-      51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
-      61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
-      71: 'Slight snow', 73: 'Moderate snow', 75: 'Heavy snow',
-      80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers',
-      85: 'Slight snow showers', 86: 'Heavy snow showers',
-      95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail',
+      1: 'Mainly clear',
+      2: 'Partly cloudy',
+      3: 'Overcast',
+      45: 'Fog',
+      48: 'Depositing rime fog',
+      51: 'Light drizzle',
+      53: 'Moderate drizzle',
+      55: 'Dense drizzle',
+      61: 'Slight rain',
+      63: 'Moderate rain',
+      65: 'Heavy rain',
+      71: 'Slight snow',
+      73: 'Moderate snow',
+      75: 'Heavy snow',
+      80: 'Slight rain showers',
+      81: 'Moderate rain showers',
+      82: 'Violent rain showers',
+      85: 'Slight snow showers',
+      86: 'Heavy snow showers',
+      95: 'Thunderstorm',
+      96: 'Thunderstorm with slight hail',
+      99: 'Thunderstorm with heavy hail',
     };
     return conditions[code] ?? 'Unknown';
   }
@@ -123,8 +155,24 @@ class WeatherData {
   }
 
   static String windDirectionLabel(int degrees) {
-    const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
-                  'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const dirs = [
+      'N',
+      'NNE',
+      'NE',
+      'ENE',
+      'E',
+      'ESE',
+      'SE',
+      'SSE',
+      'S',
+      'SSW',
+      'SW',
+      'WSW',
+      'W',
+      'WNW',
+      'NW',
+      'NNW'
+    ];
     return dirs[(degrees / 22.5).round() % 16];
   }
 }

@@ -1,25 +1,52 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:vidhai/services/voice_service.dart';
+import 'package:image_picker/image_picker.dart';
+
+import 'package:vidhai/core/theme/vidhai_theme.dart';
+import 'package:vidhai/data/models/farm_profile.dart';
+import 'package:vidhai/features/assistant/voice_turn_recorder.dart';
+import 'package:vidhai/features/home/screens/live_voice_screen.dart';
+import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/services/ai/ai_chat_service.dart';
 import 'package:vidhai/services/ai/domain_services.dart';
+import 'package:vidhai/services/ai/gemini_vision_service.dart';
+import 'package:vidhai/services/ai/tts_service.dart';
 import 'package:vidhai/services/data_service.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class _ChatMessage {
   final String text;
   final bool isUser;
   final DateTime timestamp;
   bool isNewlyAdded;
+  final List<XFile>? imageFiles;
+  final String? fileName;
+  final bool voiceInitiated;
 
   _ChatMessage({
     required this.text,
     required this.isUser,
     required this.timestamp,
     this.isNewlyAdded = false,
+    this.imageFiles,
+    this.fileName,
+    this.voiceInitiated = false,
   });
 }
 
 class AiChatScreen extends StatefulWidget {
-  const AiChatScreen({super.key});
+  final String source;
+  final String? targetFarmId;
+
+  const AiChatScreen({
+    required this.source,
+    this.targetFarmId,
+    super.key,
+  });
 
   @override
   State<AiChatScreen> createState() => _AiChatScreenState();
@@ -28,36 +55,122 @@ class AiChatScreen extends StatefulWidget {
 class _AiChatScreenState extends State<AiChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final VoiceService _voiceService = VoiceService();
+  final _chatService = VidhAIChatService.instance;
+  final _history = ChatHistoryService.instance;
+  final _dataService = DataService();
+  final _tts = TtsService.instance;
+  final _recorder = VoiceTurnRecorder();
 
   final List<_ChatMessage> _messages = [];
+  final List<XFile> _pendingImages = [];
+  final List<String> _pendingFiles = [];
+
+  List<FarmProfile> _farms = [];
+  String? _selectedFarmId;
+
   bool _isTyping = false;
-  bool _isListening = false;
+  bool _recording = false;
+  String _liveTranscript = '';
+  double _waveAmp = 0;
+  int _speakingIndex = -1;
+  StreamSubscription<double>? _ampSub;
 
-  static const Color _bgColor = Color(0xFF0A0F1A);
-  static const Color _bubbleDark = Color(0xFF111827);
-  static const Color _accent = Color(0xFF4CAF50);
-  static const Color _inputBg = Color(0xFF1A2332);
-
-  bool _hasNonLatin(String text) {
-    return RegExp(r'[^\x00-\x7F]').hasMatch(text);
+  @override
+  void initState() {
+    super.initState();
+    _tts.addListener(_onTtsChanged);
+    _loadFarms();
+    final active = _history.activeSession;
+    if (active != null) {
+      _messages.addAll(active.messages.map((m) => _ChatMessage(
+            text: m.content,
+            isUser: m.role == 'user',
+            timestamp: m.timestamp,
+          )));
+    }
   }
 
-  final _chatService = VidhAIChatService.instance;
-  final _dataService = DataService();
+  Future<void> _loadFarms() async {
+    try {
+      final farms = await _dataService.loadFarms();
+      if (!mounted) return;
+      setState(() {
+        _farms = farms;
+        final target = widget.targetFarmId;
+        _selectedFarmId = target != null && farms.any((f) => f.farmId == target)
+            ? target
+            : farms.length == 1
+                ? farms.first.farmId
+                : null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _tts.removeListener(_onTtsChanged);
+    _ampSub?.cancel();
+    unawaited(_recorder.cancel());
+    unawaited(_tts.stop());
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onTtsChanged() {
+    if (!_tts.isSpeaking && _speakingIndex != -1 && mounted) {
+      setState(() => _speakingIndex = -1);
+    }
+  }
+
+  // ── AI helpers ─────────────────────────────────────────────────────────
+
+  Future<String> _getLanguage() => _dataService.getSelectedLanguage();
 
   Future<String> _getResponse(String input) async {
     final profile = await _dataService.loadCachedProfile();
-    final farms = await _dataService.loadFarms();
-    final farmMaps = farms.map((f) => f.toMap()).toList();
+    final farms = _farms.isNotEmpty ? _farms : await _dataService.loadFarms();
+    final selId = _selectedFarmId;
+    final farmMaps = selId != null
+        ? farms
+            .where((f) => f.farmId == selId)
+            .take(1)
+            .map((f) => f.toMap())
+            .toList()
+        : farms.map((f) => f.toMap()).toList();
     final profileMap = profile?.toMap() ?? {};
-    final lang = await _dataService.getSelectedLanguage();
+    final lang = await _getLanguage();
     return _chatService.chat(
       input,
       language: lang,
       userProfile: profileMap,
       farms: farmMaps.isNotEmpty ? farmMaps : null,
     );
+  }
+
+  String _polishResponse(String raw) {
+    var text = raw.trim();
+    text = text.replaceAll(RegExp(r'\*\*([^*]+)\*\*'), r'$1');
+    text = text.replaceAll(RegExp(r'^#{1,6}\s*', multiLine: true), '');
+    text = text.replaceAll(RegExp(r'^\s*[-*+]\s+', multiLine: true), '• ');
+    text = text.replaceAll(RegExp(r'^•\s?$', multiLine: true), '');
+    return text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+  }
+
+  ChatSession _session({String? title}) {
+    return _history.activeSession ??
+        _history.createSession(
+          title: title == null ? null : _titleFor(title),
+        );
+  }
+
+  String _titleFor(String text) {
+    final clean = text.trim();
+    if (clean.length <= 40) return clean;
+    return '${clean.substring(0, 37)}...';
   }
 
   void _scrollToBottom() {
@@ -72,28 +185,73 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
   }
 
-  Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+  // ── Sending ────────────────────────────────────────────────────────────
 
+  Future<void> _sendMessage(String text, {bool voiceInitiated = false}) async {
+    final clean = text.trim();
+    if (clean.isEmpty && _pendingImages.isEmpty && _pendingFiles.isEmpty) {
+      return;
+    }
+    if (_pendingImages.isNotEmpty) {
+      await _sendWithImages(clean, voiceInitiated: voiceInitiated);
+      return;
+    }
+    if (_pendingFiles.isNotEmpty) {
+      final fileName = _pendingFiles.removeAt(0);
+      if (mounted) setState(() {});
+      await _standardSend(clean,
+          fileName: fileName, voiceInitiated: voiceInitiated);
+      return;
+    }
+    if (clean.isEmpty) return;
+    await _standardSend(clean, voiceInitiated: voiceInitiated);
+  }
+
+  Future<void> _standardSend(
+    String text, {
+    String? fileName,
+    bool voiceInitiated = false,
+  }) async {
+    final loc = AppLocalizations.of(context);
     final userMsg = _ChatMessage(
-      text: text.trim(),
+      text: text,
       isUser: true,
       timestamp: DateTime.now(),
+      fileName: fileName,
+      voiceInitiated: voiceInitiated,
     );
+    final session = _session(title: text);
+    session.messages.add(ChatMessage.user(text));
 
     setState(() {
       _messages.add(userMsg);
       _isTyping = true;
     });
-
     _controller.clear();
     _scrollToBottom();
 
     try {
-      final responseText = await _getResponse(text);
+      final response = await _getResponse(text);
+      if (!mounted) return;
+      final reply = _polishResponse(response);
+      final aiMsg = _ChatMessage(
+        text: reply,
+        isUser: false,
+        timestamp: DateTime.now(),
+        isNewlyAdded: true,
+      );
+      session.messages.add(ChatMessage.assistant(reply));
+      session.updatedAt = DateTime.now();
+      setState(() {
+        _isTyping = false;
+        _messages.add(aiMsg);
+      });
+      _scrollToBottom();
+      if (voiceInitiated) _speak(reply);
+    } catch (_) {
       if (!mounted) return;
       final aiMsg = _ChatMessage(
-        text: responseText,
+        text: loc.aiGenericError,
         isUser: false,
         timestamp: DateTime.now(),
         isNewlyAdded: true,
@@ -102,189 +260,596 @@ class _AiChatScreenState extends State<AiChatScreen> {
         _isTyping = false;
         _messages.add(aiMsg);
       });
-    } catch (e) {
-      if (!mounted) return;
-      final aiMsg = _ChatMessage(
-        text: _hasNonLatin(text)
-            ? 'மன்னிக்கவும், ஏதோ தவறு நடந்தது. மீண்டும் முயற்சிக்கவும்.'
-            : 'Sorry, something went wrong. Please try again.',
-        isUser: false,
-        timestamp: DateTime.now(),
-        isNewlyAdded: true,
-      );
-      setState(() {
-        _isTyping = false;
-        _messages.add(aiMsg);
-      });
+      _scrollToBottom();
     }
+  }
+
+  Future<void> _sendWithImages(
+    String text, {
+    bool voiceInitiated = false,
+  }) async {
+    final loc = AppLocalizations.of(context);
+    final images = List<XFile>.from(_pendingImages);
+    setState(() => _pendingImages.clear());
+    final userMsg = _ChatMessage(
+      text: text,
+      isUser: true,
+      timestamp: DateTime.now(),
+      imageFiles: images,
+      voiceInitiated: voiceInitiated,
+    );
+    final session = _session(title: text.isEmpty ? 'photo query' : text);
+    session.messages.add(ChatMessage.user(text.isEmpty ? 'Photo query' : text));
+
+    setState(() {
+      _messages.add(userMsg);
+      _isTyping = true;
+    });
+    _controller.clear();
+    _scrollToBottom();
+
+    try {
+      final lang = await _getLanguage();
+      final carriers = <Uint8ListLike>[];
+      for (final image in images) {
+        final bytes = await image.readAsBytes();
+        carriers.add(Uint8ListLike(bytes: bytes, mimeType: _mimeFor(image)));
+      }
+      final prompt = text.trim().isEmpty ? loc.attachPhotoHint : text.trim();
+      final analysis = await GeminiVisionService.instance.analyze(
+        images: carriers,
+        prompt: prompt,
+        language: lang,
+      );
+      if (!mounted) return;
+      final reply = analysis.success && analysis.text.trim().isNotEmpty
+          ? _polishResponse(analysis.text)
+          : loc.aiGenericError;
+      final aiMsg = _ChatMessage(
+        text: reply,
+        isUser: false,
+        timestamp: DateTime.now(),
+        isNewlyAdded: true,
+      );
+      session.messages.add(ChatMessage.assistant(reply));
+      session.updatedAt = DateTime.now();
+      setState(() {
+        _isTyping = false;
+        _messages.add(aiMsg);
+      });
+      _scrollToBottom();
+      if (voiceInitiated) _speak(reply);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isTyping = false);
+      _messages.add(_ChatMessage(
+        text: loc.aiGenericError,
+        isUser: false,
+        timestamp: DateTime.now(),
+        isNewlyAdded: true,
+      ));
+      _scrollToBottom();
+    }
+  }
+
+  String _mimeFor(XFile file) {
+    final name = file.name.toLowerCase();
+    if (name.endsWith('.png')) return 'image/png';
+    if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg';
+    if (name.endsWith('.gif')) return 'image/gif';
+    if (name.endsWith('.webp')) return 'image/webp';
+    return 'image/jpeg';
+  }
+
+  // ── Voice recording ────────────────────────────────────────────────────
+
+  Future<void> _beginRecording() async {
+    final lang = await _getLanguage();
+    _recorder.onText = (t) {
+      if (mounted) setState(() => _liveTranscript = t);
+    };
+    final started = await _recorder.start(lang);
+    if (!mounted) return;
+    if (!started) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).aiVoiceError)),
+      );
+      return;
+    }
+    setState(() {
+      _recording = true;
+      _liveTranscript = '';
+      _waveAmp = 0;
+    });
+    _ampSub?.cancel();
+    _ampSub = _recorder.amplitude.listen(_onAmplitude);
+  }
+
+  void _onAmplitude(double db) {
+    if (!mounted) return;
+    final v = ((db + 55) / 55).clamp(0.0, 1.0);
+    setState(() => _waveAmp = v);
+  }
+
+  Future<void> _confirmRecording() async {
+    setState(() => _recording = false);
+    await _ampSub?.cancel();
+    _ampSub = null;
+    final transcript = await _recorder.finish();
+    if (!mounted) return;
+    if (transcript.trim().isEmpty) return;
+    await _sendMessage(transcript, voiceInitiated: true);
+  }
+
+  Future<void> _cancelRecording() async {
+    setState(() => _recording = false);
+    await _ampSub?.cancel();
+    _ampSub = null;
+    await _recorder.cancel();
+  }
+
+  // ── Voice output ───────────────────────────────────────────────────────
+
+  Future<void> _speak(String text) async {
+    final lang = await _getLanguage();
+    unawaited(_tts.speak(text, language: lang));
+  }
+
+  Future<void> _toggleSpeak(int index, String text) async {
+    if (_speakingIndex == index && _tts.isSpeaking) {
+      await _tts.stop();
+      if (mounted) setState(() => _speakingIndex = -1);
+      return;
+    }
+    await _tts.stop();
+    if (!mounted) return;
+    setState(() => _speakingIndex = index);
+    final lang = await _getLanguage();
+    await _tts.speak(text, language: lang);
+  }
+
+  // ── History ────────────────────────────────────────────────────────────
+
+  void _startNewChat() {
+    _history.createSession();
+    setState(() {
+      _messages.clear();
+      _controller.clear();
+      _pendingImages.clear();
+      _pendingFiles.clear();
+      _speakingIndex = -1;
+    });
     _scrollToBottom();
   }
 
-  void _startVoiceInput() async {
-    if (_isListening) {
-      await _voiceService.stopListening();
-      setState(() => _isListening = false);
-      return;
+  void _loadSession(String sessionId) {
+    _history.setActiveSession(sessionId);
+    final stored = _history.getHistoryForSession(sessionId);
+    setState(() {
+      _messages
+        ..clear()
+        ..addAll(stored.map((m) => _ChatMessage(
+              text: m.content,
+              isUser: m.role == 'user',
+              timestamp: m.timestamp,
+            )));
+      _controller.clear();
+      _pendingImages.clear();
+      _pendingFiles.clear();
+      _speakingIndex = -1;
+    });
+    _scrollToBottom();
+  }
+
+  void _deleteSession(String sessionId) {
+    final wasActive = _history.activeSession?.id == sessionId;
+    _history.deleteSession(sessionId);
+    if (wasActive) {
+      setState(() => _messages.clear());
+    } else {
+      setState(() {});
     }
+  }
 
-    setState(() => _isListening = true);
+  void _openLiveVoice() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const LiveVoiceScreen()),
+    );
+  }
 
-    await _voiceService.startListening(
-      onResult: (text, confidence) {
-        setState(() => _isListening = false);
-        _controller.text = text;
-        _controller.selection = TextSelection.fromPosition(
-          TextPosition(offset: _controller.text.length),
+  void _openHistory() {
+    final loc = AppLocalizations.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final x = FreshLeafColorsX(sheetContext);
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.62,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
+          builder: (context, scrollController) {
+            final sessions = _history.sessions;
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 12, 12),
+                  child: Row(
+                    children: [
+                      Text(
+                        loc.chatHistory,
+                        style: TextStyle(
+                          color: x.onBackground,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _startNewChat();
+                        },
+                        icon: Icon(Icons.edit_square, color: x.brand, size: 18),
+                        label: Text(loc.newChat),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: sessions.isEmpty
+                      ? _buildNoChats(x, loc)
+                      : ListView.builder(
+                          controller: scrollController,
+                          padding: const EdgeInsets.only(bottom: 16),
+                          itemCount: sessions.length,
+                          itemBuilder: (context, index) {
+                            final session = sessions[index];
+                            return Dismissible(
+                              key: ValueKey(session.id),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: AlignmentDirectional.centerEnd,
+                                padding:
+                                    const EdgeInsetsDirectional.only(end: 24),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: x.error,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              onDismissed: (_) => _deleteSession(session.id),
+                              child: ListTile(
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                  _loadSession(session.id);
+                                },
+                                leading: CircleAvatar(
+                                  backgroundColor:
+                                      x.brand.withValues(alpha: 0.12),
+                                  child: Icon(
+                                    Icons.chat_bubble_outline_rounded,
+                                    color: x.brand,
+                                    size: 20,
+                                  ),
+                                ),
+                                title: Text(
+                                  session.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: x.onBackground,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  session.messages.isEmpty
+                                      ? _formatListTime(session.updatedAt)
+                                      : '${session.preview}\n${_formatListTime(session.updatedAt)}',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: x.onSurfaceMuted,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
         );
-      },
-      onListeningComplete: () {
-        if (mounted) setState(() => _isListening = false);
       },
     );
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    _scrollController.dispose();
-    _voiceService.stopListening();
-    super.dispose();
+  Widget _buildNoChats(FreshLeafColorsX x, AppLocalizations loc) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.forum_outlined,
+            color: x.onSurfaceMuted.withValues(alpha: 0.6),
+            size: 44,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            loc.noChatsYet,
+            style: TextStyle(color: x.onSurfaceMuted, fontSize: 14),
+          ),
+        ],
+      ),
+    );
   }
+
+  // ── Attachments ────────────────────────────────────────────────────────
+
+  void _showAttachmentSheet() {
+    final loc = AppLocalizations.of(context);
+    final x = FreshLeafColorsX(context);
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.photo_camera_outlined, color: x.brand),
+                title: Text(
+                  loc.camera,
+                  style: TextStyle(color: x.onBackground, fontSize: 15),
+                ),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library_outlined, color: x.brand),
+                title: Text(
+                  loc.gallery,
+                  style: TextStyle(color: x.onBackground, fontSize: 15),
+                ),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.insert_drive_file_outlined, color: x.brand),
+                title: Text(
+                  loc.file,
+                  style: TextStyle(color: x.onBackground, fontSize: 15),
+                ),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _pickFile();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picked = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 1600,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _pendingImages.add(picked));
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (result == null || !mounted) return;
+    final name = result.files.single.name;
+    if (name.isEmpty) return;
+    setState(() => _pendingFiles.add(name));
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    final x = FreshLeafColorsX(context);
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: x.bg,
       appBar: AppBar(
-        backgroundColor: _bgColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset('assets/images/logo.png', width: 28, height: 28),
-            const SizedBox(width: 8),
-            const Text(
-              'VidhAI AI',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
+        backgroundColor: x.bg,
+        leading: widget.source == 'shell'
+            ? const SizedBox(width: 48)
+            : IconButton(
+                icon: Icon(
+                  directionalIcon(context, Icons.arrow_back_ios_new_rounded),
+                  color: x.onBackground,
+                  size: 20,
+                ),
+                onPressed: () => Navigator.of(context).maybePop(),
               ),
-            ),
-          ],
+        title: Text(
+          AppLocalizations.of(context).aiChatAssistantHeading,
+          style: TextStyle(
+            color: x.onBackground,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         centerTitle: true,
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: _accent.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.circle, color: _accent, size: 8),
-                const SizedBox(width: 4),
-                Text(
-                  'Online',
-                  style: TextStyle(
-                    color: _accent,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+          IconButton(
+            tooltip: AppLocalizations.of(context).voice,
+            icon: Icon(Icons.record_voice_over_rounded, color: x.onBackground),
+            onPressed: _openLiveVoice,
+          ),
+          IconButton(
+            tooltip: AppLocalizations.of(context).chatHistory,
+            icon: Icon(Icons.history_rounded, color: x.onBackground),
+            onPressed: _openHistory,
           ),
         ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: _messages.isEmpty ? _buildEmptyState() : _buildMessageList(),
+            child: _messages.isEmpty && !_isTyping
+                ? _buildEmptyState()
+                : _buildMessageList(),
           ),
-          _buildInputBar(),
+          _buildFarmSelector(),
+          _buildAttachmentChips(),
+          if (_recording) _buildRecordingBar() else _buildComposer(),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildFarmSelector() {
+    if (_farms.isEmpty) return const SizedBox.shrink();
+    final x = FreshLeafColorsX(context);
+    final loc = AppLocalizations.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+      decoration: BoxDecoration(
+        color: x.bg,
+        border: Border(top: BorderSide(color: x.borderColor, width: 0.5)),
+      ),
+      child: SizedBox(
+        height: 34,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
           children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Image.asset(
-                'assets/images/logo.png',
-                fit: BoxFit.cover,
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 6),
+              child: ChoiceChip(
+                selected: _selectedFarmId == null,
+                onSelected: (_) => setState(() => _selectedFarmId = null),
+                label: Text(loc.t('chat_all_farms')),
+                labelStyle: TextStyle(
+                  fontSize: 12,
+                  color:
+                      _selectedFarmId == null ? Colors.white : x.onBackground,
+                ),
+                selectedColor: x.brand,
+                backgroundColor: x.surface,
+                side: BorderSide(color: x.borderColor),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                avatar: Icon(Icons.agriculture_rounded,
+                    size: 15,
+                    color: _selectedFarmId == null
+                        ? Colors.white
+                        : x.onSurfaceMuted),
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'VidhAI AI Assistant',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+            for (final farm in _farms)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: 6),
+                child: ChoiceChip(
+                  selected: _selectedFarmId == farm.farmId,
+                  onSelected: (_) =>
+                      setState(() => _selectedFarmId = farm.farmId),
+                  label: Text(
+                    farm.farmName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  labelStyle: TextStyle(
+                    fontSize: 12,
+                    color: _selectedFarmId == farm.farmId
+                        ? Colors.white
+                        : x.onBackground,
+                  ),
+                  selectedColor: x.brand,
+                  backgroundColor: x.surface,
+                  side: BorderSide(color: x.borderColor),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Ask me anything about your farming...',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
-                fontSize: 15,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
-                _buildSuggestionChip('What should I do now?'),
-                _buildSuggestionChip('Best crop to grow?'),
-                _buildSuggestionChip('Tomato price'),
-              ],
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSuggestionChip(String text) {
-    return GestureDetector(
-      onTap: () => _sendMessage(text),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: _bubbleDark,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _accent.withValues(alpha: 0.3)),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.8),
-            fontSize: 13,
-          ),
+  Widget _buildEmptyState() {
+    final x = FreshLeafColorsX(context);
+    final loc = AppLocalizations.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 36),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [x.brand, x.brandStrong],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: x.brand.withValues(alpha: 0.35),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.support_agent_rounded,
+                color: Colors.white,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              loc.aiChatAssistantHeading,
+              style: TextStyle(
+                color: x.onBackground,
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              loc.chatHint,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: x.onSurfaceMuted,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -299,100 +864,232 @@ class _AiChatScreenState extends State<AiChatScreen> {
         if (index == _messages.length && _isTyping) {
           return _buildTypingIndicator();
         }
-        final msg = _messages[index];
-        return _buildMessageBubble(msg);
+        return _buildMessageBubble(_messages[index], index);
       },
     );
   }
 
-  Widget _buildMessageBubble(_ChatMessage msg) {
-    final isUser = msg.isUser;
-
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.78,
-        ),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: isUser ? _accent : _bubbleDark,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isUser ? 16 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 16),
+  Widget _buildMessageBubble(_ChatMessage msg, int index) {
+    final x = FreshLeafColorsX(context);
+    if (msg.isUser) {
+      return Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.8,
+          ),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [x.brand, x.brandStrong],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadiusDirectional.only(
+              topStart: Radius.circular(18),
+              topEnd: Radius.circular(18),
+              bottomEnd: Radius.circular(18),
+              bottomStart: Radius.circular(6),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (msg.imageFiles != null && msg.imageFiles!.isNotEmpty)
+                ..._buildImagePreview(msg.imageFiles!),
+              if (msg.fileName != null) _buildFileNameChip(msg.fileName!, x),
+              if (msg.text.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: (msg.imageFiles != null || msg.fileName != null)
+                        ? 6
+                        : 0,
+                  ),
+                  child: Text(
+                    msg.text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 4),
+              Text(
+                _formatTime(msg.timestamp),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 10,
+                ),
+              ),
+            ],
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isUser || !msg.isNewlyAdded)
-              Text(
-                msg.text,
-                style: TextStyle(
-                  color: isUser ? Colors.white : Colors.white.withValues(alpha: 0.9),
-                  fontSize: 14,
-                  height: 1.4,
+      );
+    }
+
+    final isSpeaking = _speakingIndex == index;
+    return Container(
+      width: double.maxFinite,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: x.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: x.borderColor, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [x.brand, x.brandStrong],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
-              )
-            else
-              _AnimatedMessageText(
-                text: msg.text,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 14,
-                  height: 1.4,
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 15,
                 ),
-                onFinished: () {
-                  msg.isNewlyAdded = false;
-                },
               ),
-            const SizedBox(height: 4),
-            Text(
-              _formatTime(msg.timestamp),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  AppLocalizations.of(context).aiChatAssistantHeading,
+                  style: TextStyle(
+                    color: x.brand,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => _toggleSpeak(index, msg.text),
+                icon: Icon(
+                  isSpeaking
+                      ? Icons.volume_up_rounded
+                      : Icons.volume_up_outlined,
+                  color: isSpeaking ? x.brand : x.onSurfaceMuted,
+                  size: 20,
+                ),
+                visualDensity: VisualDensity.compact,
+                tooltip: isSpeaking
+                    ? AppLocalizations.of(context).stop
+                    : AppLocalizations.of(context).voice,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (msg.isNewlyAdded)
+            _AnimatedMessageText(
+              text: msg.text,
               style: TextStyle(
-                color: (isUser ? Colors.white : Colors.white).withValues(alpha: 0.45),
-                fontSize: 10,
+                color: x.onBackground,
+                fontSize: 15,
+                height: 1.45,
+              ),
+              onFinished: () => msg.isNewlyAdded = false,
+            )
+          else
+            Text(
+              msg.text,
+              style: TextStyle(
+                color: x.onBackground,
+                fontSize: 15,
+                height: 1.45,
               ),
             ),
-          ],
+          const SizedBox(height: 6),
+          Text(
+            _formatTime(msg.timestamp),
+            style: TextStyle(
+              color: x.onSurfaceMuted.withValues(alpha: 0.8),
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildImagePreview(List<XFile> images) {
+    return images.map((image) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(
+            File(image.path),
+            height: 160,
+            width: 240,
+            fit: BoxFit.cover,
+          ),
         ),
+      );
+    }).toList();
+  }
+
+  Widget _buildFileNameChip(String name, FreshLeafColorsX x) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.attach_file_rounded, color: Colors.white, size: 15),
+          const SizedBox(width: 4),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 180),
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTypingIndicator() {
+    final x = FreshLeafColorsX(context);
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: AlignmentDirectional.centerStart,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          color: _bubbleDark,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-            bottomLeft: Radius.circular(4),
-            bottomRight: Radius.circular(16),
-          ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: x.surface,
+          borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildDot(0),
-            const SizedBox(width: 4),
-            _buildDot(1),
-            const SizedBox(width: 4),
-            _buildDot(2),
+            _buildDot(x, 0),
+            const SizedBox(width: 5),
+            _buildDot(x, 1),
+            const SizedBox(width: 5),
+            _buildDot(x, 2),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDot(int index) {
+  Widget _buildDot(FreshLeafColorsX x, int index) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.3, end: 1.0),
       duration: const Duration(milliseconds: 600),
@@ -404,7 +1101,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: _accent.withValues(alpha: value),
+              color: x.brand.withValues(alpha: value),
               shape: BoxShape.circle,
             ),
           ),
@@ -413,89 +1110,341 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  Widget _buildInputBar() {
+  // ── Composer ───────────────────────────────────────────────────────────
+
+  Widget _buildAttachmentChips() {
+    if (_pendingImages.isEmpty && _pendingFiles.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final x = FreshLeafColorsX(context);
     return Container(
-      padding: EdgeInsets.only(
-        left: 12,
-        right: 8,
-        top: 10,
-        bottom: MediaQuery.of(context).padding.bottom + 10,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: x.bg,
+        border: Border(top: BorderSide(color: x.borderColor, width: 0.5)),
       ),
-      decoration: const BoxDecoration(
-        color: _bgColor,
-        border: Border(
-          top: BorderSide(color: Color(0xFF1E293B), width: 0.5),
+      child: SizedBox(
+        height: 44,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            for (var i = 0; i < _pendingImages.length; i++)
+              _buildImageChip(_pendingImages[i], i),
+            for (var i = 0; i < _pendingFiles.length; i++)
+              _buildFileChip(_pendingFiles[i], i),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImageChip(XFile image, int index) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Stack(
+          children: [
+            Image.file(
+              File(image.path),
+              height: 44,
+              width: 44,
+              fit: BoxFit.cover,
+            ),
+            PositionedDirectional(
+              end: 0,
+              top: 0,
+              child: InkWell(
+                onTap: () => setState(() => _pendingImages.removeAt(index)),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFileChip(String name, int index) {
+    final x = FreshLeafColorsX(context);
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: x.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: x.borderColor),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.attach_file_rounded, color: x.brand, size: 16),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 120),
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: x.onBackground, fontSize: 13),
+              ),
+            ),
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: () => setState(() => _pendingFiles.removeAt(index)),
+              child:
+                  Icon(Icons.close_rounded, color: x.onSurfaceMuted, size: 16),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildComposer() {
+    final x = FreshLeafColorsX(context);
+    final loc = AppLocalizations.of(context);
+    final hasText = _controller.text.trim().isNotEmpty;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        8,
+        8,
+        8,
+        8 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      decoration: BoxDecoration(
+        color: x.bg,
+        border: Border(top: BorderSide(color: x.borderColor, width: 0.5)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           IconButton(
-            onPressed: _startVoiceInput,
-            icon: Icon(
-              _isListening ? Icons.mic : Icons.mic_none,
-              color: _isListening ? Colors.red : _accent,
-              size: 24,
-            ),
-            style: IconButton.styleFrom(
-              backgroundColor: _isListening
-                  ? Colors.red.withValues(alpha: 0.15)
-                  : _accent.withValues(alpha: 0.1),
-            ),
+            onPressed: _showAttachmentSheet,
+            icon: const Icon(Icons.add_rounded),
+            color: x.onSurfaceMuted,
+            tooltip: loc.addAttachment,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 2),
           Expanded(
             child: Container(
-              constraints: const BoxConstraints(minHeight: 44, maxHeight: 120),
+              constraints: const BoxConstraints(minHeight: 46, maxHeight: 120),
               decoration: BoxDecoration(
-                color: _inputBg,
-                borderRadius: BorderRadius.circular(22),
+                color: x.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: x.borderColor),
               ),
               child: TextField(
                 controller: _controller,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                maxLines: null,
+                minLines: 1,
+                maxLines: 4,
                 keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.newline,
+                textInputAction: TextInputAction.send,
+                style: TextStyle(color: x.onBackground, fontSize: 15),
                 decoration: InputDecoration(
-                  hintText: 'Type your message...',
-                  hintStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.35),
-                    fontSize: 14,
-                  ),
+                  hintText: loc.askAnything,
+                  hintStyle: TextStyle(color: x.onSurfaceMuted, fontSize: 15),
                   border: InputBorder.none,
+                  isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                    horizontal: 18,
+                    vertical: 13,
                   ),
                 ),
-                onSubmitted: (value) => _sendMessage(value),
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (value) {
+                  if (value.trim().isNotEmpty) _sendMessage(value);
+                },
               ),
             ),
           ),
-          const SizedBox(width: 4),
-          Container(
-            decoration: const BoxDecoration(
-              color: _accent,
-              shape: BoxShape.circle,
+          const SizedBox(width: 2),
+          if (hasText)
+            _buildSendButton(x)
+          else
+            IconButton(
+              onPressed: _beginRecording,
+              icon: const Icon(Icons.mic_none_rounded),
+              color: x.brand,
+              tooltip: loc.voice,
             ),
-            child: IconButton(
-              onPressed: () => _sendMessage(_controller.text),
-              icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-              style: IconButton.styleFrom(
-                backgroundColor: _accent,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSendButton(FreshLeafColorsX x) {
+    return InkWell(
+      onTap: () => _sendMessage(_controller.text),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [x.brand, x.brandStrong],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: const Icon(
+          Icons.arrow_upward_rounded,
+          color: Colors.white,
+          size: 24,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecordingBar() {
+    final x = FreshLeafColorsX(context);
+    final loc = AppLocalizations.of(context);
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        12,
+        12,
+        12,
+        12 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      decoration: BoxDecoration(
+        color: x.bg,
+        border: Border(top: BorderSide(color: x.borderColor, width: 0.5)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildWaveform(x),
+          const SizedBox(height: 8),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _liveTranscript.isEmpty
+                ? Text(
+                    loc.aiVoiceListening,
+                    key: const ValueKey('listening'),
+                    style: TextStyle(color: x.onSurfaceMuted, fontSize: 13),
+                  )
+                : Text(
+                    _liveTranscript,
+                    key: const ValueKey('transcript'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: x.onBackground, fontSize: 14),
+                  ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildRecordAction(
+                x: x,
+                icon: Icons.close_rounded,
+                color: x.error,
+                onTap: _cancelRecording,
+                tooltip: loc.cancel,
               ),
-            ),
+              const SizedBox(width: 56),
+              _buildRecordAction(
+                x: x,
+                icon: Icons.check_rounded,
+                color: x.brand,
+                onTap: _confirmRecording,
+                tooltip: loc.yes,
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
+  Widget _buildRecordAction({
+    required FreshLeafColorsX x,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    required String tooltip,
+  }) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: 0.12),
+            ),
+            child: Icon(icon, color: color, size: 26),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(tooltip, style: TextStyle(color: x.onSurfaceMuted, fontSize: 11)),
+      ],
+    );
+  }
+
+  Widget _buildWaveform(FreshLeafColorsX x) {
+    return SizedBox(
+      height: 34,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: List.generate(36, (index) {
+          final wave = (1 + math.sin(index * 0.7)) / 2;
+          final height = 6 + (_waveAmp * 22 * (0.4 + wave * 0.6));
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 80),
+            curve: Curves.easeOut,
+            width: 3,
+            height: height.clamp(4, 30).toDouble(),
+            margin: const EdgeInsets.symmetric(horizontal: 1.5),
+            decoration: BoxDecoration(
+              color: _waveAmp > 0.12
+                  ? x.brand
+                  : x.onSurfaceMuted.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // ── Formatting ─────────────────────────────────────────────────────────
+
   String _formatTime(DateTime dt) {
     final h = dt.hour.toString().padLeft(2, '0');
     final m = dt.minute.toString().padLeft(2, '0');
     return '$h:$m';
+  }
+
+  String _formatListTime(DateTime t) {
+    final now = DateTime.now();
+    final sameDay =
+        t.year == now.year && t.month == now.month && t.day == now.day;
+    if (sameDay) {
+      final h = t.hour.toString().padLeft(2, '0');
+      final m = t.minute.toString().padLeft(2, '0');
+      return '$h:$m';
+    }
+    final d = t.day.toString().padLeft(2, '0');
+    final mo = t.month.toString().padLeft(2, '0');
+    return '$d/$mo';
   }
 }
 
@@ -526,9 +1475,7 @@ class _AnimatedMessageTextState extends State<_AnimatedMessageText> {
   }
 
   void _startTyping() {
-    // Type faster for longer text to avoid waiting too long
     final int delay = widget.text.length > 200 ? 5 : 15;
-    
     _timer = Timer.periodic(Duration(milliseconds: delay), (timer) {
       if (_currentIndex < widget.text.length) {
         if (mounted) {

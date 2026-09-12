@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/crop_models.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/services/voice_service.dart';
+import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class CropSetupScreen extends StatefulWidget {
   final String farmId;
@@ -18,6 +21,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   final TextEditingController _lastCropController = TextEditingController();
   final TextEditingController _farmLocationController = TextEditingController();
   final TextEditingController _farmSizeController = TextEditingController();
+  final TextEditingController _budgetController = TextEditingController();
 
   DateTime? _harvestDate;
   DateTime? _lastIrrigationDate;
@@ -146,6 +150,13 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     } catch (_) {}
   }
 
+  int? _parseBudget() {
+    final cleaned = _budgetController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleaned.isEmpty) return null;
+    final value = int.tryParse(cleaned);
+    return (value == null || value <= 0) ? null : value;
+  }
+
   Future<void> _startVoiceInput() async {
     if (_voiceService.isListening) {
       await _voiceService.stopListening();
@@ -156,10 +167,12 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     final hasPermission = await _voiceService.initialize();
     if (!hasPermission) {
       if (mounted) {
+        final colors = VidhAIColorsX(context);
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Microphone permission denied'),
-            backgroundColor: Color(0xFFEF4444),
+          SnackBar(
+            content: Text(loc.permissionDenied),
+            backgroundColor: colors.danger,
           ),
         );
       }
@@ -180,6 +193,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Future<void> _pickDate({required bool isHarvestDate}) async {
+    final colors = VidhAIColorsX(context);
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -188,13 +202,13 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF4CAF50),
+            colorScheme: ColorScheme.dark(
+              primary: colors.brandDeep,
               onPrimary: Colors.white,
-              surface: Color(0xFF1A2332),
-              onSurface: Colors.white,
+              surface: colors.surface,
+              onSurface: colors.onBackground,
             ),
-            dialogBackgroundColor: const Color(0xFF1A2332),
+            dialogTheme: DialogThemeData(backgroundColor: colors.surface),
           ),
           child: child!,
         );
@@ -231,6 +245,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
       currentSeason: _currentSeason,
       cropDurationPreference: _cropDurationPreference,
       cropCategoryPreference: _cropCategoryPreference,
+      budgetInrPerAcre: _parseBudget(),
     );
 
     Navigator.pushNamed(
@@ -245,20 +260,22 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1A),
+      backgroundColor: colors.bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0F1A),
+        backgroundColor: colors.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded,
-              color: Colors.white, size: 20),
+          icon: Icon(directionalIcon(context, Icons.arrow_back_ios_rounded),
+              color: colors.onBackground, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Crop Setup',
+        title: Text(
+          loc.cropSetup,
           style: TextStyle(
-            color: Colors.white,
+            color: colors.onBackground,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -270,49 +287,36 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
           children: [
-            _buildQuestionHeader(
-              'Help us understand your farm history to get the best crop recommendations.'),
+            _buildQuestionHeader(loc.cropSetupHelpText),
             const SizedBox(height: 20),
-
             _buildQuestion1(),
             const SizedBox(height: 16),
-
             _buildQuestion2(),
             const SizedBox(height: 16),
-
             _buildQuestion3(),
             const SizedBox(height: 16),
-
             _buildQuestion4(),
             const SizedBox(height: 16),
-
             _buildQuestion5(),
             const SizedBox(height: 16),
-
             _buildQuestion6(),
             const SizedBox(height: 16),
-
             _buildQuestion7(),
             const SizedBox(height: 16),
-
             _buildQuestion8(),
             const SizedBox(height: 16),
-
             _buildQuestion9(),
             const SizedBox(height: 16),
-
             _buildQuestion10(),
             const SizedBox(height: 16),
-
             _buildQuestion11(),
             const SizedBox(height: 16),
-
             _buildQuestion12(),
             const SizedBox(height: 16),
-
             _buildQuestion13(),
+            const SizedBox(height: 16),
+            _buildQuestion14(),
             const SizedBox(height: 24),
-
             _buildGetRecommendationsButton(),
             const SizedBox(height: 40),
           ],
@@ -322,23 +326,23 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestionHeader(String text) {
+    final colors = VidhAIColorsX(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF4CAF50).withValues(alpha: 0.08),
+        color: colors.brandDeep.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.2)),
+        border: Border.all(color: colors.brandDeep.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded,
-              color: Color(0xFF4CAF50), size: 20),
+          Icon(Icons.info_outline_rounded, color: colors.brandDeep, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: colors.onSurfaceMuted,
                 fontSize: 13,
               ),
             ),
@@ -349,18 +353,19 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildNumberBadge(int number) {
+    final colors = VidhAIColorsX(context);
     return Container(
       width: 28,
       height: 28,
       decoration: BoxDecoration(
-        color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
+        color: colors.brandDeep.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Center(
         child: Text(
           '$number',
-          style: const TextStyle(
-            color: Color(0xFF4CAF50),
+          style: TextStyle(
+            color: colors.brandDeep,
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
@@ -370,20 +375,21 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildFieldLabel(String label, {bool required = false}) {
+    final colors = VidhAIColorsX(context);
     return Row(
       children: [
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.8),
+            color: colors.onBackground,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
         ),
         if (required)
-          const Text(
+          Text(
             ' *',
-            style: TextStyle(color: Color(0xFFEF4444), fontSize: 14),
+            style: TextStyle(color: colors.danger, fontSize: 14),
           ),
       ],
     );
@@ -394,30 +400,33 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     required IconData icon,
     Widget? suffix,
   }) {
+    final colors = VidhAIColorsX(context);
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
-      prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.4), size: 20),
+      hintStyle: TextStyle(color: colors.onSurfaceMuted),
+      prefixIcon: Icon(icon, color: colors.onSurfaceMuted, size: 20),
       suffixIcon: suffix,
       filled: true,
-      fillColor: const Color(0xFF1A2332),
+      fillColor: colors.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        borderSide: BorderSide(color: colors.borderColor),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        borderSide: BorderSide(color: colors.borderColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 1.5),
+        borderSide: BorderSide(color: colors.brandDeep, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 
   Widget _buildQuestion1() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -425,7 +434,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(1),
             const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel('Last crop grown')),
+            Expanded(child: _buildFieldLabel(loc.lastCropGrown)),
           ],
         ),
         const SizedBox(height: 8),
@@ -434,9 +443,9 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
             Expanded(
               child: TextFormField(
                 controller: _lastCropController,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
+                style: TextStyle(color: colors.onBackground, fontSize: 15),
                 decoration: _fieldDecoration(
-                  hint: 'e.g., Paddy, Tomato, Cotton',
+                  hint: loc.hintLastCrop,
                   icon: Icons.grass_rounded,
                 ),
               ),
@@ -449,15 +458,14 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
                 height: 48,
                 decoration: BoxDecoration(
                   color: _isListeningLastCrop
-                      ? const Color(0xFFEF4444).withValues(alpha: 0.2)
-                      : const Color(0xFF4CAF50).withValues(alpha: 0.15),
+                      ? colors.danger.withValues(alpha: 0.2)
+                      : colors.brandDeep.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   _isListeningLastCrop ? Icons.mic : Icons.mic_none_rounded,
-                  color: _isListeningLastCrop
-                      ? const Color(0xFFEF4444)
-                      : const Color(0xFF4CAF50),
+                  color:
+                      _isListeningLastCrop ? colors.danger : colors.brandDeep,
                   size: 22,
                 ),
               ),
@@ -469,6 +477,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion2() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -477,8 +487,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
             _buildNumberBadge(2),
             const SizedBox(width: 10),
             Expanded(
-                child: _buildFieldLabel('When was it harvested?',
-                    required: true)),
+                child:
+                    _buildFieldLabel(loc.whenWasItHarvested, required: true)),
           ],
         ),
         const SizedBox(height: 8),
@@ -487,23 +497,23 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A2332),
+              color: colors.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(color: colors.borderColor),
             ),
             child: Row(
               children: [
                 Icon(Icons.calendar_today_rounded,
-                    color: Colors.white.withValues(alpha: 0.4), size: 20),
+                    color: colors.onSurfaceMuted, size: 20),
                 const SizedBox(width: 12),
                 Text(
                   _harvestDate != null
                       ? _formatDate(_harvestDate!)
-                      : 'Select harvest date',
+                      : loc.selectHarvestDate,
                   style: TextStyle(
                     color: _harvestDate != null
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.4),
+                        ? colors.onBackground
+                        : colors.onSurfaceMuted,
                     fontSize: 15,
                   ),
                 ),
@@ -511,8 +521,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
                 if (_harvestDate != null)
                   GestureDetector(
                     onTap: () => setState(() => _harvestDate = null),
-                    child: const Icon(Icons.close,
-                        color: Colors.white38, size: 18),
+                    child: Icon(Icons.close,
+                        color: colors.onSurfaceMuted, size: 18),
                   ),
               ],
             ),
@@ -523,6 +533,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion3() {
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -530,14 +541,13 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(3),
             const SizedBox(width: 10),
-            Expanded(
-                child: _buildFieldLabel('How long has the land been idle?')),
+            Expanded(child: _buildFieldLabel(loc.howLongLandIdle)),
           ],
         ),
         const SizedBox(height: 8),
         _buildDropdownField(
           value: _landIdleDuration.isEmpty ? null : _landIdleDuration,
-          hint: 'Select duration',
+          hint: loc.selectDuration,
           icon: Icons.timer_outlined,
           items: _landIdleOptions,
           onChanged: (v) => setState(() => _landIdleDuration = v ?? ''),
@@ -547,6 +557,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion4() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -554,8 +566,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(4),
             const SizedBox(width: 10),
-            Expanded(
-                child: _buildFieldLabel('When was the last irrigation?')),
+            Expanded(child: _buildFieldLabel(loc.whenLastIrrigation)),
           ],
         ),
         const SizedBox(height: 8),
@@ -564,33 +575,32 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A2332),
+              color: colors.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(color: colors.borderColor),
             ),
             child: Row(
               children: [
                 Icon(Icons.water_drop_outlined,
-                    color: Colors.white.withValues(alpha: 0.4), size: 20),
+                    color: colors.onSurfaceMuted, size: 20),
                 const SizedBox(width: 12),
                 Text(
                   _lastIrrigationDate != null
                       ? _formatDate(_lastIrrigationDate!)
-                      : 'Select last irrigation date',
+                      : loc.selectLastIrrigationDate,
                   style: TextStyle(
                     color: _lastIrrigationDate != null
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.4),
+                        ? colors.onBackground
+                        : colors.onSurfaceMuted,
                     fontSize: 15,
                   ),
                 ),
                 const Spacer(),
                 if (_lastIrrigationDate != null)
                   GestureDetector(
-                    onTap: () =>
-                        setState(() => _lastIrrigationDate = null),
-                    child: const Icon(Icons.close,
-                        color: Colors.white38, size: 18),
+                    onTap: () => setState(() => _lastIrrigationDate = null),
+                    child: Icon(Icons.close,
+                        color: colors.onSurfaceMuted, size: 18),
                   ),
               ],
             ),
@@ -601,6 +611,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion5() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -608,8 +620,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(5),
             const SizedBox(width: 10),
-            Expanded(
-                child: _buildFieldLabel('Current water availability')),
+            Expanded(child: _buildFieldLabel(loc.currentWaterAvailability)),
           ],
         ),
         const SizedBox(height: 8),
@@ -618,10 +629,9 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           runSpacing: 8,
           children: _waterLevels.map((level) {
             final isSelected = _waterAvailability == level;
-            final color = _waterLevelColor(level);
+            final color = _waterLevelColor(level, colors);
             return GestureDetector(
-              onTap: () =>
-                  setState(() => _waterAvailability = level),
+              onTap: () => setState(() => _waterAvailability = level),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding:
@@ -629,17 +639,17 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? color.withValues(alpha: 0.2)
-                      : const Color(0xFF1A2332),
+                      : colors.surface,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected ? color : Colors.white.withValues(alpha: 0.08),
+                    color: isSelected ? color : colors.borderColor,
                     width: isSelected ? 1.5 : 1,
                   ),
                 ),
                 child: Text(
                   level,
                   style: TextStyle(
-                    color: isSelected ? color : Colors.white.withValues(alpha: 0.6),
+                    color: isSelected ? color : colors.onSurfaceMuted,
                     fontSize: 13,
                     fontWeight:
                         isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -653,24 +663,25 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     );
   }
 
-  Color _waterLevelColor(String level) {
+  Color _waterLevelColor(String level, VidhAIColorsX colors) {
     switch (level) {
       case 'High':
-        return const Color(0xFF2196F3);
+        return colors.info;
       case 'Medium':
-        return const Color(0xFF4CAF50);
+        return colors.brandDeep;
       case 'Low':
-        return const Color(0xFFFF9800);
+        return colors.warning;
       case 'Very Low':
         return const Color(0xFFFF5722);
       case 'No Water':
-        return const Color(0xFFEF4444);
+        return colors.danger;
       default:
-        return const Color(0xFF4CAF50);
+        return colors.brandDeep;
     }
   }
 
   Widget _buildQuestion6() {
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -678,13 +689,13 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(6),
             const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel('Soil type')),
+            Expanded(child: _buildFieldLabel(loc.soilType)),
           ],
         ),
         const SizedBox(height: 8),
         _buildDropdownField(
           value: _soilType.isEmpty ? null : _soilType,
-          hint: 'Select soil type',
+          hint: loc.selectSoilType,
           icon: Icons.terrain_rounded,
           items: _soilTypeOptions,
           onChanged: (v) => setState(() => _soilType = v ?? ''),
@@ -694,6 +705,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion7() {
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -701,13 +713,13 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(7),
             const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel('Soil condition')),
+            Expanded(child: _buildFieldLabel(loc.soilCondition)),
           ],
         ),
         const SizedBox(height: 8),
         _buildDropdownField(
           value: _soilCondition.isEmpty ? null : _soilCondition,
-          hint: 'Select soil condition',
+          hint: loc.selectSoilCondition,
           icon: Icons.eco_rounded,
           items: _soilConditionOptions,
           onChanged: (v) => setState(() => _soilCondition = v ?? ''),
@@ -717,6 +729,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion8() {
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -724,14 +737,13 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(8),
             const SizedBox(width: 10),
-            Expanded(
-                child: _buildFieldLabel('Irrigation system available')),
+            Expanded(child: _buildFieldLabel(loc.irrigationSystemAvailable)),
           ],
         ),
         const SizedBox(height: 8),
         _buildDropdownField(
           value: _irrigationSystem.isEmpty ? null : _irrigationSystem,
-          hint: 'Select irrigation system',
+          hint: loc.selectIrrigationSystem,
           icon: Icons.water_outlined,
           items: _irrigationSystemOptions,
           onChanged: (v) => setState(() => _irrigationSystem = v ?? ''),
@@ -741,6 +753,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion9() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -748,19 +762,19 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(9),
             const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel('Farm location')),
+            Expanded(child: _buildFieldLabel(loc.farmLocation)),
           ],
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: _farmLocationController,
           readOnly: true,
-          style: const TextStyle(color: Colors.white, fontSize: 15),
+          style: TextStyle(color: colors.onBackground, fontSize: 15),
           decoration: _fieldDecoration(
-            hint: 'Auto-filled from farm data',
+            hint: loc.autoFilledFromFarmData,
             icon: Icons.location_on_outlined,
             suffix: _farmLocationController.text.isNotEmpty
-                ? const Icon(Icons.verified, color: Color(0xFF4CAF50), size: 18)
+                ? Icon(Icons.verified, color: colors.brandDeep, size: 18)
                 : null,
           ),
         ),
@@ -769,6 +783,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion10() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -776,16 +792,16 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(10),
             const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel('Farm size')),
+            Expanded(child: _buildFieldLabel(loc.farmSize)),
           ],
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: _farmSizeController,
           readOnly: true,
-          style: const TextStyle(color: Colors.white, fontSize: 15),
+          style: TextStyle(color: colors.onBackground, fontSize: 15),
           decoration: _fieldDecoration(
-            hint: 'Auto-filled from farm data',
+            hint: loc.autoFilledFromFarmData,
             icon: Icons.straighten_rounded,
           ),
         ),
@@ -794,6 +810,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion11() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -801,35 +819,34 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(11),
             const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel('Current season')),
+            Expanded(child: _buildFieldLabel(loc.currentSeason)),
           ],
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A2332),
+            color: colors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.3)),
+            border: Border.all(color: colors.brandDeep.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.wb_sunny_outlined,
-                  color: Color(0xFF4CAF50), size: 20),
+              Icon(Icons.wb_sunny_outlined, color: colors.brandDeep, size: 20),
               const SizedBox(width: 12),
               Text(
                 _currentSeason,
-                style: const TextStyle(
-                  color: Color(0xFF4CAF50),
+                style: TextStyle(
+                  color: colors.brandDeep,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
-                '(auto-detected)',
+                loc.autoDetected,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: colors.onSurfaceMuted,
                   fontSize: 12,
                 ),
               ),
@@ -841,6 +858,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion12() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -848,7 +867,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(12),
             const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel('Crop duration preference')),
+            Expanded(child: _buildFieldLabel(loc.cropDurationPreference)),
           ],
         ),
         const SizedBox(height: 8),
@@ -858,30 +877,26 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: _cropDurationOptions.map((option) {
             final isSelected = _cropDurationPreference == option;
             return GestureDetector(
-              onTap: () =>
-                  setState(() => _cropDurationPreference = option),
+              onTap: () => setState(() => _cropDurationPreference = option),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFF4CAF50).withValues(alpha: 0.2)
-                      : const Color(0xFF1A2332),
+                      ? colors.brandDeep.withValues(alpha: 0.2)
+                      : colors.surface,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF4CAF50)
-                        : Colors.white.withValues(alpha: 0.08),
+                    color: isSelected ? colors.brandDeep : colors.borderColor,
                     width: isSelected ? 1.5 : 1,
                   ),
                 ),
                 child: Text(
                   option,
                   style: TextStyle(
-                    color: isSelected
-                        ? const Color(0xFF4CAF50)
-                        : Colors.white.withValues(alpha: 0.6),
+                    color:
+                        isSelected ? colors.brandDeep : colors.onSurfaceMuted,
                     fontSize: 13,
                     fontWeight:
                         isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -896,6 +911,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   }
 
   Widget _buildQuestion13() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -903,7 +920,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: [
             _buildNumberBadge(13),
             const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel('Crop category preference')),
+            Expanded(child: _buildFieldLabel(loc.cropCategoryPreference)),
           ],
         ),
         const SizedBox(height: 8),
@@ -913,30 +930,26 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
           children: _cropCategoryOptions.map((option) {
             final isSelected = _cropCategoryPreference == option;
             return GestureDetector(
-              onTap: () =>
-                  setState(() => _cropCategoryPreference = option),
+              onTap: () => setState(() => _cropCategoryPreference = option),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFF4CAF50).withValues(alpha: 0.2)
-                      : const Color(0xFF1A2332),
+                      ? colors.brandDeep.withValues(alpha: 0.2)
+                      : colors.surface,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF4CAF50)
-                        : Colors.white.withValues(alpha: 0.08),
+                    color: isSelected ? colors.brandDeep : colors.borderColor,
                     width: isSelected ? 1.5 : 1,
                   ),
                 ),
                 child: Text(
                   option,
                   style: TextStyle(
-                    color: isSelected
-                        ? const Color(0xFF4CAF50)
-                        : Colors.white.withValues(alpha: 0.6),
+                    color:
+                        isSelected ? colors.brandDeep : colors.onSurfaceMuted,
                     fontSize: 13,
                     fontWeight:
                         isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -950,19 +963,56 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     );
   }
 
+  Widget _buildQuestion14() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _buildNumberBadge(14),
+            const SizedBox(width: 10),
+            Expanded(child: _buildFieldLabel(loc.cropBudgetPerAcre)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _budgetController,
+          keyboardType: TextInputType.number,
+          style: TextStyle(color: colors.onBackground, fontSize: 15),
+          decoration: _fieldDecoration(
+            hint: loc.cropBudgetHint,
+            icon: Icons.account_balance_wallet_outlined,
+          ).copyWith(
+            prefixText: '₹ ',
+            prefixStyle: TextStyle(color: colors.onSurfaceMuted, fontSize: 15),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          loc.cropBudgetHelper,
+          style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   Widget _buildGetRecommendationsButton() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: ElevatedButton.icon(
         onPressed: _getRecommendations,
         icon: const Icon(Icons.auto_awesome_rounded, size: 20),
-        label: const Text(
-          'Get Recommendations',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        label: Text(
+          loc.getRecommendations,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF4CAF50),
+          backgroundColor: colors.brandDeep,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -980,30 +1030,30 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     required List<String> items,
     required void Function(String?) onChanged,
   }) {
+    final colors = VidhAIColorsX(context);
     return DropdownButtonFormField<String>(
       initialValue: value,
-      style: const TextStyle(color: Colors.white, fontSize: 15),
-      dropdownColor: const Color(0xFF1A2332),
-      icon: Icon(Icons.keyboard_arrow_down_rounded,
-          color: Colors.white.withValues(alpha: 0.4)),
+      style: TextStyle(color: colors.onBackground, fontSize: 15),
+      dropdownColor: colors.surface,
+      icon:
+          Icon(Icons.keyboard_arrow_down_rounded, color: colors.onSurfaceMuted),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
-        prefixIcon:
-            Icon(icon, color: Colors.white.withValues(alpha: 0.4), size: 20),
+        hintStyle: TextStyle(color: colors.onSurfaceMuted),
+        prefixIcon: Icon(icon, color: colors.onSurfaceMuted, size: 20),
         filled: true,
-        fillColor: const Color(0xFF1A2332),
+        fillColor: colors.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          borderSide: BorderSide(color: colors.borderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          borderSide: BorderSide(color: colors.borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 1.5),
+          borderSide: BorderSide(color: colors.brandDeep, width: 1.5),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

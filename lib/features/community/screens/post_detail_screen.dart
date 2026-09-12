@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/features/community/models/community_models.dart';
 import 'package:vidhai/features/community/services/community_service.dart';
+import 'package:vidhai/locale/locale.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final CommunityPost post;
@@ -17,12 +19,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   final CommunityService _communityService = CommunityService();
   late CommunityPost _post;
 
-  static const Color _bgColor = Color(0xFF0A0F1A);
-  static const Color _cardColor = Color(0xFF111827);
-  static const Color _accent = Color(0xFF4CAF50);
-  static const Color _textPrimary = Colors.white;
-  static const Color _textSecondary = Color(0xFF9CA3AF);
-
   @override
   void initState() {
     super.initState();
@@ -37,19 +33,23 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     final currentUser = FirebaseAuth.instance.currentUser;
     final isLiked = _post.likedBy.contains(currentUser?.uid);
 
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: colors.bg,
       appBar: AppBar(
-        backgroundColor: _bgColor,
+        backgroundColor: colors.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: _textPrimary),
+          icon: Icon(Icons.arrow_back_rounded, color: colors.onBackground),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Post', style: TextStyle(color: _textPrimary, fontWeight: FontWeight.bold)),
+        title: Text(loc.postTitle,
+            style: TextStyle(
+                color: colors.onBackground, fontWeight: FontWeight.bold)),
       ),
       body: Column(
         children: [
@@ -61,14 +61,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 const SizedBox(height: 12),
                 Text(
                   _post.content,
-                  style: const TextStyle(color: _textPrimary, fontSize: 15, height: 1.6),
+                  style: TextStyle(
+                      color: colors.onBackground, fontSize: 15, height: 1.6),
                 ),
                 const SizedBox(height: 16),
                 _buildActions(isLiked),
-                const Divider(color: Colors.white10, height: 32),
-                const Text(
-                  'Comments',
-                  style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                Divider(color: colors.borderColor, height: 32),
+                Text(
+                  loc.comments,
+                  style: TextStyle(
+                      color: colors.onBackground,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 _buildCommentsList(),
@@ -82,14 +86,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Widget _buildPostHeader() {
+    final colors = VidhAIColorsX(context);
     return Row(
       children: [
         CircleAvatar(
           radius: 20,
-          backgroundColor: _accent.withValues(alpha: 0.2),
+          backgroundColor: colors.brandDeep.withValues(alpha: 0.2),
           child: Text(
-            _post.authorName.isNotEmpty ? _post.authorName[0].toUpperCase() : '?',
-            style: const TextStyle(color: _accent, fontWeight: FontWeight.bold, fontSize: 16),
+            _post.authorName.isNotEmpty
+                ? _post.authorName[0].toUpperCase()
+                : '?',
+            style: TextStyle(
+                color: colors.brandDeep,
+                fontWeight: FontWeight.bold,
+                fontSize: 16),
           ),
         ),
         const SizedBox(width: 12),
@@ -99,11 +109,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             children: [
               Text(
                 _post.authorName,
-                style: const TextStyle(color: _textPrimary, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: colors.onBackground, fontWeight: FontWeight.w600),
               ),
               Text(
-                _formatDateTime(_post.createdAt),
-                style: TextStyle(color: _textSecondary.withValues(alpha: 0.7), fontSize: 12),
+                _formatDateTime(_post.createdAt, AppLocalizations.of(context)),
+                style: TextStyle(
+                    color: colors.onSurfaceMuted.withValues(alpha: 0.7),
+                    fontSize: 12),
               ),
             ],
           ),
@@ -113,6 +126,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Widget _buildActions(bool isLiked) {
+    final colors = VidhAIColorsX(context);
     return Row(
       children: [
         GestureDetector(
@@ -131,15 +145,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           child: Row(
             children: [
               Icon(
-                isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                color: isLiked ? const Color(0xFFEF4444) : _textSecondary,
+                isLiked
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                color: isLiked ? colors.danger : colors.onSurfaceMuted,
                 size: 20,
               ),
               const SizedBox(width: 6),
               Text(
                 '${_post.likes}',
                 style: TextStyle(
-                  color: isLiked ? const Color(0xFFEF4444) : _textSecondary,
+                  color: isLiked ? colors.danger : colors.onSurfaceMuted,
                   fontSize: 14,
                 ),
               ),
@@ -149,11 +165,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         const SizedBox(width: 20),
         Row(
           children: [
-            Icon(Icons.chat_bubble_outline_rounded, color: _textSecondary, size: 20),
+            Icon(Icons.chat_bubble_outline_rounded,
+                color: colors.onSurfaceMuted, size: 20),
             const SizedBox(width: 6),
             Text(
               '${_post.commentCount}',
-              style: TextStyle(color: _textSecondary, fontSize: 14),
+              style: TextStyle(color: colors.onSurfaceMuted, fontSize: 14),
             ),
           ],
         ),
@@ -162,13 +179,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Widget _buildCommentsList() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return StreamBuilder<List<CommunityComment>>(
       stream: _communityService.getCommentsStream(_post.postId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.all(20),
-            child: Center(child: CircularProgressIndicator(color: _accent)),
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+                child: CircularProgressIndicator(color: colors.brandDeep)),
           );
         }
 
@@ -179,26 +199,29 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             padding: const EdgeInsets.all(20),
             child: Center(
               child: Text(
-                'No comments yet. Start the conversation!',
-                style: TextStyle(color: _textSecondary.withValues(alpha: 0.5)),
+                loc.noCommentsYet,
+                style: TextStyle(
+                    color: colors.onSurfaceMuted.withValues(alpha: 0.5)),
               ),
             ),
           );
         }
 
         return Column(
-          children: comments.map((comment) => _buildCommentCard(comment)).toList(),
+          children:
+              comments.map((comment) => _buildCommentCard(comment)).toList(),
         );
       },
     );
   }
 
   Widget _buildCommentCard(CommunityComment comment) {
+    final colors = VidhAIColorsX(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: colors.surfaceMuted,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -206,10 +229,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         children: [
           CircleAvatar(
             radius: 14,
-            backgroundColor: _accent.withValues(alpha: 0.15),
+            backgroundColor: colors.brandDeep.withValues(alpha: 0.15),
             child: Text(
-              comment.authorName.isNotEmpty ? comment.authorName[0].toUpperCase() : '?',
-              style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.bold),
+              comment.authorName.isNotEmpty
+                  ? comment.authorName[0].toUpperCase()
+                  : '?',
+              style: TextStyle(
+                  color: colors.brandDeep,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 10),
@@ -221,19 +249,26 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   children: [
                     Text(
                       comment.authorName,
-                      style: const TextStyle(color: _textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: colors.onBackground,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      _getTimeAgo(comment.createdAt),
-                      style: TextStyle(color: _textSecondary.withValues(alpha: 0.5), fontSize: 11),
+                      _getTimeAgo(
+                          comment.createdAt, AppLocalizations.of(context)),
+                      style: TextStyle(
+                          color: colors.onSurfaceMuted.withValues(alpha: 0.5),
+                          fontSize: 11),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   comment.content,
-                  style: const TextStyle(color: _textPrimary, fontSize: 13, height: 1.4),
+                  style: TextStyle(
+                      color: colors.onBackground, fontSize: 13, height: 1.4),
                 ),
               ],
             ),
@@ -244,6 +279,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Widget _buildCommentInput() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: EdgeInsets.only(
         left: 16,
@@ -252,25 +289,27 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         bottom: MediaQuery.of(context).padding.bottom + 8,
       ),
       decoration: BoxDecoration(
-        color: _cardColor,
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        color: colors.surface,
+        border: Border(top: BorderSide(color: colors.borderColor)),
       ),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _commentController,
-              style: const TextStyle(color: _textPrimary, fontSize: 14),
+              style: TextStyle(color: colors.onBackground, fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Write a comment...',
-                hintStyle: TextStyle(color: _textSecondary.withValues(alpha: 0.4)),
+                hintText: loc.writeCommentHint,
+                hintStyle: TextStyle(
+                    color: colors.onSurfaceMuted.withValues(alpha: 0.4)),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
+                fillColor: colors.surfaceMuted,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
             ),
           ),
@@ -279,11 +318,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             onTap: _submitComment,
             child: Container(
               padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: _accent,
+              decoration: BoxDecoration(
+                color: colors.brandDeep,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+              child:
+                  const Icon(Icons.send_rounded, color: Colors.white, size: 18),
             ),
           ),
         ],
@@ -309,22 +349,34 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
   }
 
-  String _formatDateTime(DateTime dt) {
+  String _formatDateTime(DateTime dt, AppLocalizations loc) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inMinutes < 1) return loc.timeAgoJustNow;
+    if (diff.inMinutes < 60) {
+      return loc.timeAgoM.replaceAll('{count}', diff.inMinutes.toString());
+    }
+    if (diff.inHours < 24) {
+      return loc.timeAgoH.replaceAll('{count}', diff.inHours.toString());
+    }
+    if (diff.inDays < 7) {
+      return loc.timeAgoD.replaceAll('{count}', diff.inDays.toString());
+    }
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 
-  String _getTimeAgo(DateTime dateTime) {
+  String _getTimeAgo(DateTime dateTime, AppLocalizations loc) {
     final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 1) return 'now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
-    return '${(diff.inDays / 7).floor()}w';
+    if (diff.inMinutes < 1) return loc.timeAgoNow;
+    if (diff.inMinutes < 60) {
+      return loc.timeAgoShortM(diff.inMinutes.toString());
+    }
+    if (diff.inHours < 24) {
+      return loc.timeAgoShortH(diff.inHours.toString());
+    }
+    if (diff.inDays < 7) {
+      return loc.timeAgoShortD(diff.inDays.toString());
+    }
+    return loc.timeAgoShortW((diff.inDays / 7).floor().toString());
   }
 }

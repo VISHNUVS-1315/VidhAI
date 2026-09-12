@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/features/community/models/community_models.dart';
 import 'package:vidhai/features/community/services/community_service.dart';
 import 'package:vidhai/features/community/screens/create_post_screen.dart';
 import 'package:vidhai/features/community/screens/post_detail_screen.dart';
+import 'package:vidhai/locale/locale.dart';
 
 class CommunityFeedScreen extends StatefulWidget {
   const CommunityFeedScreen({super.key});
@@ -18,30 +20,26 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
   String? _selectedDistrict;
   String? _selectedState;
 
-  static const Color _bgColor = Color(0xFF0A0F1A);
-  static const Color _cardColor = Color(0xFF111827);
-  static const Color _accent = Color(0xFF4CAF50);
-  static const Color _textPrimary = Colors.white;
-  static const Color _textSecondary = Color(0xFF9CA3AF);
-
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: colors.bg,
       appBar: AppBar(
-        backgroundColor: _bgColor,
+        backgroundColor: colors.bg,
         elevation: 0,
-        title: const Text(
-          'Community',
+        title: Text(
+          loc.community,
           style: TextStyle(
-            color: _textPrimary,
+            color: colors.onBackground,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list_rounded, color: _textSecondary),
+            icon: Icon(Icons.filter_list_rounded, color: colors.onSurfaceMuted),
             onPressed: _showFilterSheet,
           ),
         ],
@@ -52,7 +50,7 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
             MaterialPageRoute(builder: (_) => const CreatePostScreen()),
           );
         },
-        backgroundColor: _accent,
+        backgroundColor: colors.brandDeep,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: Column(
@@ -67,8 +65,8 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
               ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: _accent),
+                  return Center(
+                    child: CircularProgressIndicator(color: colors.brandDeep),
                   );
                 }
 
@@ -79,16 +77,23 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.forum_rounded, size: 64, color: _textSecondary.withValues(alpha: 0.3)),
+                        Icon(Icons.forum_rounded,
+                            size: 64,
+                            color:
+                                colors.onSurfaceMuted.withValues(alpha: 0.3)),
                         const SizedBox(height: 16),
                         Text(
-                          'No posts yet',
-                          style: TextStyle(color: _textSecondary, fontSize: 16),
+                          loc.communityNoPosts,
+                          style: TextStyle(
+                              color: colors.onSurfaceMuted, fontSize: 16),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Be the first to share something!',
-                          style: TextStyle(color: _textSecondary.withValues(alpha: 0.6), fontSize: 13),
+                          loc.communityNoPostsHint,
+                          style: TextStyle(
+                              color:
+                                  colors.onSurfaceMuted.withValues(alpha: 0.6),
+                              fontSize: 13),
                         ),
                       ],
                     ),
@@ -96,7 +101,8 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: posts.length,
                   itemBuilder: (context, index) {
                     return _buildPostCard(posts[index]);
@@ -111,6 +117,8 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
   }
 
   Widget _buildCategoryChips() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     final categories = ['all', ...CommunityPost.categories];
     return SizedBox(
       height: 48,
@@ -127,16 +135,16 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: isSelected ? _accent : _cardColor,
+                color: isSelected ? colors.brandDeep : colors.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSelected ? _accent : Colors.white.withValues(alpha: 0.1),
+                  color: isSelected ? colors.brandDeep : colors.borderColor,
                 ),
               ),
               child: Text(
-                _formatCategory(cat),
+                _formatCategory(cat, loc),
                 style: TextStyle(
-                  color: isSelected ? Colors.white : _textSecondary,
+                  color: isSelected ? Colors.white : colors.onSurfaceMuted,
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
@@ -148,26 +156,39 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
     );
   }
 
-  String _formatCategory(String cat) {
+  String _formatCategory(String cat, AppLocalizations loc) {
     switch (cat) {
-      case 'all': return 'All';
-      case 'general': return 'General';
-      case 'crops': return 'Crops';
-      case 'pest_control': return 'Pest Control';
-      case 'irrigation': return 'Irrigation';
-      case 'market_prices': return 'Market';
-      case 'equipment': return 'Equipment';
-      case 'organic': return 'Organic';
-      case 'weather': return 'Weather';
-      case 'government_schemes': return 'Schemes';
-      default: return cat;
+      case 'all':
+        return loc.all;
+      case 'general':
+        return loc.communityCategoryGeneral;
+      case 'crops':
+        return loc.communityCategoryCrops;
+      case 'pest_control':
+        return loc.communityCategoryPestControl;
+      case 'irrigation':
+        return loc.communityCategoryIrrigation;
+      case 'market_prices':
+        return loc.communityCategoryMarket;
+      case 'equipment':
+        return loc.communityCategoryEquipment;
+      case 'organic':
+        return loc.communityCategoryOrganic;
+      case 'weather':
+        return loc.communityCategoryWeather;
+      case 'government_schemes':
+        return loc.communityCategorySchemes;
+      default:
+        return cat;
     }
   }
 
   Widget _buildPostCard(CommunityPost post) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     final currentUser = FirebaseAuth.instance.currentUser;
     final isLiked = post.likedBy.contains(currentUser?.uid);
-    final timeAgo = _getTimeAgo(post.createdAt);
+    final timeAgo = _getTimeAgo(post.createdAt, loc);
 
     return GestureDetector(
       onTap: () {
@@ -179,9 +200,9 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _cardColor,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          border: Border.all(color: colors.borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,10 +211,13 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: _accent.withValues(alpha: 0.2),
+                  backgroundColor: colors.brandDeep.withValues(alpha: 0.2),
                   child: Text(
-                    post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : '?',
-                    style: const TextStyle(color: _accent, fontWeight: FontWeight.bold),
+                    post.authorName.isNotEmpty
+                        ? post.authorName[0].toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                        color: colors.brandDeep, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -203,16 +227,16 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                     children: [
                       Text(
                         post.authorName,
-                        style: const TextStyle(
-                          color: _textPrimary,
+                        style: TextStyle(
+                          color: colors.onBackground,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
-                        '$timeAgo${post.isAIAssisted ? ' · AI Assisted' : ''}',
+                        '$timeAgo${post.isAIAssisted ? ' \u00B7 ${loc.aiAssisted}' : ''}',
                         style: TextStyle(
-                          color: _textSecondary.withValues(alpha: 0.7),
+                          color: colors.onSurfaceMuted.withValues(alpha: 0.7),
                           fontSize: 11,
                         ),
                       ),
@@ -221,14 +245,15 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                 ),
                 if (post.district.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: _accent.withValues(alpha: 0.1),
+                      color: colors.brandDeep.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       post.district,
-                      style: TextStyle(color: _accent, fontSize: 10),
+                      style: TextStyle(color: colors.brandDeep, fontSize: 10),
                     ),
                   ),
               ],
@@ -236,8 +261,8 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
             const SizedBox(height: 12),
             Text(
               post.content,
-              style: const TextStyle(
-                color: _textPrimary,
+              style: TextStyle(
+                color: colors.onBackground,
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -248,9 +273,11 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
             Row(
               children: [
                 _buildAction(
-                  icon: isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  icon: isLiked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
                   count: post.likes,
-                  color: isLiked ? const Color(0xFFEF4444) : _textSecondary,
+                  color: isLiked ? colors.danger : colors.onSurfaceMuted,
                   onTap: () async {
                     await _communityService.toggleLike(post);
                   },
@@ -259,24 +286,28 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                 _buildAction(
                   icon: Icons.chat_bubble_outline_rounded,
                   count: post.commentCount,
-                  color: _textSecondary,
+                  color: colors.onSurfaceMuted,
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)),
+                      MaterialPageRoute(
+                          builder: (_) => PostDetailScreen(post: post)),
                     );
                   },
                 ),
                 const SizedBox(width: 16),
                 if (post.category.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: colors.surfaceMuted,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      _formatCategory(post.category),
-                      style: TextStyle(color: _textSecondary.withValues(alpha: 0.7), fontSize: 10),
+                      _formatCategory(post.category, loc),
+                      style: TextStyle(
+                          color: colors.onSurfaceMuted.withValues(alpha: 0.7),
+                          fontSize: 10),
                     ),
                   ),
               ],
@@ -308,23 +339,33 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
     );
   }
 
-  String _getTimeAgo(DateTime dateTime) {
+  String _getTimeAgo(DateTime dateTime, AppLocalizations loc) {
     final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${(diff.inDays / 7).floor()}w ago';
+    if (diff.inMinutes < 1) return loc.timeAgoJustNow;
+    if (diff.inMinutes < 60) {
+      return loc.timeAgoM.replaceAll('{count}', diff.inMinutes.toString());
+    }
+    if (diff.inHours < 24) {
+      return loc.timeAgoH.replaceAll('{count}', diff.inHours.toString());
+    }
+    if (diff.inDays < 7) {
+      return loc.timeAgoD.replaceAll('{count}', diff.inDays.toString());
+    }
+    return loc.timeAgoW
+        .replaceAll('{count}', (diff.inDays / 7).floor().toString());
   }
 
   void _showFilterSheet() {
+    final sheetColors = VidhAIColorsX(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: _cardColor,
+      backgroundColor: sheetColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
+        final colors = VidhAIColorsX(context);
+        final loc = AppLocalizations.of(context);
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Padding(
@@ -333,10 +374,10 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Filter by Location',
+                  Text(
+                    loc.filterByLocation,
                     style: TextStyle(
-                      color: _textPrimary,
+                      color: colors.onBackground,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -344,32 +385,34 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'District',
-                      hintStyle: TextStyle(color: _textSecondary),
+                      hintText: loc.district,
+                      hintStyle: TextStyle(color: colors.onSurfaceMuted),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.05),
+                      fillColor: colors.surfaceMuted,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    style: const TextStyle(color: _textPrimary),
-                    onChanged: (v) => setModalState(() => _selectedDistrict = v.isEmpty ? null : v),
+                    style: TextStyle(color: colors.onBackground),
+                    onChanged: (v) => setModalState(
+                        () => _selectedDistrict = v.isEmpty ? null : v),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'State',
-                      hintStyle: TextStyle(color: _textSecondary),
+                      hintText: loc.state,
+                      hintStyle: TextStyle(color: colors.onSurfaceMuted),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.05),
+                      fillColor: colors.surfaceMuted,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    style: const TextStyle(color: _textPrimary),
-                    onChanged: (v) => setModalState(() => _selectedState = v.isEmpty ? null : v),
+                    style: TextStyle(color: colors.onBackground),
+                    onChanged: (v) => setModalState(
+                        () => _selectedState = v.isEmpty ? null : v),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -383,7 +426,8 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                             });
                             Navigator.pop(context);
                           },
-                          child: const Text('Clear Filters', style: TextStyle(color: _accent)),
+                          child: Text(loc.clearFilters,
+                              style: TextStyle(color: colors.brandDeep)),
                         ),
                       ),
                       Expanded(
@@ -392,8 +436,10 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                             setState(() {});
                             Navigator.pop(context);
                           },
-                          style: ElevatedButton.styleFrom(backgroundColor: _accent),
-                          child: const Text('Apply', style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: colors.brandDeep),
+                          child: Text(loc.apply,
+                              style: const TextStyle(color: Colors.white)),
                         ),
                       ),
                     ],

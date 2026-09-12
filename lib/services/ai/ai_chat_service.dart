@@ -32,7 +32,8 @@ class ChatMessage {
     );
   }
 
-  factory ChatMessage.assistant(String content, {Map<String, dynamic>? metadata}) {
+  factory ChatMessage.assistant(String content,
+      {Map<String, dynamic>? metadata}) {
     return ChatMessage(
       id: const Uuid().v4(),
       role: 'assistant',
@@ -78,7 +79,8 @@ class ChatMessage {
   }
 
   @override
-  String toString() => 'ChatMessage($role: ${content.length > 50 ? '${content.substring(0, 50)}...' : content})';
+  String toString() =>
+      'ChatMessage($role: ${content.length > 50 ? '${content.substring(0, 50)}...' : content})';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

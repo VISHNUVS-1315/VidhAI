@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/farm_records.dart';
 import 'package:vidhai/services/data_service.dart';
+import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class FarmHistoryScreen extends StatefulWidget {
   final String farmId;
@@ -21,9 +24,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
   List<FertilizerRecord> _fertilizers = [];
   List<DiseaseRecord> _diseases = [];
 
-  static const Color _bgColor = Color(0xFF0A0F1A);
-  static const Color _cardColor = Color(0xFF111827);
-  static const Color _greenAccent = Color(0xFF4CAF50);
+  VidhAIColorsX get _colors => VidhAIColorsX(context);
 
   bool _expensesExpanded = false;
   bool _pesticidesExpanded = false;
@@ -68,25 +69,28 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: _colors.bg,
       appBar: AppBar(
-        backgroundColor: _bgColor,
+        backgroundColor: _colors.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: Icon(directionalIcon(context, Icons.arrow_back_ios),
+              color: _colors.onBackground, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Farm History',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        title: Text(
+          loc.farmHistory,
+          style: TextStyle(
+              color: _colors.onBackground, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _greenAccent))
+          ? Center(child: CircularProgressIndicator(color: _colors.brandDeep))
           : RefreshIndicator(
-              color: _greenAccent,
+              color: _colors.brandDeep,
               onRefresh: _loadAll,
               child: _hasAnyData
                   ? ListView(
@@ -108,20 +112,21 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
   }
 
   Widget _buildSummaryHeader() {
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardColor,
+        color: _colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+        border: Border.all(color: _colors.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Overview',
+          Text(
+            loc.overview,
             style: TextStyle(
-              color: Colors.white,
+              color: _colors.onBackground,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -132,10 +137,14 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
             runSpacing: 12,
             alignment: WrapAlignment.spaceEvenly,
             children: [
-              _statItem(Icons.receipt_long, _expenses.length.toString(), 'Expenses'),
-              _statItem(Icons.bug_report, _pesticides.length.toString(), 'Pesticides'),
-              _statItem(Icons.science, _fertilizers.length.toString(), 'Fertilizers'),
-              _statItem(Icons.healing, _diseases.length.toString(), 'Diseases'),
+              _statItem(Icons.receipt_long, _expenses.length.toString(),
+                  loc.previousExpenses),
+              _statItem(Icons.bug_report, _pesticides.length.toString(),
+                  loc.previousTreatments),
+              _statItem(Icons.science, _fertilizers.length.toString(),
+                  loc.fertilizerRecords),
+              _statItem(
+                  Icons.healing, _diseases.length.toString(), loc.diseases),
             ],
           ),
         ],
@@ -150,16 +159,16 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: _greenAccent.withValues(alpha: 0.12),
+            color: _colors.brandDeep.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: _greenAccent, size: 20),
+          child: Icon(icon, color: _colors.brandDeep, size: 20),
         ),
         const SizedBox(height: 6),
         Text(
           count,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: _colors.onBackground,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
@@ -167,7 +176,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4),
+            color: _colors.onSurfaceMuted,
             fontSize: 10,
           ),
         ),
@@ -176,6 +185,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
   }
 
   Widget _buildCropSection() {
+    final loc = AppLocalizations.of(context);
     final appliedCrops = _fertilizers
         .where((f) => f.crop != null && f.crop!.isNotEmpty)
         .map((f) => f.crop!)
@@ -184,18 +194,16 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
       ..sort();
 
     return _buildExpandableSection(
-      title: 'Previous Crops',
+      title: loc.previousCrops,
       icon: Icons.eco,
       isExpanded: _cropsExpanded,
       onToggle: () => setState(() => _cropsExpanded = !_cropsExpanded),
       count: appliedCrops.length,
       child: appliedCrops.isEmpty
-          ? _emptySectionText('No crop records found')
+          ? _emptySectionText(loc.noCropRecordsFound)
           : Column(
               children: appliedCrops.map((crop) {
-                final count = _fertilizers
-                    .where((f) => f.crop == crop)
-                    .length;
+                final count = _fertilizers.where((f) => f.crop == crop).length;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 6),
                   padding: const EdgeInsets.symmetric(
@@ -203,7 +211,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
+                    color: _colors.surfaceMuted,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -211,21 +219,21 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                       Icon(
                         Icons.eco,
                         size: 16,
-                        color: _greenAccent.withValues(alpha: 0.7),
+                        color: _colors.brandDeep,
                       ),
                       const SizedBox(width: 10),
                       Text(
                         crop,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: _colors.onBackground,
                           fontSize: 13,
                         ),
                       ),
                       const Spacer(),
                       Text(
-                        '$count record${count == 1 ? '' : 's'}',
+                        loc.recordCountLabel('$count'),
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
+                          color: _colors.onSurfaceMuted,
                           fontSize: 11,
                         ),
                       ),
@@ -238,15 +246,16 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
   }
 
   Widget _buildPesticideSection() {
+    final loc = AppLocalizations.of(context);
     return _buildExpandableSection(
-      title: 'Previous Treatments',
+      title: loc.previousTreatments,
       icon: Icons.bug_report,
       isExpanded: _pesticidesExpanded,
       onToggle: () =>
           setState(() => _pesticidesExpanded = !_pesticidesExpanded),
       count: _pesticides.length,
       child: _pesticides.isEmpty
-          ? _emptySectionText('No treatment records found')
+          ? _emptySectionText(loc.noTreatmentRecordsFound)
           : Column(
               children: _pesticides.map((p) {
                 return Container(
@@ -256,7 +265,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
+                    color: _colors.surfaceMuted,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -273,15 +282,15 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                           children: [
                             Text(
                               p.productName,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: _colors.onBackground,
                                 fontSize: 13,
                               ),
                             ),
                             Text(
                               '${p.purpose} - ${_formatDate(p.date)}',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.35),
+                                color: _colors.onSurfaceMuted,
                                 fontSize: 11,
                               ),
                             ),
@@ -297,15 +306,16 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
   }
 
   Widget _buildFertilizerSection() {
+    final loc = AppLocalizations.of(context);
     return _buildExpandableSection(
-      title: 'Fertilizer Records',
+      title: loc.fertilizerRecords,
       icon: Icons.science,
       isExpanded: _fertilizersExpanded,
       onToggle: () =>
           setState(() => _fertilizersExpanded = !_fertilizersExpanded),
       count: _fertilizers.length,
       child: _fertilizers.isEmpty
-          ? _emptySectionText('No fertilizer records found')
+          ? _emptySectionText(loc.noFertilizerRecordsFound)
           : Column(
               children: _fertilizers.map((f) {
                 return Container(
@@ -315,7 +325,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
+                    color: _colors.surfaceMuted,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -332,15 +342,15 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                           children: [
                             Text(
                               '${f.product} (${f.type})',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: _colors.onBackground,
                                 fontSize: 13,
                               ),
                             ),
                             Text(
                               '${f.quantity} - ${_formatDate(f.date)}',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.35),
+                                color: _colors.onSurfaceMuted,
                                 fontSize: 11,
                               ),
                             ),
@@ -356,15 +366,15 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
   }
 
   Widget _buildDiseaseSection() {
+    final loc = AppLocalizations.of(context);
     return _buildExpandableSection(
-      title: 'Disease Records',
+      title: loc.diseaseRecords,
       icon: Icons.healing,
       isExpanded: _diseasesExpanded,
-      onToggle: () =>
-          setState(() => _diseasesExpanded = !_diseasesExpanded),
+      onToggle: () => setState(() => _diseasesExpanded = !_diseasesExpanded),
       count: _diseases.length,
       child: _diseases.isEmpty
-          ? _emptySectionText('No irrigation records found')
+          ? _emptySectionText(loc.noIrrigationRecordsFound)
           : Column(
               children: _diseases.map((d) {
                 return Container(
@@ -374,7 +384,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
+                    color: _colors.surfaceMuted,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -382,7 +392,8 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                       Icon(
                         Icons.healing,
                         size: 16,
-                        color: _severityColor(d.severity).withValues(alpha: 0.7),
+                        color:
+                            _severityColor(d.severity).withValues(alpha: 0.7),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -391,15 +402,15 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                           children: [
                             Text(
                               d.problem,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: _colors.onBackground,
                                 fontSize: 13,
                               ),
                             ),
                             Text(
                               '${d.severity.toUpperCase()} - ${d.status} - ${_formatDate(d.detectedDate)}',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.35),
+                                color: _colors.onSurfaceMuted,
                                 fontSize: 11,
                               ),
                             ),
@@ -415,15 +426,15 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
   }
 
   Widget _buildExpenseSection() {
+    final loc = AppLocalizations.of(context);
     return _buildExpandableSection(
-      title: 'Previous Expenses',
+      title: loc.previousExpenses,
       icon: Icons.receipt_long,
       isExpanded: _expensesExpanded,
-      onToggle: () =>
-          setState(() => _expensesExpanded = !_expensesExpanded),
+      onToggle: () => setState(() => _expensesExpanded = !_expensesExpanded),
       count: _expenses.length,
       child: _expenses.isEmpty
-          ? _emptySectionText('No expense records found')
+          ? _emptySectionText(loc.noExpenseRecordsFound)
           : Column(
               children: _expenses.map((e) {
                 return Container(
@@ -433,7 +444,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
+                    color: _colors.surfaceMuted,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -441,7 +452,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                       Icon(
                         Icons.receipt_long,
                         size: 16,
-                        color: _greenAccent.withValues(alpha: 0.7),
+                        color: _colors.brandDeep,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -449,16 +460,16 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${e.category} - ₹${e.amount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              '${e.category} - \u20B9${e.amount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                color: _colors.onBackground,
                                 fontSize: 13,
                               ),
                             ),
                             Text(
                               _formatDate(e.date),
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.35),
+                                color: _colors.onSurfaceMuted,
                                 fontSize: 11,
                               ),
                             ),
@@ -474,21 +485,20 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
   }
 
   Widget _buildEventsSection() {
+    final loc = AppLocalizations.of(context);
     final events = _diseases
-        .where((d) =>
-            d.status == 'resolved' && d.resolutionDate != null)
+        .where((d) => d.status == 'resolved' && d.resolutionDate != null)
         .toList()
       ..sort((a, b) => b.resolutionDate!.compareTo(a.resolutionDate!));
 
     return _buildExpandableSection(
-      title: 'Important Events',
+      title: loc.importantEvents,
       icon: Icons.event,
       isExpanded: _eventsExpanded,
-      onToggle: () =>
-          setState(() => _eventsExpanded = !_eventsExpanded),
+      onToggle: () => setState(() => _eventsExpanded = !_eventsExpanded),
       count: events.length,
       child: events.isEmpty
-          ? _emptySectionText('No important events recorded')
+          ? _emptySectionText(loc.noImportantEventsRecorded)
           : Column(
               children: events.map((d) {
                 return Container(
@@ -498,7 +508,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
+                    color: _colors.surfaceMuted,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -506,8 +516,8 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
-                          color: _greenAccent,
+                        decoration: BoxDecoration(
+                          color: _colors.brandDeep,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -517,16 +527,16 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Resolved: ${d.problem}',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              '${loc.resolvedPrefix} ${d.problem}',
+                              style: TextStyle(
+                                color: _colors.onBackground,
                                 fontSize: 13,
                               ),
                             ),
                             Text(
-                              'Detected: ${_formatDate(d.detectedDate)} | Resolved: ${_formatDate(d.resolutionDate!)}',
+                              '${loc.detectedPrefix} ${_formatDate(d.detectedDate)} | ${loc.resolvedPrefix} ${_formatDate(d.resolutionDate!)}',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.35),
+                                color: _colors.onSurfaceMuted,
                                 fontSize: 11,
                               ),
                             ),
@@ -544,15 +554,15 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
   Color _severityColor(String severity) {
     switch (severity) {
       case 'low':
-        return const Color(0xFF4CAF50);
+        return _colors.brandDeep;
       case 'medium':
         return const Color(0xFFFF9800);
       case 'high':
         return const Color(0xFFFF5722);
       case 'critical':
-        return const Color(0xFFEF4444);
+        return _colors.danger;
       default:
-        return const Color(0xFF607D8B);
+        return _colors.onSurfaceMuted;
     }
   }
 
@@ -567,9 +577,9 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: _cardColor,
+        color: _colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+        border: Border.all(color: _colors.borderColor),
       ),
       child: Column(
         children: [
@@ -584,17 +594,17 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: _greenAccent.withValues(alpha: 0.12),
+                      color: _colors.brandDeep.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(icon, color: _greenAccent, size: 18),
+                    child: Icon(icon, color: _colors.brandDeep, size: 18),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: _colors.onBackground,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -606,13 +616,13 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: _greenAccent.withValues(alpha: 0.12),
+                      color: _colors.brandDeep.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       count.toString(),
-                      style: const TextStyle(
-                        color: _greenAccent,
+                      style: TextStyle(
+                        color: _colors.brandDeep,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -622,9 +632,9 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
                   AnimatedRotation(
                     turns: isExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: const Icon(
+                    child: Icon(
                       Icons.keyboard_arrow_down,
-                      color: Colors.white54,
+                      color: _colors.onSurfaceMuted,
                       size: 20,
                     ),
                   ),
@@ -654,7 +664,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
       child: Text(
         text,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.3),
+          color: _colors.onSurfaceMuted,
           fontSize: 13,
           fontStyle: FontStyle.italic,
         ),
@@ -663,6 +673,7 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
   }
 
   Widget _buildEmptyState() {
+    final loc = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -671,23 +682,23 @@ class _FarmHistoryScreenState extends State<FarmHistoryScreen> {
           children: [
             Icon(
               Icons.history,
-              color: Colors.white.withValues(alpha: 0.15),
+              color: _colors.onSurfaceMuted,
               size: 64,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No history records yet',
+            Text(
+              loc.noHistoryRecordsYet,
               style: TextStyle(
-                color: Colors.white,
+                color: _colors.onBackground,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Your farm history will appear here once you start logging expenses, treatments, and other records.',
+              loc.farmHistoryEmptyDesc,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
+                color: _colors.onSurfaceMuted,
                 fontSize: 15,
               ),
               textAlign: TextAlign.center,

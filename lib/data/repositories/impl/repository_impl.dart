@@ -49,7 +49,8 @@ class RepositoryImpl implements Repository {
 
   @override
   Future<void> postData(String key, Map<String, dynamic> data,
-      {required Future<void> Function(Map<String, dynamic>) saveToLocal}) async {
+      {required Future<void> Function(Map<String, dynamic>)
+          saveToLocal}) async {
     // Post to remote first
     await remoteDatasource.post(key, data);
 

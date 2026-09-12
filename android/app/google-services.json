@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "750262338889-79nkbjiobpd4gl7nt7sjcuockdf9ujf3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.vidhai",
+            "certificate_hash": "b96775534b73e1a779ff70e78a4f29d0494cc465"
+          }
+        },
+        {
           "client_id": "750262338889-cjg5g8jovjsu5igfp22c8c7nhcr26bud.apps.googleusercontent.com",
           "client_type": 3
         }

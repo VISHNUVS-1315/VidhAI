@@ -1,9 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
+import 'package:vidhai/locale/locale.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/data/models/farm_records.dart';
 import 'package:vidhai/services/ai/domain_services.dart';
+import 'package:vidhai/features/assistant/assistant_button.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class PestDetectionScreen extends StatefulWidget {
   const PestDetectionScreen({super.key});
@@ -24,11 +28,29 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
   String _severity = 'Medium';
 
   static const List<String> _commonCrops = [
-    'Paddy', 'Wheat', 'Tomato', 'Potato', 'Chilli',
-    'Brinjal', 'Onion', 'Cotton', 'Sugarcane', 'Groundnut',
-    'Banana', 'Mango', 'Grapes', 'Coconut', 'Turmeric',
-    'Black Gram', 'Green Gram', 'Chickpea', 'Sesame',
-    'Okra', 'Coriander', 'Mint', 'Spinach',
+    'Paddy',
+    'Wheat',
+    'Tomato',
+    'Potato',
+    'Chilli',
+    'Brinjal',
+    'Onion',
+    'Cotton',
+    'Sugarcane',
+    'Groundnut',
+    'Banana',
+    'Mango',
+    'Grapes',
+    'Coconut',
+    'Turmeric',
+    'Black Gram',
+    'Green Gram',
+    'Chickpea',
+    'Sesame',
+    'Okra',
+    'Coriander',
+    'Mint',
+    'Spinach',
   ];
 
   String _pestName = '';
@@ -65,10 +87,12 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final colors = VidhAIColorsX(context);
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to pick image: $e'),
-            backgroundColor: const Color(0xFFEF4444),
+            content: Text('${loc.pestPickImageFailed} $e'),
+            backgroundColor: colors.danger,
           ),
         );
       }
@@ -82,11 +106,13 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
   }
 
   Future<void> _analyzeImages() async {
+    final loc = AppLocalizations.of(context);
     if (_selectedImages.isEmpty || _cropController.text.trim().isEmpty) {
+      final colors = VidhAIColorsX(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a crop and add at least one photo'),
-          backgroundColor: Color(0xFFFF9800),
+        SnackBar(
+          content: Text(loc.pestValidateMessage),
+          backgroundColor: colors.warning,
         ),
       );
       return;
@@ -111,9 +137,16 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
       final chemical = (treatmentMap['chemical'] as List?) ?? [];
 
       final treatmentParts = <String>[];
-      if (immediate.isNotEmpty) treatmentParts.add('Immediate: ${immediate.join(', ')}');
-      if (biological.isNotEmpty) treatmentParts.add('Biological: ${biological.join(', ')}');
-      if (chemical.isNotEmpty) treatmentParts.add('Chemical: ${chemical.join(', ')}');
+      if (immediate.isNotEmpty) {
+        treatmentParts.add('${loc.treatmentImmediate} ${immediate.join(', ')}');
+      }
+      if (biological.isNotEmpty) {
+        treatmentParts
+            .add('${loc.treatmentBiological} ${biological.join(', ')}');
+      }
+      if (chemical.isNotEmpty) {
+        treatmentParts.add('${loc.treatmentChemical} ${chemical.join(', ')}');
+      }
 
       final preventionList = (result['prevention'] as List?) ?? [];
 
@@ -124,13 +157,18 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
         setState(() {
           _isAnalyzing = false;
           _analysisComplete = true;
-          _pestName = (result['detectedIssue'] as String?) ?? 'Unknown';
+          _pestName = (result['detectedIssue'] as String?) ?? loc.unknown;
           final conf = (result['confidence'] as num?) ?? 0;
           _confidence = '${(conf * 100).toStringAsFixed(0)}%';
           _severity = severityRaw;
-          _treatment = treatmentParts.isNotEmpty ? treatmentParts.join('\n') : 'Consult an agricultural expert.';
-          _prevention = preventionList.isNotEmpty ? preventionList.join('\n') : 'Regular field scouting and crop hygiene.';
-          _details = 'Severity score: $severityScore/10 | Crop: ${_cropController.text.trim()}';
+          _treatment = treatmentParts.isNotEmpty
+              ? treatmentParts.join('\n')
+              : loc.pestTreatmentFallback;
+          _prevention = preventionList.isNotEmpty
+              ? preventionList.join('\n')
+              : loc.pestPreventionFallback;
+          _details =
+              '${loc.pestSeverityScore} $severityScore/10 | ${loc.crop}: ${_cropController.text.trim()}';
         });
       }
     } catch (e) {
@@ -138,10 +176,10 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
         setState(() {
           _isAnalyzing = false;
           _analysisComplete = true;
-          _pestName = 'Analysis Error';
+          _pestName = loc.pestAnalysisErrorTitle;
           _confidence = '0%';
           _severity = 'Unknown';
-          _treatment = 'Failed to analyze: $e';
+          _treatment = '${loc.pestAnalyzeFailed} $e';
           _prevention = '';
           _details = '';
         });
@@ -150,13 +188,15 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
   }
 
   Future<void> _saveToRecords() async {
+    final loc = AppLocalizations.of(context);
     final farms = await _dataService.loadFarms();
     if (farms.isEmpty) {
       if (mounted) {
+        final colors = VidhAIColorsX(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No farm found. Add a farm first.'),
-            backgroundColor: Color(0xFFFF9800),
+          SnackBar(
+            content: Text(loc.pestNoFarmMessage),
+            backgroundColor: colors.warning,
           ),
         );
       }
@@ -178,10 +218,11 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
 
     if (mounted) {
       setState(() => _saved = true);
+      final colors = VidhAIColorsX(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Saved to farm disease records'),
-          backgroundColor: Color(0xFF4CAF50),
+        SnackBar(
+          content: Text(loc.pestSavedRecordsSnackbar),
+          backgroundColor: colors.success,
         ),
       );
     }
@@ -189,20 +230,31 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1A),
+      backgroundColor: colors.bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0F1A),
+        backgroundColor: colors.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 20),
+          icon: Icon(directionalIcon(context, Icons.arrow_back_ios_rounded),
+              color: colors.onBackground, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Pest Detection',
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+        title: Text(
+          loc.pestDetection,
+          style: TextStyle(
+              color: colors.onBackground,
+              fontSize: 18,
+              fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
+        actions: [
+          const VidhAIAssistantButton(
+              screen: 'pest_detection', size: 36, iconSize: 18),
+          const SizedBox(width: 8),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -224,21 +276,23 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
   }
 
   Widget _buildHeader() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF4CAF50).withValues(alpha: 0.08),
+        color: colors.brandDeep.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.2)),
+        border: Border.all(color: colors.brandDeep.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.camera_alt_rounded, color: Color(0xFF4CAF50), size: 20),
+          Icon(Icons.camera_alt_rounded, color: colors.brandDeep, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Take a photo of your plant to detect diseases or pests',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
+              loc.pestDetectHeader,
+              style: TextStyle(color: colors.onSurfaceMuted, fontSize: 13),
             ),
           ),
         ],
@@ -247,6 +301,8 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
   }
 
   Widget _buildStep1CropSelection() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -254,9 +310,12 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
           children: [
             _buildStepBadge(1),
             const SizedBox(width: 10),
-            const Text(
-              'Select Plant / Crop',
-              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+            Text(
+              loc.pestStepCropTitle,
+              style: TextStyle(
+                  color: colors.onBackground,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -265,7 +324,9 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
           optionsBuilder: (textEditingValue) {
             if (textEditingValue.text.isEmpty) return _commonCrops;
             return _commonCrops.where(
-              (crop) => crop.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+              (crop) => crop
+                  .toLowerCase()
+                  .contains(textEditingValue.text.toLowerCase()),
             );
           },
           onSelected: (value) {
@@ -279,35 +340,37 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
             return TextField(
               controller: controller,
               focusNode: focusNode,
-              style: const TextStyle(color: Colors.white, fontSize: 15),
+              style: TextStyle(color: colors.onBackground, fontSize: 15),
               onChanged: (val) => _cropController.text = val,
               decoration: InputDecoration(
-                hintText: 'e.g., Tomato, Paddy, Cotton...',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
-                prefixIcon: Icon(Icons.eco_rounded, color: Colors.white.withValues(alpha: 0.4), size: 20),
+                hintText: loc.pestCropHint,
+                hintStyle: TextStyle(color: colors.onSurfaceMuted),
+                prefixIcon: Icon(Icons.eco_rounded,
+                    color: colors.onSurfaceMuted, size: 20),
                 filled: true,
-                fillColor: const Color(0xFF111827),
+                fillColor: colors.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  borderSide: BorderSide(color: colors.borderColor),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  borderSide: BorderSide(color: colors.borderColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 1.5),
+                  borderSide: BorderSide(color: colors.brandDeep, width: 1.5),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             );
           },
           optionsViewBuilder: (context, onSelected, options) {
             return Align(
-              alignment: Alignment.topLeft,
+              alignment: AlignmentDirectional.topStart,
               child: Material(
-                color: const Color(0xFF111827),
+                color: colors.surface,
                 borderRadius: BorderRadius.circular(12),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 200),
@@ -319,8 +382,11 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                       final option = options.elementAt(index);
                       return ListTile(
                         dense: true,
-                        leading: const Icon(Icons.eco_rounded, color: Color(0xFF4CAF50), size: 18),
-                        title: Text(option, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                        leading: Icon(Icons.eco_rounded,
+                            color: colors.brandDeep, size: 18),
+                        title: Text(option,
+                            style: TextStyle(
+                                color: colors.onBackground, fontSize: 14)),
                         onTap: () => onSelected(option),
                       );
                     },
@@ -335,6 +401,8 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
   }
 
   Widget _buildStep2PhotoUpload() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -342,9 +410,12 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
           children: [
             _buildStepBadge(2),
             const SizedBox(width: 10),
-            const Text(
-              'Add Photos',
-              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+            Text(
+              loc.pestStepPhotosTitle,
+              style: TextStyle(
+                  color: colors.onBackground,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -354,7 +425,7 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
             Expanded(
               child: _buildImageSourceButton(
                 icon: Icons.camera_alt_rounded,
-                label: 'Camera',
+                label: loc.camera,
                 onTap: () => _pickImage(ImageSource.camera),
               ),
             ),
@@ -362,7 +433,7 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
             Expanded(
               child: _buildImageSourceButton(
                 icon: Icons.photo_library_rounded,
-                label: 'Gallery',
+                label: loc.gallery,
                 onTap: () => _pickImage(ImageSource.gallery),
               ),
             ),
@@ -377,7 +448,7 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
               itemCount: _selectedImages.length,
               itemBuilder: (context, index) {
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsetsDirectional.only(end: 8),
                   child: Stack(
                     children: [
                       ClipRRect(
@@ -397,11 +468,12 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                           child: Container(
                             width: 22,
                             height: 22,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFEF4444),
+                            decoration: BoxDecoration(
+                              color: colors.danger,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.close, color: Colors.white, size: 14),
+                            child: const Icon(Icons.close,
+                                color: Colors.white, size: 14),
                           ),
                         ),
                       ),
@@ -413,8 +485,9 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${_selectedImages.length} photo(s) selected',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
+            loc.pestPhotosSelected
+                .replaceAll('{count}', _selectedImages.length.toString()),
+            style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
           ),
         ],
       ],
@@ -426,22 +499,26 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final colors = VidhAIColorsX(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFF111827),
+          color: colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: colors.borderColor),
         ),
         child: Column(
           children: [
-            Icon(icon, color: const Color(0xFF4CAF50), size: 28),
+            Icon(icon, color: colors.brandDeep, size: 28),
             const SizedBox(height: 8),
             Text(
               label,
-              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                  color: colors.onBackground,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -450,18 +527,19 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
   }
 
   Widget _buildStepBadge(int number) {
+    final colors = VidhAIColorsX(context);
     return Container(
       width: 28,
       height: 28,
       decoration: BoxDecoration(
-        color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
+        color: colors.brandDeep.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Center(
         child: Text(
           '$number',
-          style: const TextStyle(
-            color: Color(0xFF4CAF50),
+          style: TextStyle(
+            color: colors.brandDeep,
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
@@ -471,15 +549,20 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
   }
 
   Widget _buildAnalyzeButton() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       children: [
         Row(
           children: [
             _buildStepBadge(3),
             const SizedBox(width: 10),
-            const Text(
-              'AI Analysis',
-              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+            Text(
+              loc.pestAiAnalysisTitle,
+              style: TextStyle(
+                  color: colors.onBackground,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -490,14 +573,15 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
           child: ElevatedButton.icon(
             onPressed: _analyzeImages,
             icon: const Icon(Icons.auto_awesome_rounded, size: 20),
-            label: const Text(
-              'Analyze Images',
+            label: Text(
+              loc.analyzeImagesButton,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor: colors.brandDeep,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
               elevation: 0,
             ),
           ),
@@ -507,32 +591,37 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
   }
 
   Widget _buildAnalyzingState() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF111827),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.2)),
+        border: Border.all(color: colors.brandDeep.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 40,
             height: 40,
             child: CircularProgressIndicator(
-              color: Color(0xFF4CAF50),
+              color: colors.brandDeep,
               strokeWidth: 3,
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Analyzing images...',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          Text(
+            loc.pestAnalyzingHeading,
+            style: TextStyle(
+                color: colors.onBackground,
+                fontSize: 16,
+                fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
-            'AI is examining your plant photos for signs of pests or diseases',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+            loc.pestAnalyzingBody,
+            style: TextStyle(color: colors.onSurfaceMuted, fontSize: 13),
             textAlign: TextAlign.center,
           ),
         ],
@@ -541,11 +630,13 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
   }
 
   Widget _buildAnalysisResults() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     final severityColor = _severity == 'High'
-        ? const Color(0xFFEF4444)
+        ? colors.danger
         : _severity == 'Medium'
-            ? const Color(0xFFFF9800)
-            : const Color(0xFF4CAF50);
+            ? colors.warning
+            : colors.brandDeep;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,9 +645,12 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
           children: [
             _buildStepBadge(3),
             const SizedBox(width: 10),
-            const Text(
-              'AI Analysis',
-              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+            Text(
+              loc.pestAiAnalysisTitle,
+              style: TextStyle(
+                  color: colors.onBackground,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -564,9 +658,9 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF111827),
+            color: colors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            border: Border.all(color: colors.borderColor),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -574,7 +668,8 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: severityColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
@@ -593,7 +688,7 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '$_severity Risk',
+                          '$_severity ${loc.riskSuffix}',
                           style: TextStyle(
                             color: severityColor,
                             fontSize: 12,
@@ -605,9 +700,9 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                   ),
                   const Spacer(),
                   Text(
-                    'Based on visual analysis',
+                    loc.pestBasedOnVisual,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.35),
+                      color: colors.onSurfaceMuted,
                       fontSize: 11,
                       fontStyle: FontStyle.italic,
                     ),
@@ -618,14 +713,15 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0A0F1A),
+                  color: colors.bg,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  border: Border.all(color: colors.borderColor),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.image_rounded, color: Color(0xFF4CAF50), size: 20),
+                    Icon(Icons.image_rounded,
+                        color: colors.brandDeep, size: 20),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -633,17 +729,17 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                         children: [
                           Text(
                             _pestName,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: colors.onBackground,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Confidence: $_confidence',
+                            '${loc.pestConfidence} $_confidence',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: colors.onSurfaceMuted,
                               fontSize: 13,
                             ),
                           ),
@@ -658,20 +754,21 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0A0F1A),
+                    color: colors.bg,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                    border: Border.all(color: colors.borderColor),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.analytics_rounded, color: Color(0xFF60A5FA), size: 18),
+                      Icon(Icons.analytics_rounded,
+                          color: colors.info, size: 18),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _details,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: colors.onSurfaceMuted,
                             fontSize: 12,
                           ),
                         ),
@@ -686,21 +783,23 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withValues(alpha: 0.06),
+                    color: colors.brandDeep.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.12)),
+                    border: Border.all(
+                        color: colors.brandDeep.withValues(alpha: 0.12)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.healing_rounded, color: Color(0xFF4CAF50), size: 16),
+                          Icon(Icons.healing_rounded,
+                              color: colors.brandDeep, size: 16),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Treatment',
+                          Text(
+                            loc.pestTreatmentLabel,
                             style: TextStyle(
-                              color: Color(0xFF4CAF50),
+                              color: colors.brandDeep,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -711,7 +810,7 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                       Text(
                         _treatment,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: colors.onSurfaceMuted,
                           fontSize: 12,
                           height: 1.5,
                         ),
@@ -726,21 +825,23 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF60A5FA).withValues(alpha: 0.06),
+                    color: colors.info.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF60A5FA).withValues(alpha: 0.12)),
+                    border:
+                        Border.all(color: colors.info.withValues(alpha: 0.12)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.shield_rounded, color: Color(0xFF60A5FA), size: 16),
+                          Icon(Icons.shield_rounded,
+                              color: colors.info, size: 16),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Prevention',
+                          Text(
+                            loc.pestPreventionLabel,
                             style: TextStyle(
-                              color: Color(0xFF60A5FA),
+                              color: colors.info,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -751,7 +852,7 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                       Text(
                         _prevention,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: colors.onSurfaceMuted,
                           fontSize: 12,
                           height: 1.5,
                         ),
@@ -764,18 +865,19 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF9800).withValues(alpha: 0.08),
+                  color: colors.warning.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, color: Color(0xFFFF9800), size: 16),
+                    Icon(Icons.info_outline_rounded,
+                        color: colors.warning, size: 16),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Results are indicative. Always consult an agricultural expert for critical decisions.',
+                        loc.pestDisclaimer,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
+                          color: colors.onSurfaceMuted,
                           fontSize: 11,
                         ),
                       ),
@@ -794,17 +896,17 @@ class _PestDetectionScreenState extends State<PestDetectionScreen> {
                     size: 18,
                   ),
                   label: Text(
-                    _saved ? 'Saved to Farm Records' : 'Save to Farm Records',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    _saved ? loc.pestSavedButton : loc.pestSaveButton,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _saved
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : const Color(0xFF4CAF50),
-                    foregroundColor: _saved
-                        ? Colors.white.withValues(alpha: 0.5)
-                        : Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor:
+                        _saved ? colors.surfaceMuted : colors.brandDeep,
+                    foregroundColor:
+                        _saved ? colors.onSurfaceMuted : Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                 ),

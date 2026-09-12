@@ -5,9 +5,14 @@ import 'package:vidhai/services/weather_service.dart';
 import 'package:vidhai/services/task_service.dart';
 import 'package:vidhai/features/home/screens/weather_details_screen.dart';
 import 'package:vidhai/features/home/screens/tasks_screen.dart';
+import 'package:vidhai/features/assistant/assistant_button.dart';
 import 'package:vidhai/features/notifications/screens/notification_center_screen.dart';
 import 'package:vidhai/services/notification_service.dart';
 import 'package:vidhai/services/data_service.dart';
+import 'package:vidhai/features/farm/screens/farm_workspace_screen.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
+import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class FarmerHomeScreen extends StatefulWidget {
   const FarmerHomeScreen({super.key});
@@ -92,14 +97,15 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
   }
 
   Future<void> _loadWeatherForFarms(List<Map<String, dynamic>> farms) async {
+    if (!mounted) return;
     setState(() => _isLoadingWeather = true);
     for (var i = 0; i < farms.length; i++) {
       final loc = farms[i]['farmLocation'];
       if (loc != null && loc['latitude'] != null && loc['longitude'] != null) {
         final lat = (loc['latitude'] as num).toDouble();
         final lng = (loc['longitude'] as num).toDouble();
-        final weather = await _weatherService.getWeather(lat, lng,
-            farmId: 'farm_$i');
+        final weather =
+            await _weatherService.getWeather(lat, lng, farmId: 'farm_$i');
         if (mounted) {
           setState(() => _weatherCache[i] = weather);
         }
@@ -108,29 +114,32 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
     if (mounted) setState(() => _isLoadingWeather = false);
   }
 
-  String _getGreeting() {
+  String _getGreeting(AppLocalizations loc) {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    if (hour < 21) return 'Good Evening';
-    return 'Good Night';
+    if (hour < 12) return loc.goodMorning;
+    if (hour < 17) return loc.goodAfternoon;
+    if (hour < 21) return loc.goodEvening;
+    return loc.goodNight;
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1A),
+      backgroundColor: colors.bg,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadData,
-          color: const Color(0xFF4CAF50),
-          backgroundColor: const Color(0xFF111827),
+          color: colors.brandDeep,
+          backgroundColor: colors.surface,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
               _buildHeader(),
               const SizedBox(height: 24),
               _buildWeatherSection(),
+              const SizedBox(height: 24),
+              _buildFarmWorkspaceCard(),
               const SizedBox(height: 24),
               _buildTasksSection(),
               const SizedBox(height: 24),
@@ -142,6 +151,8 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
   }
 
   Widget _buildHeader() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Row(
       children: [
         Container(
@@ -153,24 +164,34 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
               image: AssetImage('assets/images/logo.png'),
               fit: BoxFit.cover,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: colors.brandDeep.withValues(alpha: 0.12),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
         ),
         const SizedBox(width: 10),
-        const Text(
-          'VidhAI',
+        Text(
+          loc.appName,
           style: TextStyle(
-            color: Colors.white,
+            color: colors.onBackground,
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
         const Spacer(),
+        const VidhAIAssistantButton(screen: 'home'),
+        const SizedBox(width: 10),
         _buildNotificationBell(),
       ],
     );
   }
 
   Widget _buildNotificationBell() {
+    final colors = VidhAIColorsX(context);
     return GestureDetector(
       onTap: () async {
         await Navigator.push(
@@ -187,13 +208,20 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFF111827),
+              color: colors.surface,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              border: Border.all(color: colors.borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.brandDeep.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Icon(
               Icons.notifications_outlined,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: colors.onBackground,
               size: 20,
             ),
           ),
@@ -203,13 +231,13 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
               top: -2,
               child: Container(
                 padding: const EdgeInsets.all(5),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEF4444),
+                decoration: BoxDecoration(
+                  color: colors.danger,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
                   _unreadCount > 99 ? '99+' : '$_unreadCount',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
@@ -224,6 +252,8 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
   }
 
   Widget _buildWeatherSection() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -234,17 +264,17 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _getGreeting(),
+                    _getGreeting(loc),
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: colors.onSurfaceMuted,
                       fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     _userName,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colors.onBackground,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -256,7 +286,7 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
               Text(
                 '${_selectedWeatherIndex + 1}/${_farms.length}',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: colors.onSurfaceMuted,
                   fontSize: 13,
                 ),
               ),
@@ -264,52 +294,54 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          _getQuote(),
+          _getQuote(loc),
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.35),
+            color: colors.onSurfaceMuted,
             fontSize: 13,
             fontStyle: FontStyle.italic,
           ),
         ),
         const SizedBox(height: 16),
-        if (_farms.isEmpty)
-          _buildEmptyWeather()
-        else
-          _buildWeatherCarousel(),
+        if (_farms.isEmpty) _buildEmptyWeather() else _buildWeatherCarousel(),
       ],
     );
   }
 
-  String _getQuote() {
-    final quotes = [
-      'The farmer is the only man in our economy who buys everything at retail, sells everything at wholesale, and pays the freight both ways.',
-      'Farming looks mighty easy when your plow is a pencil and you\'re a thousand miles from the corn field.',
-      'The ultimate goal of farming is not the growing of crops, but the cultivation and perfection of human beings.',
-      'A good farmer is nothing more nor less than a handy man with a sense of humus.',
-      'To forget how to dig the earth and tend the soil is to forget ourselves.',
-    ];
-    final idx = DateTime.now().day % quotes.length;
-    return quotes[idx];
+  String _getQuote(AppLocalizations loc) {
+    final idx = DateTime.now().day % 5;
+    switch (idx) {
+      case 0:
+        return loc.quote1;
+      case 1:
+        return loc.quote2;
+      case 2:
+        return loc.quote3;
+      case 3:
+        return loc.quote4;
+      default:
+        return loc.quote5;
+    }
   }
 
   Widget _buildEmptyWeather() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF111827),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: colors.borderColor),
       ),
       child: Row(
         children: [
-          Icon(Icons.cloud_off_rounded,
-              color: Colors.white.withValues(alpha: 0.3), size: 40),
+          Icon(Icons.cloud_off_rounded, color: colors.onSurfaceMuted, size: 40),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              'Add farm location to see weather data.',
+              loc.addFarmLocationWeather,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
+                color: colors.onSurfaceMuted,
                 fontSize: 14,
               ),
             ),
@@ -337,7 +369,13 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
 
   Widget _buildWeatherCard(
       Map<String, dynamic> farm, WeatherData? weather, int index) {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     final farmName = farm['farmName'] ?? 'Farm ${index + 1}';
+    final locationRaw = farm['farmLocation'];
+    final place = (locationRaw?['city'] as String?)?.trim() ?? '';
+    final district = (locationRaw?['district'] as String?)?.trim() ?? '';
+    final placeLine = [place, district].where((s) => s.isNotEmpty).join(', ');
     return GestureDetector(
       onTap: () {
         final loc = farm['farmLocation'];
@@ -356,20 +394,25 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFF1B5E20).withValues(alpha: 0.8),
-              const Color(0xFF2E7D32).withValues(alpha: 0.6),
+              colors.brandDeep.withValues(alpha: 0.95),
+              colors.brand.withValues(alpha: 0.8),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFF4CAF50).withValues(alpha: 0.2),
-          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          boxShadow: [
+            BoxShadow(
+              color: colors.brandDeep.withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: weather == null
             ? Center(
@@ -377,9 +420,10 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
                     ? const CircularProgressIndicator(
                         color: Colors.white, strokeWidth: 2)
                     : Text(
-                        'No weather data for $farmName',
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
+                        loc.noWeatherData.replaceAll('{farm}', farmName),
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 14),
+                        textAlign: TextAlign.center,
                       ),
               )
             : Column(
@@ -392,17 +436,51 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
                           farmName,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            WeatherData.weatherIcon(weather.weatherCode),
+                            style: const TextStyle(fontSize: 22),
                           ),
                         ),
                       ),
-                      Text(
-                        WeatherData.weatherIcon(weather.weatherCode),
-                        style: const TextStyle(fontSize: 22),
-                      ),
                     ],
                   ),
+                  if (placeLine.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          color: Colors.white70,
+                          size: 13,
+                        ),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            placeLine,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -417,14 +495,15 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Flexible(
+                      Expanded(
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Text(
                             weather.condition,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 13,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -438,9 +517,10 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
                     spacing: 12,
                     runSpacing: 4,
                     children: [
-                      _weatherStat(Icons.water_drop_outlined,
-                          '${weather.humidity}%'),
-                      _weatherStat(Icons.air, '${weather.windSpeed.round()} km/h'),
+                      _weatherStat(
+                          Icons.water_drop_outlined, '${weather.humidity}%'),
+                      _weatherStat(
+                          Icons.air, '${weather.windSpeed.round()} km/h'),
                       _weatherStat(
                           Icons.navigation_rounded,
                           WeatherData.windDirectionLabel(
@@ -461,30 +541,90 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: Colors.white.withValues(alpha: 0.6), size: 14),
+        Icon(icon, color: Colors.white70, size: 14),
         const SizedBox(width: 3),
         Text(
           text,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
+          style: const TextStyle(
+            color: Colors.white,
             fontSize: 11,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
     );
   }
 
+  Widget _buildFarmWorkspaceCard() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const FarmWorkspaceScreen()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colors.borderColor),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: colors.brandDeep.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.agriculture_rounded,
+                  color: colors.brandDeep, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    loc.farmWorkspace,
+                    style: TextStyle(
+                      color: colors.onBackground,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    loc.farmWorkspaceDesc,
+                    style:
+                        TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Icon(directionalIcon(context, Icons.chevron_right_rounded),
+                color: colors.onSurfaceMuted, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTasksSection() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                "Today's Tasks",
+                loc.todaysTasks,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: colors.onBackground,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -498,9 +638,9 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
                 );
               },
               child: Text(
-                'See All',
+                loc.seeAll,
                 style: TextStyle(
-                  color: const Color(0xFF4CAF50).withValues(alpha: 0.8),
+                  color: colors.brandDeep,
                   fontSize: 14,
                 ),
               ),
@@ -524,9 +664,9 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
                   );
                 },
                 child: Text(
-                  '+${_tasks.length - 5} more tasks',
+                  '+${loc.moreTasks.replaceAll('{count}', '${_tasks.length - 5}')}',
                   style: TextStyle(
-                    color: const Color(0xFF4CAF50).withValues(alpha: 0.6),
+                    color: colors.brandDeep,
                     fontSize: 13,
                   ),
                 ),
@@ -538,34 +678,36 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
   }
 
   Widget _buildEmptyTasks() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF111827),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: colors.borderColor),
       ),
       child: Row(
         children: [
-          Icon(Icons.task_alt, color: Colors.white.withValues(alpha: 0.25), size: 36),
+          Icon(Icons.task_alt, color: colors.onSurfaceMuted, size: 36),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'No tasks yet',
+                  loc.noTasksYet,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: colors.onSurfaceMuted,
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Configure your farms to generate smart tasks.',
+                  loc.configureFarmsSmartTasks,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: colors.onSurfaceMuted,
                     fontSize: 13,
                   ),
                 ),
@@ -578,13 +720,14 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
   }
 
   Widget _buildTaskItem(FarmTask task) {
+    final colors = VidhAIColorsX(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF111827),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+        border: Border.all(color: colors.borderColor),
       ),
       child: Row(
         children: [
@@ -605,14 +748,10 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
               width: 22,
               height: 22,
               decoration: BoxDecoration(
-                color: task.completed
-                    ? const Color(0xFF4CAF50)
-                    : Colors.transparent,
+                color: task.completed ? colors.brandDeep : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: task.completed
-                      ? const Color(0xFF4CAF50)
-                      : Colors.white.withValues(alpha: 0.2),
+                  color: task.completed ? colors.brandDeep : colors.borderColor,
                   width: 1.5,
                 ),
               ),
@@ -630,8 +769,8 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
                   task.title,
                   style: TextStyle(
                     color: task.completed
-                        ? Colors.white.withValues(alpha: 0.3)
-                        : Colors.white,
+                        ? colors.onSurfaceMuted
+                        : colors.onBackground,
                     fontSize: 14,
                     decoration:
                         task.completed ? TextDecoration.lineThrough : null,
@@ -642,7 +781,7 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
                   Text(
                     task.scheduledTime!,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: colors.onSurfaceMuted,
                       fontSize: 12,
                     ),
                   ),

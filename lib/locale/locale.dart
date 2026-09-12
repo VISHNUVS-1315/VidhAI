@@ -1,12 +1,79 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'translations/en_strings.dart';
+import 'translations/ta_strings.dart';
+import 'translations/te_strings.dart';
+import 'translations/kn_strings.dart';
+import 'translations/ml_strings.dart';
+import 'translations/hi_strings.dart';
+import 'translations/bn_strings.dart';
+import 'translations/mr_strings.dart';
+import 'translations/gu_strings.dart';
+import 'translations/pa_strings.dart';
+import 'translations/or_strings.dart';
+import 'translations/as_strings.dart';
+import 'translations/ur_strings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Centralized localization. Crash-free, single-dictionary design:
+/// - [AppLocalizations.of] returns the selected language's strings.
+/// - Language change is applied immediately via [AppLocalizationsProvider].
+/// - [supportedLocales] / [localizationsDelegates] drive Flutter framework
+///   strings, date/number formatting and text direction (Urdu = RTL).
 class AppLocalizations {
   final String languageCode;
 
   AppLocalizations(this.languageCode);
 
   static const String _prefKey = 'selected_language';
+
+  /// The exact language list exposed by the Language Selection screen.
+  static const List<String> allLanguageCodes = [
+    'en',
+    'ta',
+    'te',
+    'kn',
+    'ml',
+    'hi',
+    'bn',
+    'mr',
+    'gu',
+    'pa',
+    'or',
+    'as',
+    'ur',
+  ];
+
+  static const List<Locale> supportedLocales = [
+    Locale('en'),
+    Locale('ta'),
+    Locale('te'),
+    Locale('kn'),
+    Locale('ml'),
+    Locale('hi'),
+    Locale('bn'),
+    Locale('mr'),
+    Locale('gu'),
+    Locale('pa'),
+    Locale('or'),
+    Locale('as'),
+    Locale('ur'),
+  ];
+
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = [
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ];
+
+  /// Raw per-language dictionary with NO English fallback, used by the
+  /// development completeness checker. Returns null when the key is missing.
+  static String? rawLookup(String languageCode, String key) =>
+      _strings[languageCode]?[key];
+
+  /// All keys present in a language (empty when the language has no map).
+  static Set<String> rawKeys(String languageCode) =>
+      (_strings[languageCode] ?? const {}).keys.toSet();
 
   static AppLocalizations of(BuildContext context) {
     final localizations =
@@ -27,2575 +94,2295 @@ class AppLocalizations {
     await prefs.setString(_prefKey, code);
   }
 
-  String get appName => _strings[languageCode]?['app_name'] ?? _strings['en']!['app_name']!;
-  String get tagline => _strings[languageCode]?['tagline'] ?? _strings['en']!['tagline']!;
-  String get splashTitle => _strings[languageCode]?['splash_title'] ?? _strings['en']!['splash_title']!;
-  String get splashTagline => _strings[languageCode]?['splash_tagline'] ?? _strings['en']!['splash_tagline']!;
+  String get appName =>
+      _strings[languageCode]?['app_name'] ?? _strings['en']!['app_name']!;
+  String get tagline =>
+      _strings[languageCode]?['tagline'] ?? _strings['en']!['tagline']!;
+  String get splashTitle =>
+      _strings[languageCode]?['splash_title'] ??
+      _strings['en']!['splash_title']!;
+  String get splashTagline =>
+      _strings[languageCode]?['splash_tagline'] ??
+      _strings['en']!['splash_tagline']!;
 
   // Language selection
-  String get selectLanguage => _strings[languageCode]?['select_language'] ?? _strings['en']!['select_language']!;
-  String get languageSubtitle => _strings[languageCode]?['language_subtitle'] ?? _strings['en']!['language_subtitle']!;
-  String get continueBtn => _strings[languageCode]?['continue_btn'] ?? _strings['en']!['continue_btn']!;
+  String get selectLanguage =>
+      _strings[languageCode]?['select_language'] ??
+      _strings['en']!['select_language']!;
+  String get languageSubtitle =>
+      _strings[languageCode]?['language_subtitle'] ??
+      _strings['en']!['language_subtitle']!;
+  String get continueBtn =>
+      _strings[languageCode]?['continue_btn'] ??
+      _strings['en']!['continue_btn']!;
+  String get noLanguagesFound =>
+      _strings[languageCode]?['noLanguagesFound'] ??
+      _strings['en']!['noLanguagesFound']!;
 
   // Domain selection
-  String get chooseDomain => _strings[languageCode]?['choose_domain'] ?? _strings['en']!['choose_domain']!;
-  String get farmerConsole => _strings[languageCode]?['farmer_console'] ?? _strings['en']!['farmer_console']!;
-  String get consumerConsole => _strings[languageCode]?['consumer_console'] ?? _strings['en']!['consumer_console']!;
-  String get farmerDescription => _strings[languageCode]?['farmer_description'] ?? _strings['en']!['farmer_description']!;
-  String get consumerDescription => _strings[languageCode]?['consumer_description'] ?? _strings['en']!['consumer_description']!;
+  String get chooseDomain =>
+      _strings[languageCode]?['choose_domain'] ??
+      _strings['en']!['choose_domain']!;
+  String get farmerConsole =>
+      _strings[languageCode]?['farmer_console'] ??
+      _strings['en']!['farmer_console']!;
+  String get consumerConsole =>
+      _strings[languageCode]?['consumer_console'] ??
+      _strings['en']!['consumer_console']!;
+  String get farmerDescription =>
+      _strings[languageCode]?['farmer_description'] ??
+      _strings['en']!['farmer_description']!;
+  String get consumerDescription =>
+      _strings[languageCode]?['consumer_description'] ??
+      _strings['en']!['consumer_description']!;
 
   // Farmer home
-  String get farmerHome => _strings[languageCode]?['farmer_home'] ?? _strings['en']!['farmer_home']!;
-  String get welcomeBack => _strings[languageCode]?['welcome_back'] ?? _strings['en']!['welcome_back']!;
-  String get quickActions => _strings[languageCode]?['quick_actions'] ?? _strings['en']!['quick_actions']!;
-  String get aiQuickAction => _strings[languageCode]?['ai_quick_action'] ?? _strings['en']!['ai_quick_action']!;
-  String get cropSupport => _strings[languageCode]?['crop_support'] ?? _strings['en']!['crop_support']!;
-  String get pestDetection => _strings[languageCode]?['pest_detection'] ?? _strings['en']!['pest_detection']!;
-  String get aiGuidance => _strings[languageCode]?['ai_guidance'] ?? _strings['en']!['ai_guidance']!;
-  String get marketInsights => _strings[languageCode]?['market_insights'] ?? _strings['en']!['market_insights']!;
-  String get marketPrices => _strings[languageCode]?['market_prices'] ?? _strings['en']!['market_prices']!;
-  String get demandForecast => _strings[languageCode]?['demand_forecast'] ?? _strings['en']!['demand_forecast']!;
-  String get community => _strings[languageCode]?['community'] ?? _strings['en']!['community']!;
-  String get marketplace => _strings[languageCode]?['marketplace'] ?? _strings['en']!['marketplace']!;
-  String get yourFarm => _strings[languageCode]?['your_farm'] ?? _strings['en']!['your_farm']!;
-  String get farmInfo => _strings[languageCode]?['farm_info'] ?? _strings['en']!['farm_info']!;
-  String get profile => _strings[languageCode]?['profile'] ?? _strings['en']!['profile']!;
-  String get logout => _strings[languageCode]?['logout'] ?? _strings['en']!['logout']!;
+  String get farmerHome =>
+      _strings[languageCode]?['farmer_home'] ?? _strings['en']!['farmer_home']!;
+  String get welcomeBack =>
+      _strings[languageCode]?['welcome_back'] ??
+      _strings['en']!['welcome_back']!;
+  String get quickActions =>
+      _strings[languageCode]?['quick_actions'] ??
+      _strings['en']!['quick_actions']!;
+  String get aiQuickAction =>
+      _strings[languageCode]?['ai_quick_action'] ??
+      _strings['en']!['ai_quick_action']!;
+  String get cropSupport =>
+      _strings[languageCode]?['crop_support'] ??
+      _strings['en']!['crop_support']!;
+  String get pestDetection =>
+      _strings[languageCode]?['pest_detection'] ??
+      _strings['en']!['pest_detection']!;
+  String get aiGuidance =>
+      _strings[languageCode]?['ai_guidance'] ?? _strings['en']!['ai_guidance']!;
+  String get marketInsights =>
+      _strings[languageCode]?['market_insights'] ??
+      _strings['en']!['market_insights']!;
+  String get marketPrices =>
+      _strings[languageCode]?['market_prices'] ??
+      _strings['en']!['market_prices']!;
+  String get demandForecast =>
+      _strings[languageCode]?['demand_forecast'] ??
+      _strings['en']!['demand_forecast']!;
+  String get community =>
+      _strings[languageCode]?['community'] ?? _strings['en']!['community']!;
+  String get marketplace =>
+      _strings[languageCode]?['marketplace'] ?? _strings['en']!['marketplace']!;
+  String get yourFarm =>
+      _strings[languageCode]?['your_farm'] ?? _strings['en']!['your_farm']!;
+  String get farmInfo =>
+      _strings[languageCode]?['farm_info'] ?? _strings['en']!['farm_info']!;
+  String get profile =>
+      _strings[languageCode]?['profile'] ?? _strings['en']!['profile']!;
+  String get logout =>
+      _strings[languageCode]?['logout'] ?? _strings['en']!['logout']!;
 
   // Consumer home
-  String get consumerHome => _strings[languageCode]?['consumer_home'] ?? _strings['en']!['consumer_home']!;
-  String get exploreProducts => _strings[languageCode]?['explore_products'] ?? _strings['en']!['explore_products']!;
-  String get freshProduce => _strings[languageCode]?['fresh_produce'] ?? _strings['en']!['fresh_produce']!;
-  String get localFarmers => _strings[languageCode]?['local_farmers'] ?? _strings['en']!['local_farmers']!;
-  String get orderHistory => _strings[languageCode]?['order_history'] ?? _strings['en']!['order_history']!;
+  String get consumerHome =>
+      _strings[languageCode]?['consumer_home'] ??
+      _strings['en']!['consumer_home']!;
+  String get exploreProducts =>
+      _strings[languageCode]?['explore_products'] ??
+      _strings['en']!['explore_products']!;
+  String get freshProduce =>
+      _strings[languageCode]?['fresh_produce'] ??
+      _strings['en']!['fresh_produce']!;
+  String get localFarmers =>
+      _strings[languageCode]?['local_farmers'] ??
+      _strings['en']!['local_farmers']!;
+  String get orderHistory =>
+      _strings[languageCode]?['order_history'] ??
+      _strings['en']!['order_history']!;
 
   // Onboarding
-  String get completeProfile => _strings[languageCode]?['complete_profile'] ?? _strings['en']!['complete_profile']!;
-  String get fullName => _strings[languageCode]?['full_name'] ?? _strings['en']!['full_name']!;
+  String get completeProfile =>
+      _strings[languageCode]?['complete_profile'] ??
+      _strings['en']!['complete_profile']!;
+  String get fullName =>
+      _strings[languageCode]?['full_name'] ?? _strings['en']!['full_name']!;
   String get age => _strings[languageCode]?['age'] ?? _strings['en']!['age']!;
-  String get gender => _strings[languageCode]?['gender'] ?? _strings['en']!['gender']!;
-  String get address => _strings[languageCode]?['address'] ?? _strings['en']!['address']!;
-  String get userRole => _strings[languageCode]?['user_role'] ?? _strings['en']!['user_role']!;
-  String get completeOnboarding => _strings[languageCode]?['complete_onboarding'] ?? _strings['en']!['complete_onboarding']!;
+  String get gender =>
+      _strings[languageCode]?['gender'] ?? _strings['en']!['gender']!;
+  String get address =>
+      _strings[languageCode]?['address'] ?? _strings['en']!['address']!;
+  String get userRole =>
+      _strings[languageCode]?['user_role'] ?? _strings['en']!['user_role']!;
+  String get completeOnboarding =>
+      _strings[languageCode]?['complete_onboarding'] ??
+      _strings['en']!['complete_onboarding']!;
 
   // Auth
-  String get email => _strings[languageCode]?['email'] ?? _strings['en']!['email']!;
-  String get password => _strings[languageCode]?['password'] ?? _strings['en']!['password']!;
-  String get login => _strings[languageCode]?['login'] ?? _strings['en']!['login']!;
-  String get createAccount => _strings[languageCode]?['create_account'] ?? _strings['en']!['create_account']!;
+  String get email =>
+      _strings[languageCode]?['email'] ?? _strings['en']!['email']!;
+  String get password =>
+      _strings[languageCode]?['password'] ?? _strings['en']!['password']!;
+  String get login =>
+      _strings[languageCode]?['login'] ?? _strings['en']!['login']!;
+  String get createAccount =>
+      _strings[languageCode]?['create_account'] ??
+      _strings['en']!['create_account']!;
 
-  // Email verification
-  String get enterEmail => _strings[languageCode]?['enter_email'] ?? _strings['en']!['enter_email']!;
-  String get emailSubtitle => _strings[languageCode]?['email_subtitle'] ?? _strings['en']!['email_subtitle']!;
-  String get verificationSentTo => _strings[languageCode]?['verification_sent_to'] ?? _strings['en']!['verification_sent_to']!;
-  String get enterCode => _strings[languageCode]?['enter_code'] ?? _strings['en']!['enter_code']!;
-  String get resendCode => _strings[languageCode]?['resend_code'] ?? _strings['en']!['resend_code']!;
-  String get resendIn => _strings[languageCode]?['resend_in'] ?? _strings['en']!['resend_in']!;
-  String get verifyEmail => _strings[languageCode]?['verify_email'] ?? _strings['en']!['verify_email']!;
-  String get verify => _strings[languageCode]?['verify'] ?? _strings['en']!['verify']!;
-  String get skipForNow => _strings[languageCode]?['skip_for_now'] ?? _strings['en']!['skip_for_now']!;
-  String get invalidEmail => _strings[languageCode]?['invalid_email'] ?? _strings['en']!['invalid_email']!;
-  String get invalidCode => _strings[languageCode]?['invalid_code'] ?? _strings['en']!['invalid_code']!;
-  String get codeExpired => _strings[languageCode]?['code_expired'] ?? _strings['en']!['code_expired']!;
-  String get networkError => _strings[languageCode]?['network_error'] ?? _strings['en']!['network_error']!;
-  String get alreadyRegistered => _strings[languageCode]?['already_registered'] ?? _strings['en']!['already_registered']!;
-  String get codeSentSuccess => _strings[languageCode]?['code_sent_success'] ?? _strings['en']!['code_sent_success']!;
-  String get guestNote => _strings[languageCode]?['guest_note'] ?? _strings['en']!['guest_note']!;
-  String get personalDetails => _strings[languageCode]?['personal_details'] ?? _strings['en']!['personal_details']!;
+  String get networkError =>
+      _strings[languageCode]?['network_error'] ??
+      _strings['en']!['network_error']!;
+
+  String get personalDetails =>
+      _strings[languageCode]?['personal_details'] ??
+      _strings['en']!['personal_details']!;
 
   // Profile
-  String get profileAvatar => _strings[languageCode]?['profile_avatar'] ?? _strings['en']!['profile_avatar']!;
-  String get changePhoto => _strings[languageCode]?['change_photo'] ?? _strings['en']!['change_photo']!;
-  String get takePhoto => _strings[languageCode]?['take_photo'] ?? _strings['en']!['take_photo']!;
-  String get chooseFromGallery => _strings[languageCode]?['choose_from_gallery'] ?? _strings['en']!['choose_from_gallery']!;
-  String get dateOfBirth => _strings[languageCode]?['date_of_birth'] ?? _strings['en']!['date_of_birth']!;
-  String get selectDate => _strings[languageCode]?['select_date'] ?? _strings['en']!['select_date']!;
-  String get ageCalculated => _strings[languageCode]?['age_calculated'] ?? _strings['en']!['age_calculated']!;
-  String get verifiedAddress => _strings[languageCode]?['verified_address'] ?? _strings['en']!['verified_address']!;
-  String get searchAddress => _strings[languageCode]?['search_address'] ?? _strings['en']!['search_address']!;
-  String get selectFromSuggestions => _strings[languageCode]?['select_from_suggestions'] ?? _strings['en']!['select_from_suggestions']!;
-  String get requiredField => _strings[languageCode]?['required_field'] ?? _strings['en']!['required_field']!;
-  String get voiceInput => _strings[languageCode]?['voice_input'] ?? _strings['en']!['voice_input']!;
-  String get listening => _strings[languageCode]?['listening'] ?? _strings['en']!['listening']!;
-  String get processing => _strings[languageCode]?['processing'] ?? _strings['en']!['processing']!;
-  String get permissionDenied => _strings[languageCode]?['permission_denied'] ?? _strings['en']!['permission_denied']!;
-  String get speechNotAvailable => _strings[languageCode]?['speech_not_available'] ?? _strings['en']!['speech_not_available']!;
-  String get numberOfFarms => _strings[languageCode]?['number_of_farms'] ?? _strings['en']!['number_of_farms']!;
-  String get selectNumberOfFarms => _strings[languageCode]?['select_number_of_farms'] ?? _strings['en']!['select_number_of_farms']!;
-  String get farmCard => _strings[languageCode]?['farm_card'] ?? _strings['en']!['farm_card']!;
-  String get ofLabel => _strings[languageCode]?['of_label'] ?? _strings['en']!['of_label']!;
-  String get farmName => _strings[languageCode]?['farm_name'] ?? _strings['en']!['farm_name']!;
-  String get farmSize => _strings[languageCode]?['farm_size'] ?? _strings['en']!['farm_size']!;
-  String get farmLocation => _strings[languageCode]?['farm_location'] ?? _strings['en']!['farm_location']!;
-  String get irrigationType => _strings[languageCode]?['irrigation_type'] ?? _strings['en']!['irrigation_type']!;
-  String get waterSource => _strings[languageCode]?['water_source'] ?? _strings['en']!['water_source']!;
-  String get soilType => _strings[languageCode]?['soil_type'] ?? _strings['en']!['soil_type']!;
-  String get aiSoilScan => _strings[languageCode]?['ai_soil_scan'] ?? _strings['en']!['ai_soil_scan']!;
-  String get farmDetails => _strings[languageCode]?['farm_details'] ?? _strings['en']!['farm_details']!;
-  String get confirmDeleteFarm => _strings[languageCode]?['confirm_delete_farm'] ?? _strings['en']!['confirm_delete_farm']!;
+  String get profileAvatar =>
+      _strings[languageCode]?['profile_avatar'] ??
+      _strings['en']!['profile_avatar']!;
+  String get changePhoto =>
+      _strings[languageCode]?['change_photo'] ??
+      _strings['en']!['change_photo']!;
+  String get takePhoto =>
+      _strings[languageCode]?['take_photo'] ?? _strings['en']!['take_photo']!;
+  String get chooseFromGallery =>
+      _strings[languageCode]?['choose_from_gallery'] ??
+      _strings['en']!['choose_from_gallery']!;
+  String get dateOfBirth =>
+      _strings[languageCode]?['date_of_birth'] ??
+      _strings['en']!['date_of_birth']!;
+  String get selectDate =>
+      _strings[languageCode]?['select_date'] ?? _strings['en']!['select_date']!;
+  String get ageCalculated =>
+      _strings[languageCode]?['age_calculated'] ??
+      _strings['en']!['age_calculated']!;
+  String get verifiedAddress =>
+      _strings[languageCode]?['verified_address'] ??
+      _strings['en']!['verified_address']!;
+  String get searchAddress =>
+      _strings[languageCode]?['search_address'] ??
+      _strings['en']!['search_address']!;
+  String get selectFromSuggestions =>
+      _strings[languageCode]?['select_from_suggestions'] ??
+      _strings['en']!['select_from_suggestions']!;
+  String get requiredField =>
+      _strings[languageCode]?['required_field'] ??
+      _strings['en']!['required_field']!;
+  String get voiceInput =>
+      _strings[languageCode]?['voice_input'] ?? _strings['en']!['voice_input']!;
+  String get listening =>
+      _strings[languageCode]?['listening'] ?? _strings['en']!['listening']!;
+  String get processing =>
+      _strings[languageCode]?['processing'] ?? _strings['en']!['processing']!;
+  String get permissionDenied =>
+      _strings[languageCode]?['permission_denied'] ??
+      _strings['en']!['permission_denied']!;
+  String get speechNotAvailable =>
+      _strings[languageCode]?['speech_not_available'] ??
+      _strings['en']!['speech_not_available']!;
+  String get numberOfFarms =>
+      _strings[languageCode]?['number_of_farms'] ??
+      _strings['en']!['number_of_farms']!;
+  String get selectNumberOfFarms =>
+      _strings[languageCode]?['select_number_of_farms'] ??
+      _strings['en']!['select_number_of_farms']!;
+  String get farmCard =>
+      _strings[languageCode]?['farm_card'] ?? _strings['en']!['farm_card']!;
+  String get yourFarms =>
+      _strings[languageCode]?['your_farms'] ?? _strings['en']!['your_farms']!;
+  String get farmsNumberHelper =>
+      _strings[languageCode]?['farms_number_helper'] ??
+      _strings['en']!['farms_number_helper']!;
+  String get ofLabel =>
+      _strings[languageCode]?['of_label'] ?? _strings['en']!['of_label']!;
+  String get farmName =>
+      _strings[languageCode]?['farm_name'] ?? _strings['en']!['farm_name']!;
+  String get farmSize =>
+      _strings[languageCode]?['farm_size'] ?? _strings['en']!['farm_size']!;
+  String get farmLocation =>
+      _strings[languageCode]?['farm_location'] ??
+      _strings['en']!['farm_location']!;
+  String get gettingLocation =>
+      _strings[languageCode]?['getting_location'] ??
+      _strings['en']!['getting_location']!;
+  String get complete =>
+      _strings[languageCode]?['complete'] ?? _strings['en']!['complete']!;
+  String get soilAndWater =>
+      _strings[languageCode]?['soil_and_water'] ??
+      _strings['en']!['soil_and_water']!;
+  String get location =>
+      _strings[languageCode]?['location'] ?? _strings['en']!['location']!;
+  String get irrigationType =>
+      _strings[languageCode]?['irrigation_type'] ??
+      _strings['en']!['irrigation_type']!;
+  String get waterSource =>
+      _strings[languageCode]?['water_source'] ??
+      _strings['en']!['water_source']!;
+  String get soilType =>
+      _strings[languageCode]?['soil_type'] ?? _strings['en']!['soil_type']!;
+  String get aiSoilScan =>
+      _strings[languageCode]?['ai_soil_scan'] ??
+      _strings['en']!['ai_soil_scan']!;
+  String get farmDetails =>
+      _strings[languageCode]?['farm_details'] ??
+      _strings['en']!['farm_details']!;
+  String get confirmDeleteFarm =>
+      _strings[languageCode]?['confirm_delete_farm'] ??
+      _strings['en']!['confirm_delete_farm']!;
   String get yes => _strings[languageCode]?['yes'] ?? _strings['en']!['yes']!;
   String get no => _strings[languageCode]?['no'] ?? _strings['en']!['no']!;
-  String get cancel => _strings[languageCode]?['cancel'] ?? _strings['en']!['cancel']!;
-  String get save => _strings[languageCode]?['save'] ?? _strings['en']!['save']!;
-  String get next => _strings[languageCode]?['next'] ?? _strings['en']!['next']!;
-  String get completeProfileForm => _strings[languageCode]?['complete_profile_form'] ?? _strings['en']!['complete_profile_form']!;
-  String get addressSearchHint => _strings[languageCode]?['address_search_hint'] ?? _strings['en']!['address_search_hint']!;
-  String get locationSearchError => _strings[languageCode]?['location_search_error'] ?? _strings['en']!['location_search_error']!;
-  String get waterAvailability => _strings[languageCode]?['water_availability'] ?? _strings['en']!['water_availability']!;
+  String get cancel =>
+      _strings[languageCode]?['cancel'] ?? _strings['en']!['cancel']!;
+  String get save =>
+      _strings[languageCode]?['save'] ?? _strings['en']!['save']!;
+  String get next =>
+      _strings[languageCode]?['next'] ?? _strings['en']!['next']!;
+  String get completeProfileForm =>
+      _strings[languageCode]?['complete_profile_form'] ??
+      _strings['en']!['complete_profile_form']!;
+  String get addressSearchHint =>
+      _strings[languageCode]?['address_search_hint'] ??
+      _strings['en']!['address_search_hint']!;
+  String get locationSearchError =>
+      _strings[languageCode]?['location_search_error'] ??
+      _strings['en']!['location_search_error']!;
+  String get waterAvailability =>
+      _strings[languageCode]?['water_availability'] ??
+      _strings['en']!['water_availability']!;
 
   // Misc
-  String get errorUnavailable => _strings[languageCode]?['error_unavailable'] ?? _strings['en']!['error_unavailable']!;
-  String get selectOneLanguage => _strings[languageCode]?['select_one_language'] ?? _strings['en']!['select_one_language']!;
+  String get errorUnavailable =>
+      _strings[languageCode]?['error_unavailable'] ??
+      _strings['en']!['error_unavailable']!;
+  String get selectOneLanguage =>
+      _strings[languageCode]?['select_one_language'] ??
+      _strings['en']!['select_one_language']!;
 
-  String t(String key) => _strings[languageCode]?[key] ?? _strings['en']![key]!;
+  // Tools screen
+  String get smartFarmingUtilities =>
+      _strings[languageCode]?['smart_farming_utilities'] ??
+      _strings['en']!['smart_farming_utilities']!;
+  String get pestDetectDesc =>
+      _strings[languageCode]?['pest_detect_desc'] ??
+      _strings['en']!['pest_detect_desc']!;
+  String get fertilizerGuide =>
+      _strings[languageCode]?['fertilizer_guide'] ??
+      _strings['en']!['fertilizer_guide']!;
+  String get fertilizerGuideDesc =>
+      _strings[languageCode]?['fertilizer_guide_desc'] ??
+      _strings['en']!['fertilizer_guide_desc']!;
+  String get liveMandiPrices =>
+      _strings[languageCode]?['live_mandi_prices'] ??
+      _strings['en']!['live_mandi_prices']!;
+  String get cropSearch =>
+      _strings[languageCode]?['crop_search'] ?? _strings['en']!['crop_search']!;
+  String get cropSearchDesc =>
+      _strings[languageCode]?['crop_search_desc'] ??
+      _strings['en']!['crop_search_desc']!;
+  String get soilScanner =>
+      _strings[languageCode]?['soil_scanner'] ??
+      _strings['en']!['soil_scanner']!;
+  String get soilScannerDesc =>
+      _strings[languageCode]?['soil_scanner_desc'] ??
+      _strings['en']!['soil_scanner_desc']!;
+  String get aiAssistant =>
+      _strings[languageCode]?['ai_assistant'] ??
+      _strings['en']!['ai_assistant']!;
 
-  static const Map<String, Map<String, String>> _strings = {
-    'en': {
-      'app_name': 'VidhAI',
-      'tagline': 'Agriculture Ecosystem',
-      'splash_title': 'VidhAI',
-      'splash_tagline': 'Agriculture Ecosystem',
-      'select_language': 'Select Your Language',
-      'language_subtitle': 'Choose your preferred language for the VidhAI interface',
-      'continue_btn': 'Continue',
-      'choose_domain': 'Choose Your Domain',
-      'farmer_console': 'Farmer Console',
-      'consumer_console': 'Consumer Console',
-      'farmer_description': 'Manage your farm, crops, and AI-powered insights',
-      'consumer_description': 'Explore fresh produce and connect with local farmers',
-      'farmer_home': 'Farmer Home',
-      'consumer_home': 'Consumer Home',
-      'welcome_back': 'Welcome back!',
-      'quick_actions': 'Quick Actions',
-      'ai_quick_action': 'AI Quick Action',
-      'crop_support': 'Crop / Plantation Support',
-      'pest_detection': 'Pest & Disease Detection',
-      'ai_guidance': 'AI Guidance',
-      'market_insights': 'Market & Price Insights',
-      'market_prices': 'Market Prices',
-      'demand_forecast': 'Demand Forecast',
-      'community': 'Community',
-      'marketplace': 'Marketplace Connection',
-      'your_farm': 'Your Farm',
-      'farm_info': 'Farm Information',
-      'profile': 'Profile',
-      'logout': 'Logout',
-      'explore_products': 'Explore Products',
-      'fresh_produce': 'Fresh Produce',
-      'local_farmers': 'Local Farmers',
-      'order_history': 'Order History',
-      'complete_profile': 'Complete Your Profile',
-      'full_name': 'Full Name',
-      'age': 'Age',
-      'gender': 'Gender',
-      'address': 'Address',
-      'user_role': 'User Role',
-      'complete_onboarding': 'Complete Onboarding',
-      'email': 'Email',
-      'password': 'Password',
-      'login': 'Login',
-      'create_account': 'Create Account',
-      'error_unavailable': 'Service Unavailable',
-      'select_one_language': 'Select a language to continue',
-      'enter_email': 'Enter your email address',
-      'verify_email': 'Verify Email',
-      'email_subtitle': "We'll send a verification code to confirm your email",
-      'verification_sent_to': 'Verification code sent to',
-      'enter_code': 'Enter the 6-digit code',
-      'resend_code': 'Resend Code',
-      'resend_in': 'Resend in',
-      'verify': 'Verify',
-      'skip_for_now': 'Skip for now',
-      'invalid_email': 'Please enter a valid email address',
-      'invalid_code': 'Invalid verification code. Please try again.',
-      'code_expired': 'Verification code has expired. Please resend.',
-      'network_error': 'Network error. Please check your connection.',
-      'already_registered': 'This email is already registered',
-      'code_sent_success': 'Verification code sent successfully',
-      'guest_note': 'You can verify your email later from profile settings',
-      'personal_details': 'Personal Details',
-      'profile_avatar': 'Profile Photo',
-      'change_photo': 'Change Photo',
-      'take_photo': 'Take Photo',
-      'choose_from_gallery': 'Choose from Gallery',
-      'date_of_birth': 'Date of Birth',
-      'select_date': 'Select Date',
-      'age_calculated': 'Age (calculated)',
-      'verified_address': 'Verified Address',
-      'search_address': 'Search Address',
-      'select_from_suggestions': 'Please select from the suggestions',
-      'required_field': 'This field is required',
-      'voice_input': 'Voice Input',
-      'listening': 'Listening...',
-      'processing': 'Processing...',
-      'permission_denied': 'Microphone permission denied',
-      'speech_not_available': 'Speech recognition not available on this device',
-      'number_of_farms': 'Number of Farms',
-      'select_number_of_farms': 'How many farms do you have?',
-      'farm_card': 'Farm',
-      'of_label': 'of',
-      'farm_name': 'Farm Name',
-      'farm_size': 'Farm Size',
-      'farm_location': 'Farm Location',
-      'irrigation_type': 'Irrigation Type',
-      'water_source': 'Water Source',
-      'soil_type': 'Soil Type',
-      'ai_soil_scan': 'AI Soil Scan',
-      'farm_details': 'Farm Details',
-      'confirm_delete_farm': 'Reducing the number of farms will delete the last farm data. Continue?',
-      'yes': 'Yes',
-      'no': 'No',
-      'cancel': 'Cancel',
-      'save': 'Save',
-      'next': 'Next',
-      'complete_profile_form': 'Save & Continue',
-      'address_search_hint': 'Start typing your address...',
-      'location_search_error': 'Could not find this location. Please try a different search.',
-      'water_availability': 'Water Availability',
-      'home': 'Home',
-      'farm': 'Farm',
-      'tools': 'Tools',
-      'account': 'Account',
-      'dashboard': 'VidhAI Dashboard',
-      'complete_onboarding_first': 'Please complete onboarding first',
-      'farmer_default': 'Farmer',
-      'welcome_user': 'Welcome, {name}!',
-      'home_title': 'VidhAI Home',
-      'welcome_to_vidhai': 'Welcome to VidhAI',
-      'current_crop_prices': 'Current crop prices in your area',
-      'demand_trends': 'Upcoming demand trends',
-      'community_and_marketplace': 'Community & Marketplace',
-      'farm_details_stats': 'Your farm details and statistics',
-      'view_edit_profile': 'View and edit your profile',
-      'good_morning': 'Good Morning',
-      'good_afternoon': 'Good Afternoon',
-      'good_evening': 'Good Evening',
-      'good_night': 'Good Night',
-      'quote1': 'The farmer is the only man in our economy who buys everything at retail, sells everything at wholesale, and pays the freight both ways.',
-      'quote2': 'Farming looks mighty easy when your plow is a pencil and you\'re a thousand miles from the corn field.',
-      'quote3': 'The ultimate goal of farming is not the growing of crops, but the cultivation and perfection of human beings.',
-      'quote4': 'A good farmer is nothing more nor less than a handy man with a sense of humus.',
-      'quote5': 'To forget how to dig the earth and tend the soil is to forget ourselves.',
-      'add_farm_location_weather': 'Add farm location to see weather data.',
-      'no_weather_data': 'No weather data for {farm}',
-      'todays_tasks': 'Today\'s Tasks',
-      'see_all': 'See All',
-      'more_tasks': '{count} more tasks',
-      'no_tasks_yet': 'No tasks yet',
-      'configure_farms_smart_tasks': 'Configure your farms to generate smart tasks.',
-      'market_rates': 'Market Rates',
-      'view_all': 'View All',
-      'market_rates_unavailable': 'Market rates will appear here once data is available.',
-      'smart_farming_utilities': 'Smart farming utilities at your fingertips',
-      'fertilizer_guide': 'Fertilizer Guide',
-      'fertilizer_guide_desc': 'Complete fertilizer reference',
-      'live_mandi_prices': 'Live mandi prices & trends',
-      'crop_search': 'Crop Search',
-      'crop_search_desc': 'Browse crop knowledge base',
-      'soil_scanner': 'Soil Scanner',
-      'soil_scanner_desc': 'Analyze & setup your soil',
-      'ai_assistant': 'AI Assistant',
-      'ask_farming_desc': 'Ask anything about farming',
-      'govt_schemes': 'Govt Schemes',
-      'govt_schemes_desc': 'Schemes & subsidies for farmers',
-      'community_desc': 'Connect with farmers nearby',
-      'edit_profile': 'Edit Profile',
-      'language': 'Language',
-      'notifications': 'Notifications',
-      'help_support': 'Help & Support',
-      'about_vidhai': 'About VidhAI',
-      'console': 'Console',
-      'link_google_account': 'Link Google Account',
-      'email_verified': 'Email verified',
-      'email_not_verified': 'Email not verified',
-      'verification_email_sent': 'Verification email sent!',
-      'failed_send_verification_email': 'Failed to send verification email',
-      'logout_confirmation': 'Are you sure you want to logout?',
-      'email_us': 'Email Us',
-      'call_us': 'Call Us',
-      'live_chat': 'Live Chat',
-      'live_chat_availability': 'Available 9AM - 6PM IST',
-      'faq': 'FAQ',
-      'help_center': 'Visit our help center',
-      'copyright_notice': '© 2026 VidhAI. All rights reserved.',
-      'about_description': 'VidhAI is an AI-powered farming assistant that provides personalized crop recommendations, disease detection, and farm management tools for Indian farmers.',
-      'switch_console': 'Switch Console',
-      'console_switched': 'Console Switched',
-      'console_switched_message': 'Switched to {console} Console. Some features may change.',
-      'google_account': 'Google Account',
-      'google_already_linked': 'Your Google account is already linked.',
-      'link_google_description': 'Link your Google account to sign in with Google on any device.',
-      'link_now': 'Link Now',
-      'google_linked_success': 'Google account linked successfully!',
-      'google_link_failed': 'Failed to link Google account.',
-      'google_already_linked_msg': 'This account is already linked to a Google account.',
-      'google_linked_other_user': 'This Google account is already linked to another user.',
-      'invalid_google_credentials': 'Invalid Google credentials. Please try again.',
-      'google_signin_cancelled': 'Google sign-in cancelled or failed.',
-      'ok': 'OK',
-      'retry': 'Retry',
-      'close': 'Close',
-      'delete': 'Delete',
-      'confirm': 'Confirm',
-      'update': 'Update',
-      'ask': 'Ask',
-      'farm_assistant_title': 'VidhAI Farm Assistant',
-      'ai_assistant_what_now': 'What should I do now?',
-      'ask_about_farm': 'Ask me anything about your farm',
-      'ask_voice_or_typing': 'Ask by voice or typing...',
-      'ai_response_placeholder': 'AI response will appear here once the backend is configured.',
-      'tasks_completed_count': '{done} of {total} completed',
-      'ai_chat_title': 'VidhAI AI',
-      'ai_chat_online_status': 'Online',
-      'ai_chat_assistant_heading': 'VidhAI AI Assistant',
-      'ai_chat_empty_subtitle': 'Ask me anything about your farming...',
-      'ai_chat_suggestion_now': 'What should I do now?',
-      'ai_chat_suggestion_crop': 'Best crop to grow?',
-      'ai_chat_suggestion_price': 'Tomato price',
-      'ai_chat_input_hint': 'Type your message...',
-      'ai_chat_error_message': 'Sorry, something went wrong. Please try again.',
-      'search_commodity_hint': 'Search commodity or market...',
-      'loading': 'Loading...',
-      'commodity_prices_count': 'commodity prices',
-      'failed_to_load_prices': 'Failed to load prices',
-      'no_prices_found': 'No commodities found',
-      'price_min_label': 'Min',
-      'price_modal_label': 'Modal',
-      'price_max_label': 'Max',
-      'all': 'All',
-      'weather_data_unavailable': 'Weather data unavailable',
-      'hourly_forecast_heading': 'Hourly Forecast',
-      'daily_forecast_heading': '7-Day Forecast',
-      'weather_last_updated': 'Last updated:',
-      'weather_feels_like': 'Feels like',
-      'weather_humidity': 'Humidity',
-      'weather_wind': 'Wind',
-      'weather_direction': 'Direction',
-      'weather_pressure': 'Pressure',
-      'weather_gusts': 'Gusts',
-      'weather_rain': 'Rain',
-      'weather_hour_now': 'Now',
-      'weather_day_today': 'Today',
-      'weather_day_tomorrow': 'Tomorrow',
-      'weekday_mon': 'Mon',
-      'weekday_tue': 'Tue',
-      'weekday_wed': 'Wed',
-      'weekday_thu': 'Thu',
-      'weekday_fri': 'Fri',
-      'weekday_sat': 'Sat',
-      'weekday_sun': 'Sun',
-      'crop_rec_title': 'VidhAI Crop Recommendations',
-      'duration': 'Duration',
-      'category': 'Category',
-      'location': 'Location',
-      'soil': 'Soil',
-      'water': 'Water',
-      'season': 'Season',
-      'size': 'Size',
-      'irrigation': 'Irrigation',
-      'crop_rec_duration_short': 'Short',
-      'crop_rec_duration_medium': 'Medium',
-      'crop_rec_duration_long': 'Long',
-      'crop_category_vegetable': 'Vegetable',
-      'crop_category_fruit': 'Fruit',
-      'crop_category_cereal': 'Cereal',
-      'crop_category_pulse': 'Pulse',
-      'crop_category_spice': 'Spice',
-      'crop_category_flower': 'Flower',
-      'crop_category_leafy': 'Leafy',
-      'crop_category_tree': 'Tree',
-      'crop_category_medicinal': 'Medicinal',
-      'select_crop_title': 'Select Crop',
-      'add_crop_dialog_title': 'Add {crop} to your farm?',
-      'add_crop_dialog_body': 'This crop will be added as an active crop in your farm profile.',
-      'crop_added_snackbar': '{crop} added to your farm!',
-      'no_recommendations_title': 'No Recommendations Found',
-      'no_recommendations_body': 'We couldn\'t find matching crops for your farm profile. Try adjusting your questionnaire.',
-      'recommendations_count': '{count} Recommendations',
-      'no_crops_for_filters': 'No crops match the selected filters.',
-      'location_not_specified': 'Not specified',
-      'farm_context_heading': 'Farm Context',
-      'reasoning_heading': 'Based on your farm profile',
-      'reasoning_region': 'Region',
-      'reasoning_rotation': 'Rotation',
-      'reasoning_region_detail': 'Recommendations for {area}',
-      'reasoning_soil_detail': 'Suitable for {soil} soil',
-      'reasoning_water_detail': 'water availability considered',
-      'reasoning_season_detail': 'Optimized for {season} season crops',
-      'reasoning_rotation_detail': 'Excluded {crop} for crop rotation',
-      'risk_suffix': 'Risk',
-      'est_investment': 'Est. Investment',
-      'est_yield': 'Est. Yield',
-      'est_revenue': 'Est. Revenue',
-      'est_profit': 'Est. Profit',
-      'why_recommended_expand': 'Why recommended?',
-      'why_recommended_heading': 'Why Recommended',
-      'period_plant': 'Plant',
-      'period_harvest': 'Harvest',
-      'view_details': 'View Details',
-      'detail_risk_level': 'Risk Level',
-      'detail_suitable_soil': 'Suitable Soil',
-      'detail_water_requirement': 'Water Requirement',
-      'detail_climate': 'Climate',
-      'detail_market_demand': 'Market Demand',
-      'detail_investment_per_acre': 'Investment / Acre',
-      'detail_yield_per_acre': 'Yield / Acre',
-      'detail_revenue_per_acre': 'Revenue / Acre',
-      'detail_profit_per_acre': 'Profit / Acre',
-      'detail_planting_period': 'Planting Period',
-      'detail_harvest_period': 'Harvest Period',
-      'rec_loading_heading': 'Analyzing your farm data...',
-      'rec_loading_soil': 'Checking soil compatibility...',
-      'rec_loading_weather': 'Analyzing weather patterns...',
-      'rec_loading_market': 'Evaluating market conditions...',
-      'rec_loading_crops': 'Finding best crops...',
-      'crop_search_title': 'Crop Search',
-      'crop_search_hint': 'Search crop name, variety, category...',
-      'crop_search_count': '{count} crops found',
-      'no_crops_found': 'No crops found',
-      'growth_details_heading': 'Growth Details',
-      'temperature': 'Temperature',
-      'sowing': 'Sowing',
-      'harvest': 'Harvest',
-      'investment_returns_heading': 'Investment & Returns',
-      'investment_per_acre': 'Investment/acre',
-      'expected_yield': 'Expected Yield',
-      'revenue_per_acre': 'Revenue/acre',
-      'profit_per_acre': 'Profit/acre',
-      'suitable_regions_heading': 'Suitable Regions',
-      'suitable_soils_label': 'Soils',
-      'suitable_states_label': 'States',
-      'agro_climatic_label': 'Agro-climatic',
-      'market_risk_heading': 'Market & Risk',
-      'market_demand': 'Market Demand',
-      'risk_level': 'Risk Level',
-      'crop_analysis_loading': 'Analyzing crop for your farm...',
-      'no_farms_found_title': 'No Farms Found',
-      'no_farms_found_body': 'Please add a farm profile first to get personalized AI analysis.',
-      'crop_analysis_title': '{crop} Analysis',
-      'analysis_failed': 'Analysis failed:',
-      'analyze_for_my_farm': 'Analyze for My Farm',
-      'fertilizer_guide_title': 'Fertilizer Guide',
-      'ai_recommendation_title': 'AI Recommendation',
-      'fertilizer_type_npk': 'NPK',
-      'fertilizer_type_organic': 'Organic',
-      'fertilizer_type_bio': 'Bio',
-      'fertilizer_type_micronutrient': 'Micronutrient',
-      'search_fertilizers_hint': 'Search fertilizers...',
-      'fertilizer_count': '{count} fertilizers',
-      'no_fertilizers_found': 'No fertilizers match your search',
-      'ai_recommendation_loading': 'Getting AI recommendation...',
-      'ai_recommendation_failed': 'Could not generate recommendation.',
-      'error_prefix': 'Error:',
-      'npk_prefix': 'NPK:',
-      'use_case_label': 'Use Case',
-      'target_crops_label': 'Target Crops',
-      'application_rate_label': 'Application Rate',
-      'pest_detect_header': 'Take a photo of your plant to detect diseases or pests',
-      'pest_step_crop_title': 'Select Plant / Crop',
-      'pest_crop_hint': 'e.g., Tomato, Paddy, Cotton...',
-      'pest_step_photos_title': 'Add Photos',
-      'camera': 'Camera',
-      'gallery': 'Gallery',
-      'pest_photos_selected': '{count} photo(s) selected',
-      'pest_ai_analysis_title': 'AI Analysis',
-      'analyze_images_button': 'Analyze Images',
-      'pest_analyzing_heading': 'Analyzing images...',
-      'pest_analyzing_body': 'AI is examining your plant photos for signs of pests or diseases',
-      'pest_validate_message': 'Please select a crop and add at least one photo',
-      'pest_pick_image_failed': 'Failed to pick image:',
-      'pest_no_farm_message': 'No farm found. Add a farm first.',
-      'pest_saved_records_snackbar': 'Saved to farm disease records',
-      'unknown': 'Unknown',
-      'treatment_immediate': 'Immediate:',
-      'treatment_biological': 'Biological:',
-      'treatment_chemical': 'Chemical:',
-      'pest_treatment_fallback': 'Consult an agricultural expert.',
-      'pest_prevention_fallback': 'Regular field scouting and crop hygiene.',
-      'pest_severity_score': 'Severity score:',
-      'pest_analysis_error_title': 'Analysis Error',
-      'pest_analyze_failed': 'Failed to analyze:',
-      'pest_based_on_visual': 'Based on visual analysis',
-      'pest_confidence': 'Confidence:',
-      'pest_treatment_label': 'Treatment',
-      'pest_prevention_label': 'Prevention',
-      'pest_disclaimer': 'Results are indicative. Always consult an agricultural expert for critical decisions.',
-      'pest_saved_button': 'Saved to Farm Records',
-      'pest_save_button': 'Save to Farm Records',
-      'my_farms': 'My Farms',
-      'add_farm': 'Add Farm',
-      'no_farms_yet': 'No farms yet',
-      'tap_add_farm_to_create': 'Tap + Add Farm to create your first farm.',
-      'total_farms': 'Total Farms',
-      'active_farms': 'Active Farms',
-      'not_configured': 'Not configured',
-      'not_set': 'Not set',
-      'no_location': 'No location',
-      'no_crop': 'No crop',
-      'loading_weather': 'Loading weather...',
-      'farm_not_found': 'Farm not found',
-      'no_location_set': 'No location set',
-      'method': 'Method',
-      'crop_info': 'Crop Info',
-      'configure_crop': 'Configure crop',
-      'weather': 'Weather',
-      'tap_to_view': 'Tap to view',
-      'no_data_yet': 'No data yet',
-      'view_records': 'View records',
-      'pesticides': 'Pesticides',
-      'fertilizers': 'Fertilizers',
-      'disease': 'Disease',
-      'view_alerts': 'View alerts',
-      'history': 'History',
-      'farm_history': 'Farm History',
-      'recommend': 'Recommend',
-      'ai_crop_advice': 'AI crop advice',
-      'farming': 'Farming',
-      'farming_method': 'Farming Method',
-      'no_farming_method_configured': 'No farming method configured',
-      'availability_label': 'Availability:',
-      'source_label': 'Source:',
-      'no_water_data_configured': 'No water data configured',
-      'type_label': 'Type:',
-      'ai_analysis_label': 'AI Analysis:',
-      'no_soil_data_configured': 'No soil data configured',
-      'no_irrigation_data_configured': 'No irrigation data configured',
-      'add_new_farm': 'Add New Farm',
-      'save_farm': 'Save Farm',
-      'please_fill_farm_details': 'Please fill in the farm details',
-      'please_fill_farm_required': 'Please fill in farm name, size, and select a verified location',
-      'saved_successfully': 'saved successfully!',
-      'error_saving_farm': 'Error saving farm:',
-      'crop_setup': 'Crop Setup',
-      'crop_setup_help_text': 'Help us understand your farm history to get the best crop recommendations.',
-      'land_idle_lt_1_month': '<1 month',
-      'land_idle_1_3_months': '1-3 months',
-      'land_idle_3_6_months': '3-6 months',
-      'land_idle_6_12_months': '6-12 months',
-      'land_idle_gt_1_year': '>1 year',
-      'soil_clay': 'Clay',
-      'soil_sandy': 'Sandy',
-      'soil_loamy': 'Loamy',
-      'soil_silt': 'Silt',
-      'soil_peat': 'Peat',
-      'soil_chalk': 'Chalk',
-      'soil_saline': 'Saline',
-      'soil_black_regur': 'Black (Regur)',
-      'soil_red': 'Red',
-      'soil_laterite': 'Laterite',
-      'soil_condition_good': 'Good',
-      'soil_condition_average': 'Average',
-      'soil_condition_poor': 'Poor',
-      'soil_condition_unknown': 'Unknown',
-      'irrigation_drip': 'Drip',
-      'irrigation_sprinkler': 'Sprinkler',
-      'irrigation_flood': 'Flood',
-      'irrigation_rainfed': 'Rainfed',
-      'irrigation_manual': 'Manual',
-      'water_high': 'High',
-      'water_medium': 'Medium',
-      'water_low': 'Low',
-      'water_very_low': 'Very Low',
-      'no_water': 'No Water',
-      'crop_duration_short_term': 'Short-term',
-      'crop_duration_medium': 'Medium',
-      'crop_duration_long': 'Long',
-      'crop_duration_no_preference': 'No preference',
-      'crop_category_no_preference': 'No preference',
-      'last_crop_grown': 'Last crop grown',
-      'hint_last_crop': 'e.g., Paddy, Tomato, Cotton',
-      'when_was_it_harvested': 'When was it harvested?',
-      'select_harvest_date': 'Select harvest date',
-      'how_long_land_idle': 'How long has the land been idle?',
-      'select_duration': 'Select duration',
-      'when_last_irrigation': 'When was the last irrigation?',
-      'select_last_irrigation_date': 'Select last irrigation date',
-      'current_water_availability': 'Current water availability',
-      'select_soil_type': 'Select soil type',
-      'soil_condition': 'Soil condition',
-      'select_soil_condition': 'Select soil condition',
-      'irrigation_system_available': 'Irrigation system available',
-      'select_irrigation_system': 'Select irrigation system',
-      'auto_filled_from_farm_data': 'Auto-filled from farm data',
-      'current_season': 'Current season',
-      'auto_detected': '(auto-detected)',
-      'crop_duration_preference': 'Crop duration preference',
-      'crop_category_preference': 'Crop category preference',
-      'get_recommendations': 'Get Recommendations',
-      'season_kharif': 'Kharif',
-      'season_rabi': 'Rabi',
-      'season_zaid': 'Zaid',
-      'disease_pest_records': 'Disease & Pest Records',
-      'delete_record': 'Delete Record',
-      'delete_disease_record_confirm': 'Delete disease/pest record for "{record}"?',
-      'edit_record': 'Edit Record',
-      'add_disease_pest': 'Add Disease / Pest',
-      'detected_date': 'Detected Date',
-      'crop_optional': 'Crop (optional)',
-      'hint_crop': 'e.g. Rice, Wheat',
-      'problem': 'Problem',
-      'hint_problem': 'e.g. Brown spot, Aphid attack',
-      'severity': 'Severity',
-      'select_severity': 'Select severity',
-      'treatment_optional': 'Treatment (optional)',
-      'hint_treatment': 'Describe treatment applied or planned',
-      'status': 'Status',
-      'no_disease_records': 'No disease records',
-      'track_diseases_pests': 'Track diseases and pests by tapping the + button.',
-      'expense_seeds': 'Seeds',
-      'expense_fertilizer': 'Fertilizer',
-      'expense_labor': 'Labor',
-      'expense_equipment': 'Equipment',
-      'expense_irrigation': 'Irrigation',
-      'expense_transport': 'Transport',
-      'expense_count_label': '{count} expense',
-      'delete_expense': 'Delete Expense',
-      'delete_expense_confirm': 'Are you sure you want to delete this {category} expense of {amount}?',
-      'edit_expense': 'Edit Expense',
-      'add_expense': 'Add Expense',
-      'amount': 'Amount (₹)',
-      'date': 'Date',
-      'description': 'Description',
-      'hint_description': 'What was this expense for?',
-      'vendor_optional': 'Vendor (optional)',
-      'hint_vendor': 'Vendor name',
-      'receipt_photo_optional': 'Receipt Photo (optional)',
-      'tap_to_add_receipt': 'Tap to add receipt',
-      'no_expenses_yet': 'No expenses yet',
-      'track_farm_expenses': 'Track your farm expenses by tapping the + button.',
-      'overview': 'Overview',
-      'diseases': 'Diseases',
-      'previous_crops': 'Previous Crops',
-      'no_crop_records_found': 'No crop records found',
-      'record_count_label': '{count} records',
-      'previous_treatments': 'Previous Treatments',
-      'no_treatment_records_found': 'No treatment records found',
-      'fertilizer_records': 'Fertilizer Records',
-      'no_fertilizer_records_found': 'No fertilizer records found',
-      'disease_records': 'Disease Records',
-      'no_irrigation_records_found': 'No irrigation records found',
-      'previous_expenses': 'Previous Expenses',
-      'no_expense_records_found': 'No expense records found',
-      'important_events': 'Important Events',
-      'no_important_events_recorded': 'No important events recorded',
-      'resolved_prefix': 'Resolved:',
-      'detected_prefix': 'Detected:',
-      'no_history_records_yet': 'No history records yet',
-      'farm_history_empty_desc': 'Your farm history will appear here once you start logging expenses, treatments, and other records.',
-      'qty': 'Qty',
-      'crop': 'Crop',
-      'delete_fertilizer_record_confirm': 'Delete fertilizer record for "{product}"?',
-      'edit_fertilizer_record': 'Edit Fertilizer Record',
-      'add_fertilizer_record': 'Add Fertilizer Record',
-      'product_name': 'Product Name',
-      'hint_product_name': 'e.g. Urea, DAP',
-      'type': 'Type',
-      'select_type': 'Select type',
-      'quantity': 'Quantity',
-      'hint_quantity': 'e.g. 50 kg',
-      'application_method': 'Application Method',
-      'hint_application_method': 'e.g. Soil application, Foliar spray',
-      'hint_crop_wheat_paddy': 'e.g. Wheat, Paddy',
-      'no_fertilizer_records': 'No fertilizer records',
-      'track_fertilizer_applications': 'Track fertilizer applications by tapping the + button.',
-      'pesticide_records': 'Pesticide Records',
-      'area': 'Area',
-      'purpose': 'Purpose',
-      'hint_purpose': 'e.g. Aphid control',
-      'delete_pesticide_record_confirm': 'Delete pesticide record for "{product}"?',
-      'edit_pesticide_record': 'Edit Pesticide Record',
-      'add_pesticide_record': 'Add Pesticide Record',
-      'hint_product_name_pesticide': 'e.g. Cypermethrin 25 EC',
-      'hint_quantity_ml': 'e.g. 500 ml',
-      'application_area': 'Application Area',
-      'hint_application_area': 'e.g. 2 acres, North Field',
-      'hint_crop_wheat_rice': 'e.g. Wheat, Rice',
-      'notes_optional': 'Notes (optional)',
-      'hint_notes': 'Additional notes',
-      'no_pesticide_records': 'No pesticide records',
-      'track_pesticide_applications': 'Track pesticide applications by tapping the + button.',
-      'community_no_posts': 'No posts yet',
-      'community_no_posts_hint': 'Be the first to share something!',
-      'community_category_general': 'General',
-      'community_category_crops': 'Crops',
-      'community_category_pest_control': 'Pest Control',
-      'community_category_market': 'Market',
-      'community_category_equipment': 'Equipment',
-      'community_category_organic': 'Organic',
-      'community_category_schemes': 'Schemes',
-      'ai_assisted': 'AI Assisted',
-      'time_ago_just_now': 'Just now',
-      'time_ago_now': 'now',
-      'time_ago_m': '{count}m ago',
-      'time_ago_h': '{count}h ago',
-      'time_ago_d': '{count}d ago',
-      'time_ago_w': '{count}w ago',
-      'filter_by_location': 'Filter by Location',
-      'district': 'District',
-      'state': 'State',
-      'clear_filters': 'Clear Filters',
-      'apply': 'Apply',
-      'new_post': 'New Post',
-      'post_btn': 'Post',
-      'post_content_hint': 'Share your farming experience, ask questions, or help others...',
-      'post_published': 'Post published!',
-      'post_failed': 'Failed to post. Try again.',
-      'post_title': 'Post',
-      'comments': 'Comments',
-      'no_comments_yet': 'No comments yet. Start the conversation!',
-      'write_comment_hint': 'Write a comment...',
-      'notification_center_title': 'Notification Center',
-      'mark_all_as_read': 'Mark all as read',
-      'no_notifications_yet': 'No notifications yet',
-      'notifications_empty_hint': 'Weather alerts, market updates, and AI recommendations will appear here.',
-      'name': 'Name',
-      'enter_name_hint': 'Enter your name',
-      'age_auto_calculated': 'Age (auto-calculated)',
-      'current_address': 'Current Address',
-      'enter_address_hint': 'Enter your address',
-      'use_current_location': 'Use Current Location',
-      'select_gender': 'Select gender',
-      'male': 'Male',
-      'female': 'Female',
-      'other_gender': 'Other',
-      'select_date_of_birth': 'Select date of birth',
-      'location_permission_denied': 'Location permission denied',
-      'location_services_disabled': 'Location services are disabled',
-      'location_detected_success': 'Location detected successfully',
-      'get_location_failed': 'Failed to get current location',
-      'voice_input_not_available': 'Voice input not available',
-      'name_cannot_be_empty': 'Name cannot be empty',
-      'profile_saved_success': 'Profile saved successfully',
-      'search_languages': 'Search languages...',
-      'no_languages_found': 'No languages found',
-      'language_changed': 'Language changed to',
-      'language_en': 'English',
-      'language_ta': 'Tamil',
-      'language_te': 'Telugu',
-      'language_kn': 'Kannada',
-      'language_ml': 'Malayalam',
-      'language_hi': 'Hindi',
-      'language_bn': 'Bengali',
-      'language_mr': 'Marathi',
-      'language_gu': 'Gujarati',
-      'language_pa': 'Punjabi',
-      'language_or': 'Odia',
-      'language_as': 'Assamese',
-      'language_ur': 'Urdu',
-      'government_schemes_title': 'Government Schemes',
-      'search_schemes': 'Search schemes...',
-      'no_schemes_found': 'No schemes found',
-      'scheme_category_income_support': 'Income Support',
-      'scheme_category_crop_insurance': 'Crop Insurance',
-      'scheme_category_pension': 'Pension',
-      'scheme_category_soil_health': 'Soil Health',
-      'scheme_category_market_access': 'Market Access',
-      'scheme_category_credit': 'Credit',
-      'scheme_category_water_conservation': 'Water Conservation',
-      'scheme_category_organic_farming': 'Organic Farming',
-      'scheme_category_land_records': 'Land Records',
-      'scheme_category_food_processing': 'Food Processing',
-      'state_badge': 'STATE',
-      'about_section': 'About',
-      'eligibility': 'Eligibility',
-      'benefits': 'Benefits',
-      'how_to_apply': 'How to Apply',
-      'required_documents': 'Required Documents',
-      'website_url_copied': 'Website URL copied',
-      'visit_official_website': 'Visit Official Website',
-      'helpline_number_copied': 'Helpline number copied',
-      'helpline_label': 'Helpline',
-    },
-    'ta': {
-      'app_name': 'வித்ஏஐ',
-      'tagline': 'வேளாண்மை சுற்றுச்சூழல்',
-      'splash_title': 'வித்ஏஐ',
-      'splash_tagline': 'வேளாண்மை சுற்றுச்சூழல்',
-      'select_language': 'உங்கள் மொழியைத் தேர்ந்தெடுக்கவும்',
-      'language_subtitle': 'VidhAI இடைமுகத்திற்கான உங்கள் விருப்பமான மொழியைத் தேர்ந்தெடுக்கவும்',
-      'continue_btn': 'தொடரவும்',
-      'choose_domain': 'உங்கள் துறையைத் தேர்ந்தெடுக்கவும்',
-      'farmer_console': 'விவசாயி கன்சோல்',
-      'consumer_console': 'நுகர்வோர் கன்சோல்',
-      'farmer_description': 'உங்கள் பண்ணை, பயிர்கள் மற்றும் AI நுண்ணறிவுகளை நிர்வகிக்கவும்',
-      'consumer_description': 'புதிய உற்பத்தியை ஆராய்ந்து உள்ளூர் விவசாயிகளுடன் இணையுங்கள்',
-      'farmer_home': 'விவசாயி முகப்பு',
-      'consumer_home': 'நுகர்வோர் முகப்பு',
-      'welcome_back': 'மீண்டும் வரவேற்கிறோம்!',
-      'quick_actions': 'விரைவு செயல்கள்',
-      'ai_quick_action': 'AI விரைவு செயல்',
-      'crop_support': 'பயிர் / தோட்ட ஆதரவு',
-      'pest_detection': 'பூச்சி & நோய் கண்டறிதல்',
-      'ai_guidance': 'AI வழிகாட்டுதல்',
-      'market_insights': 'சந்தை & விலை நுண்ணறிவுகள்',
-      'market_prices': 'சந்தை விலைகள்',
-      'demand_forecast': 'தேவை முன்னறிவிப்பு',
-      'community': 'சமூகம்',
-      'marketplace': 'சந்தை இணைப்பு',
-      'your_farm': 'உங்கள் பண்ணை',
-      'farm_info': 'பண்ணை தகவல்',
-      'profile': 'சுயவிவரம்',
-      'logout': 'வெளியேறு',
-      'explore_products': 'தயாரிப்புகளை ஆராயுங்கள்',
-      'fresh_produce': 'புதிய உற்பத்தி',
-      'local_farmers': 'உள்ளூர் விவசாயிகள்',
-      'order_history': 'ஆர்டர் வரலாறு',
-      'complete_profile': 'உங்கள் சுயவிவரத்தை நிறைவு செய்யுங்கள்',
-      'full_name': 'முழு பெயர்',
-      'age': 'வயது',
-      'gender': 'பாலினம்',
-      'address': 'முகவரி',
-      'user_role': 'பயனர் பங்கு',
-      'complete_onboarding': 'ஒன்போர்டிங் முடிக்கவும்',
-      'email': 'மின்னஞ்சல்',
-      'password': 'கடவுச்சொல்',
-      'login': 'உள்நுழை',
-      'create_account': 'கணக்கை உருவாக்கு',
-      'error_unavailable': 'சேவை கிடைக்கவில்லை',
-      'select_one_language': 'தொடர ஒரு மொழியைத் தேர்ந்தெடுக்கவும்',
-      'enter_email': 'உங்கள் மின்னஞ்சல் முகவரியை உள்ளிடவும்',
-      'verify_email': 'மின்னஞ்சலை சரிபார்',
-      'email_subtitle': 'உங்கள் மின்னஞ்சலை உறுதிப்படுத்த ஒரு சரிபார்ப்புக் குறியீட்டை அனுப்புவோம்',
-      'verification_sent_to': 'சரிபார்ப்புக் குறியீடு அனுப்பப்பட்டது',
-      'enter_code': '6 இலக்க குறியீட்டை உள்ளிடவும்',
-      'resend_code': 'குறியீட்டை மீண்டும் அனுப்பு',
-      'resend_in': 'மீண்டும் அனுப்பு',
-      'verify': 'சரிபார்',
-      'skip_for_now': 'இப்போதைக்கு தவிர்',
-      'invalid_email': 'சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும்',
-      'invalid_code': 'தவறான சரிபார்ப்புக் குறியீடு. மீண்டும் முயற்சிக்கவும்.',
-      'code_expired': 'சரிபார்ப்புக் குறியீடு காலாவதியானது. மீண்டும் அனுப்பவும்.',
-      'network_error': 'நெட்வொர்க் பிழை. உங்கள் இணைப்பைச் சரிபார்க்கவும்.',
-      'already_registered': 'இந்த மின்னஞ்சல் ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது',
-      'code_sent_success': 'சரிபார்ப்புக் குறியீடு வெற்றிகரமாக அனுப்பப்பட்டது',
-      'guest_note': 'சுயவிவர அமைப்புகளிலிருந்து பின்னர் உங்கள் மின்னஞ்சலை சரிபார்க்கலாம்',
-      'personal_details': 'தனிப்பட்ட விவரங்கள்',
-      'profile_avatar': 'சுயவிவர புகைப்படம்',
-      'change_photo': 'புகைப்படத்தை மாற்று',
-      'take_photo': 'புகைப்படம் எடு',
-      'choose_from_gallery': 'கேலரியிலிருந்து தேர்வு செய்',
-      'date_of_birth': 'பிறந்த தேதி',
-      'select_date': 'தேதியைத் தேர்ந்தெடு',
-      'age_calculated': 'வயது (கணக்கிடப்பட்டது)',
-      'verified_address': 'சரிபார்க்கப்பட்ட முகவரி',
-      'search_address': 'முகவரியைத் தேடு',
-      'select_from_suggestions': 'பரிந்துரைகளிலிருந்து தேர்ந்தெடுக்கவும்',
-      'required_field': 'இந்தப் புலம் தேவை',
-      'voice_input': 'குரல் உள்ளீடு',
-      'listening': 'கேட்கிறது...',
-      'processing': 'செயலாக்கம்...',
-      'permission_denied': 'மைக்ரோஃபோன் அனுமதி மறுக்கப்பட்டது',
-      'speech_not_available': 'இந்த சாதனத்தில் குரல் அடையாளம் காண இயலவில்லை',
-      'number_of_farms': 'பண்ணைகளின் எண்ணிக்கை',
-      'select_number_of_farms': 'உங்களுக்கு எத்தனை பண்ணைகள் உள்ளன?',
-      'farm_card': 'பண்ணை',
-      'of_label': 'இல்',
-      'farm_name': 'பண்ணை பெயர்',
-      'farm_size': 'பண்ணை அளவு',
-      'farm_location': 'பண்ணை இருப்பிடம்',
-      'irrigation_type': 'நீர்ப்பாசன வகை',
-      'water_source': 'நீர் ஆதாரம்',
-      'soil_type': 'மண் வகை',
-      'ai_soil_scan': 'AI மண் ஸ்கேன்',
-      'farm_details': 'பண்ணை விவரங்கள்',
-      'confirm_delete_farm': 'பண்ணைகளின் எண்ணிக்கையைக் குறைப்பது கடைசி பண்ணைத் தரவை நீக்கும். தொடரவா?',
-      'yes': 'ஆம்',
-      'no': 'இல்லை',
-      'cancel': 'ரத்து செய்',
-      'save': 'சேமி',
-      'next': 'அடுத்து',
-      'complete_profile_form': 'சேமி & தொடர்',
-      'address_search_hint': 'உங்கள் முகவரியை தட்டச்சு செய்யத் தொடங்குங்கள்...',
-      'location_search_error': 'இந்த இருப்பிடத்தைக் கண்டறிய முடியவில்லை. வேறு தேடலை முயற்சிக்கவும்.',
-      'water_availability': 'நீர் கிடைப்பு',
-      'home': 'முகப்பு',
-      'farm': 'பண்ணை',
-      'tools': 'கருவிகள்',
-      'account': 'கணக்கு',
-      'dashboard': 'VidhAI டாஷ்போர்டு',
-      'complete_onboarding_first': 'முதலில் ஒன்போர்டிங்கை முடிக்கவும்',
-      'farmer_default': 'விவசாயி',
-      'welcome_user': 'வரவேற்கிறோம், {name}!',
-      'home_title': 'VidhAI முகப்பு',
-      'welcome_to_vidhai': 'VidhAI க்கு வரவேற்கிறோம்',
-      'current_crop_prices': 'உங்கள் பகுதியில் தற்போதைய பயிர் விலைகள்',
-      'demand_trends': 'எதிர்வரும் தேவை போக்குகள்',
-      'community_and_marketplace': 'சமூகம் & சந்தை இணைப்பு',
-      'farm_details_stats': 'உங்கள் பண்ணை விவரங்கள் மற்றும் புள்ளிவிவரங்கள்',
-      'view_edit_profile': 'உங்கள் சுயவிவரத்தைக் காணவும் திருத்தவும்',
-      'good_morning': 'காலை வணக்கம்',
-      'good_afternoon': 'மதிய வணக்கம்',
-      'good_evening': 'மாலை வணக்கம்',
-      'good_night': 'இனிய இரவு',
-      'quote1': 'விவசாயியே நமது பொருளாதாரத்தில் சில்லறை விலையில் அனைத்தையும் வாங்கி, மொத்த விலையில் அனைத்தையும் விற்று, இரு வழிகளிலும் சரக்குக் கட்டணத்தையும் செலுத்தும் ஒரே மனிதர்.',
-      'quote2': 'உழவு ஒரு பென்சிலாகவும், நீங்கள் சோள வயலில் இருந்து ஆயிரம் மைல் தூரத்தில் இருப்பவராகவும் இருக்கும்போது விவசாயம் மிகவும் எளிதாகத் தோன்றும்.',
-      'quote3': 'விவசாயத்தின் இறுதி நோக்கம் பயிர்களை வளர்ப்பது மட்டுமல்ல, மனிதர்களைப் பண்படுத்தி முழுமையாக்குவதே ஆகும்.',
-      'quote4': 'நல்ல விவசாயி என்பவர் மண்ணின் தன்மையை நன்கு உணர்ந்த திறமையானவர்.',
-      'quote5': 'மண்ணைத் தோண்டுவதையும் பராமரிப்பதையும் மறப்பது என்பது நம்மையே மறப்பதாகும்.',
-      'add_farm_location_weather': 'வானிலைத் தரவைக் காண பண்ணை இருப்பிடத்தைச் சேர்க்கவும்.',
-      'no_weather_data': '{farm} க்கு வானிலைத் தரவு இல்லை',
-      'todays_tasks': 'இன்றைய பணிகள்',
-      'see_all': 'அனைத்தையும் காண்க',
-      'more_tasks': '{count} மேலும் பணிகள்',
-      'no_tasks_yet': 'இன்னும் பணிகள் இல்லை',
-      'configure_farms_smart_tasks': 'ஸ்மார்ட் பணிகளை உருவாக்க உங்கள் பண்ணைகளை அமைக்கவும்.',
-      'market_rates': 'சந்தை விலைகள்',
-      'view_all': 'அனைத்தையும் காண்க',
-      'market_rates_unavailable': 'தரவு கிடைத்தவுடன் சந்தை விலைகள் இங்கே தோன்றும்.',
-      'smart_farming_utilities': 'ஸ்மார்ட் விவசாய பயன்பாடுகள் உங்கள் கைக்கு எட்டும் தொலைவில்',
-      'fertilizer_guide': 'உர வழிகாட்டி',
-      'fertilizer_guide_desc': 'முழுமையான உரக் குறிப்பு',
-      'live_mandi_prices': 'நேரடி மண்டி விலைகள் & போக்குகள்',
-      'crop_search': 'பயிர் தேடல்',
-      'crop_search_desc': 'பயிர் அறிவுக் களத்தை உலாவுக',
-      'soil_scanner': 'மண் ஸ்கேனர்',
-      'soil_scanner_desc': 'உங்கள் மண்ணை ஆராய்ந்து அமைக்கவும்',
-      'ai_assistant': 'AI உதவியாளர்',
-      'ask_farming_desc': 'விவசாயம் பற்றி எதை வேண்டுமானாலும் கேளுங்கள்',
-      'govt_schemes': 'அரசு திட்டங்கள்',
-      'govt_schemes_desc': 'விவசாயிகளுக்கான திட்டங்கள் & மானியங்கள்',
-      'community_desc': 'அருகிலுள்ள விவசாயிகளுடன் இணையுங்கள்',
-      'edit_profile': 'சுயவிவரத்தைத் திருத்து',
-      'language': 'மொழி',
-      'notifications': 'அறிவிப்புகள்',
-      'help_support': 'உதவி & ஆதரவு',
-      'about_vidhai': 'VidhAI பற்றி',
-      'console': 'கன்சோல்',
-      'link_google_account': 'Google கணக்கை இணைக்கவும்',
-      'email_verified': 'மின்னஞ்சல் சரிபார்க்கப்பட்டது',
-      'email_not_verified': 'மின்னஞ்சல் சரிபார்க்கப்படவில்லை',
-      'verification_email_sent': 'சரிபார்ப்பு மின்னஞ்சல் அனுப்பப்பட்டது!',
-      'failed_send_verification_email': 'சரிபார்ப்பு மின்னஞ்சல் அனுப்ப முடியவில்லை',
-      'logout_confirmation': 'நீங்கள் வெளியேற விரும்புகிறீர்களா?',
-      'email_us': 'எங்களுக்கு மின்னஞ்சல் செய்யுங்கள்',
-      'call_us': 'எங்களை அழைக்கவும்',
-      'live_chat': 'நேரடி அரட்டை',
-      'live_chat_availability': 'காலை 9 மணி - மாலை 6 மணி IST வரை கிடைக்கும்',
-      'faq': 'FAQ',
-      'help_center': 'எங்கள் உதவி மையத்தைப் பார்வையிடவும்',
-      'copyright_notice': '© 2026 VidhAI. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.',
-      'about_description': 'VidhAI என்பது இந்திய விவசாயிகளுக்காக தனிப்பயன் பயிர் பரிந்துரைகள், நோய் கண்டறிதல் மற்றும் பண்ணை மேலாண்மை கருவிகளை வழங்கும் AI-சார்ந்த விவசாய உதவியாளர் ஆகும்.',
-      'switch_console': 'கன்சோலை மாற்று',
-      'console_switched': 'கன்சோல் மாற்றப்பட்டது',
-      'console_switched_message': '{console} கன்சோலுக்கு மாற்றப்பட்டது. சில அம்சங்கள் மாறலாம்.',
-      'google_account': 'Google கணக்கு',
-      'google_already_linked': 'உங்கள் Google கணக்கு ஏற்கனவே இணைக்கப்பட்டுள்ளது.',
-      'link_google_description': 'எந்த சாதனத்திலும் Google மூலம் உள்நுழைய உங்கள் Google கணக்கை இணைக்கவும்.',
-      'link_now': 'இப்போதே இணைக்கவும்',
-      'google_linked_success': 'Google கணக்கு வெற்றிகரமாக இணைக்கப்பட்டது!',
-      'google_link_failed': 'Google கணக்கை இணைக்க முடியவில்லை.',
-      'google_already_linked_msg': 'இந்தக் கணக்கு ஏற்கனவே Google கணக்குடன் இணைக்கப்பட்டுள்ளது.',
-      'google_linked_other_user': 'இந்த Google கணக்கு ஏற்கனவே மற்றொரு பயனருடன் இணைக்கப்பட்டுள்ளது.',
-      'invalid_google_credentials': 'தவறான Google சான்றுகள். மீண்டும் முயற்சிக்கவும்.',
-      'google_signin_cancelled': 'Google உள்நுழைவு ரத்து செய்யப்பட்டது அல்லது தோல்வியடைந்தது.',
-      'ok': 'சரி',
-      'retry': 'மீண்டும் முயற்சி',
-      'close': 'மூடு',
-      'delete': 'நீக்கு',
-      'confirm': 'உறுதிப்படுத்து',
-      'update': 'புதுப்பி',
-      'ask': 'கேளுங்கள்',
-      'farm_assistant_title': 'VidhAI பண்ணை உதவியாளர்',
-      'ai_assistant_what_now': 'நான் இப்போது என்ன செய்ய வேண்டும்?',
-      'ask_about_farm': 'உங்கள் பண்ணை பற்றி எதை வேண்டுமானாலும் என்னிடம் கேளுங்கள்',
-      'ask_voice_or_typing': 'குரல் மூலம் அல்லது தட்டச்சு செய்து கேளுங்கள்...',
-      'ai_response_placeholder': 'பின்தளம் அமைக்கப்பட்டவுடன் AI பதில் இங்கே தோன்றும்.',
-      'tasks_completed_count': '{done} / {total} முடிந்தது',
-      'ai_chat_title': 'VidhAI AI',
-      'ai_chat_online_status': 'ஆன்லைன்',
-      'ai_chat_assistant_heading': 'VidhAI AI உதவியாளர்',
-      'ai_chat_empty_subtitle': 'உங்கள் விவசாயம் பற்றி எதை வேண்டுமானாலும் என்னிடம் கேளுங்கள்...',
-      'ai_chat_suggestion_now': 'நான் இப்போது என்ன செய்ய வேண்டும்?',
-      'ai_chat_suggestion_crop': 'வளர்ப்பதற்கு சிறந்த பயிர் எது?',
-      'ai_chat_suggestion_price': 'தக்காளி விலை',
-      'ai_chat_input_hint': 'உங்கள் செய்தியை தட்டச்சு செய்யுங்கள்...',
-      'ai_chat_error_message': 'மன்னிக்கவும், ஏதோ தவறு நடந்தது. மீண்டும் முயற்சிக்கவும்.',
-      'search_commodity_hint': 'பொருள் அல்லது சந்தையைத் தேடுங்கள்...',
-      'loading': 'ஏற்றுகிறது...',
-      'commodity_prices_count': 'பொருள் விலைகள்',
-      'failed_to_load_prices': 'விலைகளை ஏற்ற முடியவில்லை',
-      'no_prices_found': 'பொருள்கள் எதுவும் கிடைக்கவில்லை',
-      'price_min_label': 'குறைந்தபட்சம்',
-      'price_modal_label': 'பொதுவான விலை',
-      'price_max_label': 'அதிகபட்சம்',
-      'all': 'அனைத்தும்',
-      'weather_data_unavailable': 'வானிலைத் தரவு கிடைக்கவில்லை',
-      'hourly_forecast_heading': 'மணிநேர முன்னறிவிப்பு',
-      'daily_forecast_heading': '7 நாள் முன்னறிவிப்பு',
-      'weather_last_updated': 'கடைசியாகப் புதுப்பிக்கப்பட்டது:',
-      'weather_feels_like': 'உணரப்படும் வெப்பநிலை',
-      'weather_humidity': 'ஈரப்பதம்',
-      'weather_wind': 'காற்று',
-      'weather_direction': 'திசை',
-      'weather_pressure': 'அழுத்தம்',
-      'weather_gusts': 'பலத்த காற்று',
-      'weather_rain': 'மழை',
-      'weather_hour_now': 'இப்போது',
-      'weather_day_today': 'இன்று',
-      'weather_day_tomorrow': 'நாளை',
-      'weekday_mon': 'திங்',
-      'weekday_tue': 'செவ்',
-      'weekday_wed': 'புத்',
-      'weekday_thu': 'வியா',
-      'weekday_fri': 'வெள்',
-      'weekday_sat': 'சனி',
-      'weekday_sun': 'ஞாயி',
-      'crop_rec_title': 'VidhAI பயிர் பரிந்துரைகள்',
-      'duration': 'கால அளவு',
-      'category': 'வகை',
-      'location': 'இருப்பிடம்',
-      'soil': 'மண்',
-      'water': 'நீர்',
-      'season': 'பருவம்',
-      'size': 'அளவு',
-      'irrigation': 'நீர்ப்பாசனம்',
-      'crop_rec_duration_short': 'குறுகிய',
-      'crop_rec_duration_medium': 'நடுத்தர',
-      'crop_rec_duration_long': 'நீண்ட',
-      'crop_category_vegetable': 'காய்கறி',
-      'crop_category_fruit': 'பழம்',
-      'crop_category_cereal': 'தானியம்',
-      'crop_category_pulse': 'பருப்பு',
-      'crop_category_spice': 'மசாலா',
-      'crop_category_flower': 'பூ',
-      'crop_category_leafy': 'இலைக்கறி',
-      'crop_category_tree': 'மரம்',
-      'crop_category_medicinal': 'மருத்துவம்',
-      'select_crop_title': 'பயிரைத் தேர்ந்தெடுக்கவும்',
-      'add_crop_dialog_title': '{crop} பயிரை உங்கள் பண்ணையில் சேர்க்கவா?',
-      'add_crop_dialog_body': 'இந்த பயிர் உங்கள் பண்ணை சுயவிவரத்தில் செயலில் உள்ள பயிராகச் சேர்க்கப்படும்.',
-      'crop_added_snackbar': '{crop} உங்கள் பண்ணையில் சேர்க்கப்பட்டது!',
-      'no_recommendations_title': 'பரிந்துரைகள் எதுவும் கிடைக்கவில்லை',
-      'no_recommendations_body': 'உங்கள் பண்ணை சுயவிவரத்திற்கு பொருந்தக்கூடிய பயிர்களைக் கண்டறிய முடியவில்லை. உங்கள் கேள்வித்தாளை சரிசெய்ய முயற்சிக்கவும்.',
-      'recommendations_count': '{count} பரிந்துரைகள்',
-      'no_crops_for_filters': 'தேர்ந்தெடுத்த வடிப்பான்களுடன் எந்த பயிரும் பொருந்தவில்லை.',
-      'location_not_specified': 'குறிப்பிடப்படவில்லை',
-      'farm_context_heading': 'பண்ணை சூழல்',
-      'reasoning_heading': 'உங்கள் பண்ணை சுயவிவரத்தின் அடிப்படையில்',
-      'reasoning_region': 'பகுதி',
-      'reasoning_rotation': 'பயிர் சுழற்சி',
-      'reasoning_region_detail': '{area} க்கான பரிந்துரைகள்',
-      'reasoning_soil_detail': '{soil} மண்ணுக்கு ஏற்றது',
-      'reasoning_water_detail': 'நீர் கிடைப்பு கருத்தில் கொள்ளப்பட்டது',
-      'reasoning_season_detail': '{season} பருவ பயிர்களுக்கு உகந்தது',
-      'reasoning_rotation_detail': 'பயிர் சுழற்சிக்காக {crop} விலக்கப்பட்டது',
-      'risk_suffix': 'ஆபத்து',
-      'est_investment': 'மதிப்பிடப்பட்ட முதலீடு',
-      'est_yield': 'மதிப்பிடப்பட்ட விளைச்சல்',
-      'est_revenue': 'மதிப்பிடப்பட்ட வருமானம்',
-      'est_profit': 'மதிப்பிடப்பட்ட இலாபம்',
-      'why_recommended_expand': 'ஏன் பரிந்துரைக்கப்பட்டது?',
-      'why_recommended_heading': 'ஏன் பரிந்துரைக்கப்பட்டது',
-      'period_plant': 'நடவு',
-      'period_harvest': 'அறுவடை',
-      'view_details': 'விவரங்களைக் காண்க',
-      'detail_risk_level': 'ஆபத்து நிலை',
-      'detail_suitable_soil': 'பொருத்தமான மண்',
-      'detail_water_requirement': 'நீர் தேவை',
-      'detail_climate': 'காலநிலை',
-      'detail_market_demand': 'சந்தை தேவை',
-      'detail_investment_per_acre': 'ஏக்கர் முதலீடு',
-      'detail_yield_per_acre': 'ஏக்கர் விளைச்சல்',
-      'detail_revenue_per_acre': 'ஏக்கர் வருமானம்',
-      'detail_profit_per_acre': 'ஏக்கர் இலாபம்',
-      'detail_planting_period': 'நடவு காலம்',
-      'detail_harvest_period': 'அறுவடை காலம்',
-      'rec_loading_heading': 'உங்கள் பண்ணைத் தரவை ஆராய்கிறது...',
-      'rec_loading_soil': 'மண் பொருத்தத்தைச் சரிபார்க்கிறது...',
-      'rec_loading_weather': 'வானிலை முறைகளை ஆராய்கிறது...',
-      'rec_loading_market': 'சந்தை நிலவரங்களை மதிப்பிடுகிறது...',
-      'rec_loading_crops': 'சிறந்த பயிர்களைத் தேடுகிறது...',
-      'crop_search_title': 'பயிர் தேடல்',
-      'crop_search_hint': 'பயிர் பெயர், ரகம், வகையைத் தேடுங்கள்...',
-      'crop_search_count': '{count} பயிர்கள் கிடைத்தன',
-      'no_crops_found': 'பயிர்கள் எதுவும் கிடைக்கவில்லை',
-      'growth_details_heading': 'வளர்ச்சி விவரங்கள்',
-      'temperature': 'வெப்பநிலை',
-      'sowing': 'விதைப்பு',
-      'harvest': 'அறுவடை',
-      'investment_returns_heading': 'முதலீடு & வருமானம்',
-      'investment_per_acre': 'ஏக்கர் முதலீடு',
-      'expected_yield': 'எதிர்பார்க்கப்படும் விளைச்சல்',
-      'revenue_per_acre': 'ஏக்கர் வருமானம்',
-      'profit_per_acre': 'ஏக்கர் இலாபம்',
-      'suitable_regions_heading': 'பொருத்தமான பகுதிகள்',
-      'suitable_soils_label': 'மண் வகைகள்',
-      'suitable_states_label': 'மாநிலங்கள்',
-      'agro_climatic_label': 'வேளாண்-காலநிலை',
-      'market_risk_heading': 'சந்தை & ஆபத்து',
-      'market_demand': 'சந்தை தேவை',
-      'risk_level': 'ஆபத்து நிலை',
-      'crop_analysis_loading': 'உங்கள் பண்ணைக்கான பயிரை ஆராய்கிறது...',
-      'no_farms_found_title': 'பண்ணைகள் எதுவும் கிடைக்கவில்லை',
-      'no_farms_found_body': 'தனிப்பயன் AI பகுப்பாய்வைப் பெற முதலில் பண்ணை சுயவிவரத்தைச் சேர்க்கவும்.',
-      'crop_analysis_title': '{crop} பகுப்பாய்வு',
-      'analysis_failed': 'பகுப்பாய்வு தோல்வியடைந்தது:',
-      'analyze_for_my_farm': 'என் பண்ணைக்கு பகுப்பாய்வு செய்',
-      'fertilizer_guide_title': 'உர வழிகாட்டி',
-      'ai_recommendation_title': 'AI பரிந்துரை',
-      'fertilizer_type_npk': 'NPK',
-      'fertilizer_type_organic': 'இயற்கை',
-      'fertilizer_type_bio': 'உயிரி',
-      'fertilizer_type_micronutrient': 'நுண்ணூட்டச்சத்து',
-      'search_fertilizers_hint': 'உரங்களைத் தேடுங்கள்...',
-      'fertilizer_count': '{count} உரங்கள்',
-      'no_fertilizers_found': 'உங்கள் தேடலுக்கு எந்த உரமும் பொருந்தவில்லை',
-      'ai_recommendation_loading': 'AI பரிந்துரை பெறப்படுகிறது...',
-      'ai_recommendation_failed': 'பரிந்துரையை உருவாக்க முடியவில்லை.',
-      'error_prefix': 'பிழை:',
-      'npk_prefix': 'NPK:',
-      'use_case_label': 'பயன்பாடு',
-      'target_crops_label': 'இலக்கு பயிர்கள்',
-      'application_rate_label': 'பயன்பாட்டு அளவு',
-      'pest_detect_header': 'நோய்கள் அல்லது பூச்சிகளைக் கண்டறிய உங்கள் செடியின் புகைப்படத்தை எடுக்கவும்',
-      'pest_step_crop_title': 'செடி / பயிரைத் தேர்ந்தெடுக்கவும்',
-      'pest_crop_hint': 'எ.கா., தக்காளி, நெல், பருத்தி...',
-      'pest_step_photos_title': 'புகைப்படங்களைச் சேர்க்கவும்',
-      'camera': 'கேமரா',
-      'gallery': 'கேலரி',
-      'pest_photos_selected': '{count} புகைப்படம்(கள்) தேர்ந்தெடுக்கப்பட்டது',
-      'pest_ai_analysis_title': 'AI பகுப்பாய்வு',
-      'analyze_images_button': 'படங்களை பகுப்பாய்வு செய்',
-      'pest_analyzing_heading': 'படங்களை ஆராய்கிறது...',
-      'pest_analyzing_body': 'AI உங்கள் செடி புகைப்படங்களில் பூச்சிகள் அல்லது நோய்களின் அறிகுறிகளை ஆராய்கிறது',
-      'pest_validate_message': 'பயிரைத் தேர்ந்தெடுத்து குறைந்தது ஒரு புகைப்படமாவது சேர்க்கவும்',
-      'pest_pick_image_failed': 'படத்தைத் தேர்ந்தெடுக்க முடியவில்லை:',
-      'pest_no_farm_message': 'பண்ணை இல்லை. முதலில் ஒரு பண்ணையைச் சேர்க்கவும்.',
-      'pest_saved_records_snackbar': 'பண்ணை நோய்க் குறிப்புகளில் சேமிக்கப்பட்டது',
-      'unknown': 'தெரியவில்லை',
-      'treatment_immediate': 'உடனடி:',
-      'treatment_biological': 'உயிரியல்:',
-      'treatment_chemical': 'வேதியியல்:',
-      'pest_treatment_fallback': 'வேளாண் நிபுணரை அணுகவும்.',
-      'pest_prevention_fallback': 'வயல்களைத் தொடர்ந்து ஆய்வு செய்து பயிர் தூய்மையைப் பேணுங்கள்.',
-      'pest_severity_score': 'தீவிரத்தன்மை அளவு:',
-      'pest_analysis_error_title': 'பகுப்பாய்வுப் பிழை',
-      'pest_analyze_failed': 'பகுப்பாய்வு செய்ய முடியவில்லை:',
-      'pest_based_on_visual': 'காட்சி பகுப்பாய்வின் அடிப்படையில்',
-      'pest_confidence': 'நம்பகத்தன்மை:',
-      'pest_treatment_label': 'சிகிச்சை',
-      'pest_prevention_label': 'தடுப்பு',
-      'pest_disclaimer': 'முடிவுகள் தோராயமானவை. முக்கியமான முடிவுகளுக்கு எப்போதும் வேளாண் நிபுணரை அணுகவும்.',
-      'pest_saved_button': 'பண்ணை குறிப்புகளில் சேமிக்கப்பட்டது',
-      'pest_save_button': 'பண்ணை குறிப்புகளில் சேமி',
-      'my_farms': 'என் பண்ணைகள்',
-      'add_farm': 'பண்ணை சேர்',
-      'no_farms_yet': 'இன்னும் பண்ணைகள் இல்லை',
-      'tap_add_farm_to_create': 'உங்கள் முதல் பண்ணையை உருவாக்க + பண்ணை சேர் என்பதைத் தொடவும்.',
-      'total_farms': 'மொத்த பண்ணைகள்',
-      'active_farms': 'செயலில் உள்ள பண்ணைகள்',
-      'not_configured': 'கட்டமைக்கப்படவில்லை',
-      'not_set': 'அமைக்கப்படவில்லை',
-      'no_location': 'இருப்பிடம் இல்லை',
-      'no_crop': 'பயிர் இல்லை',
-      'loading_weather': 'வானிலையை ஏற்றுகிறது...',
-      'farm_not_found': 'பண்ணை கிடைக்கவில்லை',
-      'no_location_set': 'இருப்பிடம் அமைக்கப்படவில்லை',
-      'method': 'முறை',
-      'crop_info': 'பயிர் தகவல்',
-      'configure_crop': 'பயிரை கட்டமைக்கவும்',
-      'weather': 'வானிலை',
-      'tap_to_view': 'பார்க்கத் தொடவும்',
-      'no_data_yet': 'இன்னும் தரவு இல்லை',
-      'view_records': 'குறிப்புகளைக் காண்க',
-      'pesticides': 'பூச்சிக்கொல்லிகள்',
-      'fertilizers': 'உரங்கள்',
-      'disease': 'நோய்',
-      'view_alerts': 'எச்சரிக்கைகளைக் காண்க',
-      'history': 'வரலாறு',
-      'farm_history': 'பண்ணை வரலாறு',
-      'recommend': 'பரிந்துரை',
-      'ai_crop_advice': 'AI பயிர் ஆலோசனை',
-      'farming': 'விவசாயம்',
-      'farming_method': 'விவசாய முறை',
-      'no_farming_method_configured': 'விவசாய முறை கட்டமைக்கப்படவில்லை',
-      'availability_label': 'கிடைப்பு:',
-      'source_label': 'ஆதாரம்:',
-      'no_water_data_configured': 'நீர் தரவு கட்டமைக்கப்படவில்லை',
-      'type_label': 'வகை:',
-      'ai_analysis_label': 'AI பகுப்பாய்வு:',
-      'no_soil_data_configured': 'மண் தரவு கட்டமைக்கப்படவில்லை',
-      'no_irrigation_data_configured': 'நீர்ப்பாசன தரவு கட்டமைக்கப்படவில்லை',
-      'add_new_farm': 'புதிய பண்ணை சேர்',
-      'save_farm': 'பண்ணையைச் சேமி',
-      'please_fill_farm_details': 'பண்ணை விவரங்களை நிரப்பவும்',
-      'please_fill_farm_required': 'பண்ணை பெயர், அளவு மற்றும் சரிபார்க்கப்பட்ட இருப்பிடத்தைத் தேர்ந்தெடுக்கவும்',
-      'saved_successfully': 'வெற்றிகரமாக சேமிக்கப்பட்டது!',
-      'error_saving_farm': 'பண்ணையைச் சேமிப்பதில் பிழை:',
-      'crop_setup': 'பயிர் அமைப்பு',
-      'crop_setup_help_text': 'சிறந்த பயிர் பரிந்துரைகளைப் பெற உங்கள் பண்ணை வரலாற்றை எங்களுக்குத் தெரியப்படுத்துங்கள்.',
-      'land_idle_lt_1_month': '1 மாதத்திற்கும் குறைவு',
-      'land_idle_1_3_months': '1-3 மாதங்கள்',
-      'land_idle_3_6_months': '3-6 மாதங்கள்',
-      'land_idle_6_12_months': '6-12 மாதங்கள்',
-      'land_idle_gt_1_year': '1 வருடத்திற்கும் மேல்',
-      'soil_clay': 'களிமண்',
-      'soil_sandy': 'மணல் மண்',
-      'soil_loamy': 'வண்டல் மண்',
-      'soil_silt': 'படிவு மண்',
-      'soil_peat': 'கரி மண்',
-      'soil_chalk': 'சுண்ணாம்பு மண்',
-      'soil_saline': 'உவர் மண்',
-      'soil_black_regur': 'கருமண் (ரெகூர்)',
-      'soil_red': 'சிவப்பு மண்',
-      'soil_laterite': 'லேட்டரைட் மண்',
-      'soil_condition_good': 'நல்லது',
-      'soil_condition_average': 'சராசரி',
-      'soil_condition_poor': 'மோசமானது',
-      'soil_condition_unknown': 'தெரியவில்லை',
-      'irrigation_drip': 'சொட்டு நீர்ப்பாசனம்',
-      'irrigation_sprinkler': 'தூவி நீர்ப்பாசனம்',
-      'irrigation_flood': 'வெள்ளப் பாசனம்',
-      'irrigation_rainfed': 'மழைச்சார்ந்த',
-      'irrigation_manual': 'கைமுறை',
-      'water_high': 'அதிகம்',
-      'water_medium': 'நடுத்தரம்',
-      'water_low': 'குறைவு',
-      'water_very_low': 'மிகக் குறைவு',
-      'no_water': 'தண்ணீர் இல்லை',
-      'crop_duration_short_term': 'குறுகிய கால',
-      'crop_duration_medium': 'நடுத்தரம்',
-      'crop_duration_long': 'நீண்ட',
-      'crop_duration_no_preference': 'விருப்பமில்லை',
-      'crop_category_no_preference': 'விருப்பமில்லை',
-      'last_crop_grown': 'கடைசியாக வளர்க்கப்பட்ட பயிர்',
-      'hint_last_crop': 'எ.கா., நெல், தக்காளி, பருத்தி',
-      'when_was_it_harvested': 'எப்போது அறுவடை செய்யப்பட்டது?',
-      'select_harvest_date': 'அறுவடை தேதியைத் தேர்ந்தெடுக்கவும்',
-      'how_long_land_idle': 'நிலம் எவ்வளவு காலம் காலியாக இருந்தது?',
-      'select_duration': 'கால அளவைத் தேர்ந்தெடுக்கவும்',
-      'when_last_irrigation': 'கடைசி நீர்ப்பாசனம் எப்போது?',
-      'select_last_irrigation_date': 'கடைசி நீர்ப்பாசன தேதியைத் தேர்ந்தெடுக்கவும்',
-      'current_water_availability': 'தற்போதைய நீர் கிடைப்பு',
-      'select_soil_type': 'மண் வகையைத் தேர்ந்தெடுக்கவும்',
-      'soil_condition': 'மண் நிலைமை',
-      'select_soil_condition': 'மண் நிலைமையைத் தேர்ந்தெடுக்கவும்',
-      'irrigation_system_available': 'நீர்ப்பாசன அமைப்பு உள்ளதா',
-      'select_irrigation_system': 'நீர்ப்பாசன அமைப்பைத் தேர்ந்தெடுக்கவும்',
-      'auto_filled_from_farm_data': 'பண்ணைத் தரவிலிருந்து தானாக நிரப்பப்பட்டது',
-      'current_season': 'தற்போதைய பருவம்',
-      'auto_detected': '(தானாகக் கண்டறியப்பட்டது)',
-      'crop_duration_preference': 'பயிர் கால அளவு விருப்பம்',
-      'crop_category_preference': 'பயிர் வகை விருப்பம்',
-      'get_recommendations': 'பரிந்துரைகளைப் பெறுங்கள்',
-      'season_kharif': 'கார்',
-      'season_rabi': 'ரபி',
-      'season_zaid': 'ஜாயித்',
-      'disease_pest_records': 'நோய் & பூச்சி குறிப்புகள்',
-      'delete_record': 'குறிப்பை நீக்கு',
-      'delete_disease_record_confirm': '"{record}" க்கான நோய்/பூச்சி குறிப்பை நீக்கவா?',
-      'edit_record': 'குறிப்பைத் திருத்து',
-      'add_disease_pest': 'நோய் / பூச்சி சேர்',
-      'detected_date': 'கண்டறியப்பட்ட தேதி',
-      'crop_optional': 'பயிர் (விருப்பம்)',
-      'hint_crop': 'எ.கா. அரிசி, கோதுமை',
-      'problem': 'பிரச்சனை',
-      'hint_problem': 'எ.கா. கரும் புள்ளி, அசுவினி தாக்குதல்',
-      'severity': 'தீவிரத்தன்மை',
-      'select_severity': 'தீவிரத்தன்மையைத் தேர்ந்தெடுக்கவும்',
-      'treatment_optional': 'சிகிச்சை (விருப்பம்)',
-      'hint_treatment': 'செய்யப்பட்ட அல்லது திட்டமிட்ட சிகிச்சையை விவரிக்கவும்',
-      'status': 'நிலை',
-      'no_disease_records': 'நோய் குறிப்புகள் இல்லை',
-      'track_diseases_pests': '+ பொத்தானைத் தொட்டு நோய்களையும் பூச்சிகளையும் கண்காணிக்கவும்.',
-      'expense_seeds': 'விதைகள்',
-      'expense_fertilizer': 'உரம்',
-      'expense_labor': 'கூலி',
-      'expense_equipment': 'உபகரணங்கள்',
-      'expense_irrigation': 'நீர்ப்பாசனம்',
-      'expense_transport': 'போக்குவரத்து',
-      'expense_count_label': '{count} செலவினம்',
-      'delete_expense': 'செலவினத்தை நீக்கு',
-      'delete_expense_confirm': '{category} செலவினம் {amount} அளவை நீக்க விரும்புகிறீர்களா?',
-      'edit_expense': 'செலவினத்தைத் திருத்து',
-      'add_expense': 'செலவினம் சேர்',
-      'amount': 'தொகை (₹)',
-      'date': 'தேதி',
-      'description': 'விவரம்',
-      'hint_description': 'இந்த செலவினம் எதற்காக?',
-      'vendor_optional': 'விற்பனையாளர் (விருப்பம்)',
-      'hint_vendor': 'விற்பனையாளர் பெயர்',
-      'receipt_photo_optional': 'ரசீது புகைப்படம் (விருப்பம்)',
-      'tap_to_add_receipt': 'ரசீது சேர்க்கத் தொடவும்',
-      'no_expenses_yet': 'இன்னும் செலவினங்கள் இல்லை',
-      'track_farm_expenses': '+ பொத்தானைத் தொட்டு உங்கள் பண்ணை செலவினங்களைக் கண்காணிக்கவும்.',
-      'overview': 'கண்ணோட்டம்',
-      'diseases': 'நோய்கள்',
-      'previous_crops': 'முந்தைய பயிர்கள்',
-      'no_crop_records_found': 'பயிர் குறிப்புகள் எதுவும் கிடைக்கவில்லை',
-      'record_count_label': '{count} குறிப்புகள்',
-      'previous_treatments': 'முந்தைய சிகிச்சைகள்',
-      'no_treatment_records_found': 'சிகிச்சை குறிப்புகள் எதுவும் கிடைக்கவில்லை',
-      'fertilizer_records': 'உர குறிப்புகள்',
-      'no_fertilizer_records_found': 'உர குறிப்புகள் எதுவும் கிடைக்கவில்லை',
-      'disease_records': 'நோய்க் குறிப்புகள்',
-      'no_irrigation_records_found': 'நீர்ப்பாசன குறிப்புகள் எதுவும் கிடைக்கவில்லை',
-      'previous_expenses': 'முந்தைய செலவினங்கள்',
-      'no_expense_records_found': 'செலவின குறிப்புகள் எதுவும் கிடைக்கவில்லை',
-      'important_events': 'முக்கிய நிகழ்வுகள்',
-      'no_important_events_recorded': 'முக்கிய நிகழ்வுகள் எதுவும் பதிவு செய்யப்படவில்லை',
-      'resolved_prefix': 'தீர்க்கப்பட்டது:',
-      'detected_prefix': 'கண்டறியப்பட்டது:',
-      'no_history_records_yet': 'இன்னும் வரலாற்றுக் குறிப்புகள் இல்லை',
-      'farm_history_empty_desc': 'நீங்கள் செலவினங்கள், சிகிச்சைகள் மற்றும் பிற குறிப்புகளைப் பதிவு செய்யத் தொடங்கியவுடன் உங்கள் பண்ணை வரலாறு இங்கே தோன்றும்.',
-      'qty': 'அளவு',
-      'crop': 'பயிர்',
-      'delete_fertilizer_record_confirm': '"{product}" க்கான உர குறிப்பை நீக்கவா?',
-      'edit_fertilizer_record': 'உர குறிப்பைத் திருத்து',
-      'add_fertilizer_record': 'உர குறிப்பு சேர்',
-      'product_name': 'தயாரிப்பு பெயர்',
-      'hint_product_name': 'எ.கா. யூரியா, DAP',
-      'type': 'வகை',
-      'select_type': 'வகையைத் தேர்ந்தெடுக்கவும்',
-      'quantity': 'அளவு',
-      'hint_quantity': 'எ.கா. 50 கிலோ',
-      'application_method': 'பயன்பாட்டு முறை',
-      'hint_application_method': 'எ.கா. மண்ணில் இடுதல், இலை தெளிப்பு',
-      'hint_crop_wheat_paddy': 'எ.கா. கோதுமை, நெல்',
-      'no_fertilizer_records': 'உர குறிப்புகள் இல்லை',
-      'track_fertilizer_applications': '+ பொத்தானைத் தொட்டு உர பயன்பாடுகளைக் கண்காணிக்கவும்.',
-      'pesticide_records': 'பூச்சிக்கொல்லி குறிப்புகள்',
-      'area': 'பரப்பளவு',
-      'purpose': 'நோக்கம்',
-      'hint_purpose': 'எ.கா. அசுவினி கட்டுப்பாடு',
-      'delete_pesticide_record_confirm': '"{product}" க்கான பூச்சிக்கொல்லி குறிப்பை நீக்கவா?',
-      'edit_pesticide_record': 'பூச்சிக்கொல்லி குறிப்பைத் திருத்து',
-      'add_pesticide_record': 'பூச்சிக்கொல்லி குறிப்பு சேர்',
-      'hint_product_name_pesticide': 'எ.கா. Cypermethrin 25 EC',
-      'hint_quantity_ml': 'எ.கா. 500 மிலி',
-      'application_area': 'பயன்பாட்டு பரப்பு',
-      'hint_application_area': 'எ.கா. 2 ஏக்கர், வடக்கு வயல்',
-      'hint_crop_wheat_rice': 'எ.கா. கோதுமை, அரிசி',
-      'notes_optional': 'குறிப்புகள் (விருப்பம்)',
-      'hint_notes': 'கூடுதல் குறிப்புகள்',
-      'no_pesticide_records': 'பூச்சிக்கொல்லி குறிப்புகள் இல்லை',
-      'track_pesticide_applications': '+ பொத்தானைத் தொட்டு பூச்சிக்கொல்லி பயன்பாடுகளைக் கண்காணிக்கவும்.',
-      'community_no_posts': 'இன்னும் பதிவுகள் இல்லை',
-      'community_no_posts_hint': 'முதலில் ஏதாவது பகிர்ந்து கொள்ளுங்கள்!',
-      'community_category_general': 'பொது',
-      'community_category_crops': 'பயிர்கள்',
-      'community_category_pest_control': 'பூச்சி கட்டுப்பாடு',
-      'community_category_market': 'சந்தை',
-      'community_category_equipment': 'உபகரணங்கள்',
-      'community_category_organic': 'இயற்கை',
-      'community_category_schemes': 'திட்டங்கள்',
-      'ai_assisted': 'AI உதவியுடன்',
-      'time_ago_just_now': 'இப்போதுதான்',
-      'time_ago_now': 'இப்போது',
-      'time_ago_m': '{count} நிமிடங்களுக்கு முன்',
-      'time_ago_h': '{count} மணி நேரத்திற்கு முன்',
-      'time_ago_d': '{count} நாட்களுக்கு முன்',
-      'time_ago_w': '{count} வாரங்களுக்கு முன்',
-      'filter_by_location': 'இருப்பிடத்தால் வடிகட்டு',
-      'district': 'மாவட்டம்',
-      'state': 'மாநிலம்',
-      'clear_filters': 'வடிப்பான்களை அழி',
-      'apply': 'பயன்படுத்து',
-      'new_post': 'புதிய பதிவு',
-      'post_btn': 'பதிவிடு',
-      'post_content_hint': 'உங்கள் விவசாய அனுபவத்தைப் பகிர்ந்து கொள்ளுங்கள், கேள்விகள் கேளுங்கள் அல்லது மற்றவர்களுக்கு உதவுங்கள்...',
-      'post_published': 'பதிவு வெளியிடப்பட்டது!',
-      'post_failed': 'பதிவிட முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
-      'post_title': 'பதிவு',
-      'comments': 'கருத்துகள்',
-      'no_comments_yet': 'இன்னும் கருத்துகள் இல்லை. உரையாடலைத் தொடங்குங்கள்!',
-      'write_comment_hint': 'கருத்து எழுதுங்கள்...',
-      'notification_center_title': 'அறிவிப்பு மையம்',
-      'mark_all_as_read': 'அனைத்தையும் படித்ததாகக் குறி',
-      'no_notifications_yet': 'இன்னும் அறிவிப்புகள் இல்லை',
-      'notifications_empty_hint': 'வானிலை எச்சரிக்கைகள், சந்தை புதுப்பிப்புகள் மற்றும் AI பரிந்துரைகள் இங்கே தோன்றும்.',
-      'name': 'பெயர்',
-      'enter_name_hint': 'உங்கள் பெயரை உள்ளிடவும்',
-      'age_auto_calculated': 'வயது (தானாகக் கணக்கிடப்பட்டது)',
-      'current_address': 'தற்போதைய முகவரி',
-      'enter_address_hint': 'உங்கள் முகவரியை உள்ளிடவும்',
-      'use_current_location': 'தற்போதைய இருப்பிடத்தைப் பயன்படுத்து',
-      'select_gender': 'பாலினத்தைத் தேர்ந்தெடுக்கவும்',
-      'male': 'ஆண்',
-      'female': 'பெண்',
-      'other_gender': 'மற்றவை',
-      'select_date_of_birth': 'பிறந்த தேதியைத் தேர்ந்தெடுக்கவும்',
-      'location_permission_denied': 'இருப்பிட அனுமதி மறுக்கப்பட்டது',
-      'location_services_disabled': 'இருப்பிட சேவைகள் முடக்கப்பட்டுள்ளன',
-      'location_detected_success': 'இருப்பிடம் வெற்றிகரமாகக் கண்டறியப்பட்டது',
-      'get_location_failed': 'தற்போதைய இருப்பிடத்தைப் பெற முடியவில்லை',
-      'voice_input_not_available': 'குரல் உள்ளீடு கிடைக்கவில்லை',
-      'name_cannot_be_empty': 'பெயர் காலியாக இருக்கக்கூடாது',
-      'profile_saved_success': 'சுயவிவரம் வெற்றிகரமாகச் சேமிக்கப்பட்டது',
-      'search_languages': 'மொழிகளைத் தேடுங்கள்...',
-      'no_languages_found': 'மொழிகள் எதுவும் கிடைக்கவில்லை',
-      'language_changed': 'மொழி மாற்றப்பட்டது',
-      'language_en': 'English',
-      'language_ta': 'தமிழ்',
-      'language_te': 'తెలుగు',
-      'language_kn': 'ಕನ್ನಡ',
-      'language_ml': 'മലയാളം',
-      'language_hi': 'हिन्दी',
-      'language_bn': 'বাংলা',
-      'language_mr': 'मराठी',
-      'language_gu': 'ગુજરાતી',
-      'language_pa': 'ਪੰਜਾਬੀ',
-      'language_or': 'ଓଡ଼ିଆ',
-      'language_as': 'অসমীয়া',
-      'language_ur': 'اردو',
-      'government_schemes_title': 'அரசுத் திட்டங்கள்',
-      'search_schemes': 'திட்டங்களைத் தேடுங்கள்...',
-      'no_schemes_found': 'திட்டங்கள் எதுவும் கிடைக்கவில்லை',
-      'scheme_category_income_support': 'வருமான ஆதரவு',
-      'scheme_category_crop_insurance': 'பயிர் காப்பீடு',
-      'scheme_category_pension': 'ஓய்வூதியம்',
-      'scheme_category_soil_health': 'மண் ஆரோக்கியம்',
-      'scheme_category_market_access': 'சந்தை அணுகல்',
-      'scheme_category_credit': 'கடன்',
-      'scheme_category_water_conservation': 'நீர் பாதுகாப்பு',
-      'scheme_category_organic_farming': 'இயற்கை விவசாயம்',
-      'scheme_category_land_records': 'நிலப் பதிவுகள்',
-      'scheme_category_food_processing': 'உணவு பதப்படுத்துதல்',
-      'state_badge': 'மாநிலம்',
-      'about_section': 'பற்றி',
-      'eligibility': 'தகுதி',
-      'benefits': 'நன்மைகள்',
-      'how_to_apply': 'எப்படி விண்ணப்பிப்பது',
-      'required_documents': 'தேவையான ஆவணங்கள்',
-      'website_url_copied': 'இணையதள முகவரி நகலெடுக்கப்பட்டது',
-      'visit_official_website': 'அதிகாரப்பூர்வ இணையதளத்தைப் பார்வையிடவும்',
-      'helpline_number_copied': 'உதவி எண் நகலெடுக்கப்பட்டது',
-      'helpline_label': 'உதவி மையம்',
-    },
-    'te': {
-      'app_name': 'విధ్‌ఏఐ',
-      'tagline': 'వ్యవసాయ ఎకోసిస్టమ్',
-      'splash_title': 'విధ్‌ఏఐ',
-      'splash_tagline': 'వ్యవసాయ ఎకోసిస్టమ్',
-      'select_language': 'మీ భాషను ఎంచుకోండి',
-      'language_subtitle': 'VidhAI ఇంటర్‌ఫేస్ కోసం మీకు ఇష్టమైన భాషను ఎంచుకోండి',
-      'continue_btn': 'కొనసాగించు',
-      'choose_domain': 'మీ డొమైన్‌ను ఎంచుకోండి',
-      'farmer_console': 'రైతు కన్సోల్',
-      'consumer_console': 'వినియోగదారుల కన్సోల్',
-      'farmer_description': 'మీ పొలం, పంటలు మరియు AI అంతర్దృష్టులను నిర్వహించండి',
-      'consumer_description': 'తాజా ఉత్పత్తులను అన్వేషించండి మరియు స్థానిక రైతులతో కనెక్ట్ అవ్వండి',
-      'farmer_home': 'రైతు హోమ్',
-      'consumer_home': 'వినియోగదారుల హోమ్',
-      'welcome_back': 'తిరిగి స్వాగతం!',
-      'quick_actions': 'త్వరిత చర్యలు',
-      'ai_quick_action': 'AI త్వరిత చర్య',
-      'crop_support': 'పంట / తోట మద్దతు',
-      'pest_detection': 'చీడపీడలు & వ్యాధి గుర్తింపు',
-      'ai_guidance': 'AI మార్గదర్శకత్వం',
-      'market_insights': 'మార్కెట్ & ధరల అంతర్దృష్టులు',
-      'market_prices': 'మార్కెట్ ధరలు',
-      'demand_forecast': 'డిమాండ్ అంచనా',
-      'community': 'సమాజం',
-      'marketplace': 'మార్కెట్‌ప్లేస్ కనెక్షన్',
-      'your_farm': 'మీ పొలం',
-      'farm_info': 'పొలం సమాచారం',
-      'profile': 'ప్రొఫైల్',
-      'logout': 'లాగ్ అవుట్',
-      'explore_products': 'ఉత్పత్తులను అన్వేషించండి',
-      'fresh_produce': 'తాజా ఉత్పత్తులు',
-      'local_farmers': 'స్థానిక రైతులు',
-      'order_history': 'ఆర్డర్ చరిత్ర',
-      'complete_profile': 'మీ ప్రొఫైల్‌ను పూర్తి చేయండి',
-      'full_name': 'పూర్తి పేరు',
-      'age': 'వయస్సు',
-      'gender': 'లింగం',
-      'address': 'చిరునామా',
-      'user_role': 'వినియోగదారు పాత్ర',
-      'complete_onboarding': 'ఆన్‌బోర్డింగ్ పూర్తి చేయండి',
-      'email': 'ఇమెయిల్',
-      'password': 'పాస్‌వర్డ్',
-      'login': 'లాగిన్',
-      'create_account': 'ఖాతా సృష్టించండి',
-      'error_unavailable': 'సేవ అందుబాటులో లేదు',
-      'select_one_language': 'కొనసాగించడానికి భాషను ఎంచుకోండి',
-      'enter_email': 'మీ ఇమెయిల్ చిరునామాను నమోదు చేయండి',
-      'verify_email': 'ఇమెయిల్ ధృవీకరించండి',
-      'email_subtitle': 'మీ ఇమెయిల్‌ను ధృవీకరించడానికి ధృవీకరణ కోడ్‌ను పంపుతాము',
-      'verification_sent_to': 'ధృవీకరణ కోడ్ పంపబడింది',
-      'enter_code': '6 అంకెల కోడ్‌ను నమోదు చేయండి',
-      'resend_code': 'కోడ్ మళ్ళీ పంపండి',
-      'resend_in': 'మళ్ళీ పంపండి',
-      'verify': 'ధృవీకరించండి',
-      'skip_for_now': 'ఇప్పుడు దాటవేయండి',
-      'invalid_email': 'చెల్లుబాటు అయ్యే ఇమెయిల్ చిరునామాను నమోదు చేయండి',
-      'invalid_code': 'చెల్లని ధృవీకరణ కోడ్. మళ్ళీ ప్రయత్నించండి.',
-      'code_expired': 'ధృవీకరణ కోడ్ గడువు ముగిసింది. మళ్ళీ పంపండి.',
-      'network_error': 'నెట్‌వర్క్ లోపం. మీ కనెక్షన్‌ను తనిఖీ చేయండి.',
-      'already_registered': 'ఈ ఇమెయిల్ ఇప్పటికే నమోదైంది',
-      'code_sent_success': 'ధృవీకరణ కోడ్ విజయవంతంగా పంపబడింది',
-      'guest_note': 'మీరు తర్వాత ప్రొఫైల్ సెట్టింగ్‌ల నుండి మీ ఇమెయిల్‌ను ధృవీకరించవచ్చు',
-      'personal_details': 'వ్యక్తిగత వివరాలు',
-      'profile_avatar': 'ప్రొఫైల్ ఫోటో',
-      'change_photo': 'ఫోటో మార్చండి',
-      'take_photo': 'ఫోటో తీయండి',
-      'choose_from_gallery': 'గ్యాలరీ నుండి ఎంచుకోండి',
-      'date_of_birth': 'పుట్టిన తేదీ',
-      'select_date': 'తేదీ ఎంచుకోండి',
-      'age_calculated': 'వయస్సు (లెక్కించినది)',
-      'verified_address': 'ధృవీకరించిన చిరునామా',
-      'search_address': 'చిరునామా శోధించండి',
-      'select_from_suggestions': 'సూచనల నుండి ఎంచుకోండి',
-      'required_field': 'ఈ ఫీల్డ్ అవసరం',
-      'voice_input': 'వాయిస్ ఇన్\u200Cపుట్',
-      'listening': 'వింటోంది...',
-      'processing': 'ప్రాసెస్ అవుతోంది...',
-      'permission_denied': 'మైక్రోఫోన్ అనుమతి నిరాకరించబడింది',
-      'speech_not_available': 'ఈ పరికరంలో స్పీచ్ రికగ్నిషన్ అందుబాటులో లేదు',
-      'number_of_farms': 'ఫార్మ్\u200Cల సంఖ్య',
-      'select_number_of_farms': 'మీకు ఎన్ని ఫార్మ్\u200Cలు ఉన్నాయి?',
-      'farm_card': 'ఫార్మ్',
-      'of_label': 'లో',
-      'farm_name': 'ఫార్మ్ పేరు',
-      'farm_size': 'ఫార్మ్ పరిమాణం',
-      'farm_location': 'ఫార్మ్ స్థానం',
-      'irrigation_type': 'సాగు రకం',
-      'water_source': 'నీటి మూలం',
-      'soil_type': 'నేల రకం',
-      'ai_soil_scan': 'AI నేల స్కాన్',
-      'farm_details': 'ఫార్మ్ వివరాలు',
-      'confirm_delete_farm': 'ఫార్మ్\u200Cల సంఖ్యను తగ్గించడం చివరి ఫార్మ్ డేటాను తొలగిస్తుంది. కొనసాగించాలా?',
-      'yes': 'అవును',
-      'no': 'కాదు',
-      'cancel': 'రద్దు',
-      'save': 'సేవ్ చేయండి',
-      'next': 'తదుపరి',
-      'complete_profile_form': 'సేవ్ & కొనసాగించండి',
-      'address_search_hint': 'మీ చిరునామా టైప్ చేయండి...',
-      'location_search_error': 'ఈ స్థానాన్ని కనుగొనలేకపోయింది. వేరే శోధన ప్రయత్నించండి.',
-      'water_availability': 'నీటి లభ్యత',
-    },
-    'kn': {
-      'app_name': 'ವಿಧ್‌ಎಐ',
-      'tagline': 'ಕೃಷಿ ಪರಿಸರ ವ್ಯವಸ್ಥೆ',
-      'splash_title': 'ವಿಧ್‌ಎಐ',
-      'splash_tagline': 'ಕೃಷಿ ಪರಿಸರ ವ್ಯವಸ್ಥೆ',
-      'select_language': 'ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
-      'language_subtitle': 'VidhAI ಇಂಟರ್‌ಫೇಸ್‌ಗಾಗಿ ನಿಮ್ಮ ಆದ್ಯತೆಯ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
-      'continue_btn': 'ಮುಂದುವರಿಸಿ',
-      'choose_domain': 'ನಿಮ್ಮ ಡೊಮೇನ್ ಆಯ್ಕೆಮಾಡಿ',
-      'farmer_console': 'ರೈತ ಕನ್ಸೋಲ್',
-      'consumer_console': 'ಬಳಕೆದಾರರ ಕನ್ಸೋಲ್',
-      'farmer_description': 'ನಿಮ್ಮ ಹೊಲ, ಬೆಳೆಗಳು ಮತ್ತು AI ಒಳನೋಟಗಳನ್ನು ನಿರ್ವಹಿಸಿ',
-      'consumer_description': 'ತಾಜಾ ಉತ್ಪನ್ನಗಳನ್ನು ಅನ್ವೇಷಿಸಿ ಮತ್ತು ಸ್ಥಳೀಯ ರೈತರೊಂದಿಗೆ ಸಂಪರ್ಕಿಸಿ',
-      'farmer_home': 'ರೈತ ಮನೆ',
-      'consumer_home': 'ಬಳಕೆದಾರರ ಮನೆ',
-      'welcome_back': 'ಮರಳಿ ಸ್ವಾಗತ!',
-      'quick_actions': 'ತ್ವರಿತ ಕ್ರಿಯೆಗಳು',
-      'ai_quick_action': 'AI ತ್ವರಿತ ಕ್ರಿಯೆ',
-      'crop_support': 'ಬೆಳೆ / ತೋಟಗಾರಿಕೆ ಬೆಂಬಲ',
-      'pest_detection': 'ಕೀಟ ಮತ್ತು ರೋಗ ಪತ್ತೆ',
-      'ai_guidance': 'AI ಮಾರ್ಗದರ್ಶನ',
-      'market_insights': 'ಮಾರುಕಟ್ಟೆ ಮತ್ತು ಬೆಲೆ ಒಳನೋಟಗಳು',
-      'market_prices': 'ಮಾರುಕಟ್ಟೆ ಬೆಲೆಗಳು',
-      'demand_forecast': 'ಬೇಡಿಕೆ ಮುನ್ಸೂಚನೆ',
-      'community': 'ಸಮುದಾಯ',
-      'marketplace': 'ಮಾರುಕಟ್ಟೆ ಸಂಪರ್ಕ',
-      'your_farm': 'ನಿಮ್ಮ ಹೊಲ',
-      'farm_info': 'ಹೊಲ ಮಾಹಿತಿ',
-      'profile': 'ಪ್ರೊಫೈಲ್',
-      'logout': 'ಲಾಗ್ ಔಟ್',
-      'explore_products': 'ಉತ್ಪನ್ನಗಳನ್ನು ಅನ್ವೇಷಿಸಿ',
-      'fresh_produce': 'ತಾಜಾ ಉತ್ಪನ್ನಗಳು',
-      'local_farmers': 'ಸ್ಥಳೀಯ ರೈತರು',
-      'order_history': 'ಆದೇಶ ಇತಿಹಾಸ',
-      'complete_profile': 'ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಪೂರ್ಣಗೊಳಿಸಿ',
-      'full_name': 'ಪೂರ್ಣ ಹೆಸರು',
-      'age': 'ವಯಸ್ಸು',
-      'gender': 'ಲಿಂಗ',
-      'address': 'ವಿಳಾಸ',
-      'user_role': 'ಬಳಕೆದಾರ ಪಾತ್ರ',
-      'complete_onboarding': 'ಆನ್‌ಬೋರ್ಡಿಂಗ್ ಪೂರ್ಣಗೊಳಿಸಿ',
-      'email': 'ಇಮೇಲ್',
-      'password': 'ಪಾಸ್‌ವರ್ಡ್',
-      'login': 'ಲಾಗಿನ್',
-      'create_account': 'ಖಾತೆ ರಚಿಸಿ',
-      'error_unavailable': 'ಸೇವೆ ಲಭ್ಯವಿಲ್ಲ',
-      'select_one_language': 'ಮುಂದುವರಿಯಲು ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
-      'enter_email': 'ನಿಮ್ಮ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ',
-      'verify_email': 'ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿ',
-      'email_subtitle': 'ನಿಮ್ಮ ಇಮೇಲ್ ಅನ್ನು ಪರಿಶೀಲಿಸಲು ಪರಿಶೀಲನಾ ಕೋಡ್ ಕಳುಹಿಸುತ್ತೇವೆ',
-      'verification_sent_to': 'ಪರಿಶೀಲನಾ ಕೋಡ್ ಕಳುಹಿಸಲಾಗಿದೆ',
-      'enter_code': '6 ಅಂಕಿಗಳ ಕೋಡ್ ನಮೂದಿಸಿ',
-      'resend_code': 'ಕೋಡ್ ಮರುಕಳುಹಿಸಿ',
-      'resend_in': 'ಮರುಕಳುಹಿಸಿ',
-      'verify': 'ಪರಿಶೀಲಿಸಿ',
-      'skip_for_now': 'ಈಗ ಬಿಟ್ಟುಬಿಡಿ',
-      'invalid_email': 'ಮಾನ್ಯ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ',
-      'invalid_code': 'ಅಮಾನ್ಯ ಪರಿಶೀಲನಾ ಕೋಡ್. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
-      'code_expired': 'ಪರಿಶೀಲನಾ ಕೋಡ್ ಅವಧಿ ಮುಗಿದಿದೆ. ಮರುಕಳುಹಿಸಿ.',
-      'network_error': 'ನೆಟ್‌ವರ್ಕ್ ದೋಷ. ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ.',
-      'already_registered': 'ಈ ಇಮೇಲ್ ಈಗಾಗಲೇ ನೋಂದಾಯಿಸಲಾಗಿದೆ',
-      'code_sent_success': 'ಪರಿಶೀಲನಾ ಕೋಡ್ ಯಶಸ್ವಿಯಾಗಿ ಕಳುಹಿಸಲಾಗಿದೆ',
-      'guest_note': 'ನೀವು ನಂತರ ಪ್ರೊಫೈಲ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳಿಂದ ನಿಮ್ಮ ಇಮೇಲ್ ಅನ್ನು ಪರಿಶೀಲಿಸಬಹುದು',
-      'personal_details': 'ವೈಯಕ್ತಿಕ ವಿವರಗಳು',
-      'profile_avatar': 'ಪ್ರೊಫೈಲ್ ಫೋಟೋ',
-      'change_photo': 'ಫೋಟೋ ಬದಲಾಯಿಸಿ',
-      'take_photo': 'ಫೋಟೋ ತೆಗೆಯಿರಿ',
-      'choose_from_gallery': 'ಗ್ಯಾಲರಿಯಿಂದ ಆಯ್ಕೆಮಾಡಿ',
-      'date_of_birth': 'ಹುಟ್ಟಿದ ದಿನಾಂಕ',
-      'select_date': 'ದಿನಾಂಕ ಆಯ್ಕೆಮಾಡಿ',
-      'age_calculated': 'ವಯಸ್ಸು (ಲೆಕ್ಕಿಸಲಾಗಿದೆ)',
-      'verified_address': 'ಪರಿಶೀಲಿಸಿದ ವಿಳಾಸ',
-      'search_address': 'ವಿಳಾಸ ಹುಡುಕಿ',
-      'select_from_suggestions': 'ಸೂಚನೆಗಳಿಂದ ಆಯ್ಕೆಮಾಡಿ',
-      'required_field': 'ಈ ಕ್ಷೇತ್ರ ಅಗತ್ಯವಿದೆ',
-      'voice_input': 'ಧ್ವನಿ ಇನ್\u200Cಪುಟ್',
-      'listening': 'ಕೇಳುತ್ತಿದೆ...',
-      'processing': 'ಸಂಸ್ಕರಣೆ...',
-      'permission_denied': 'ಮೈಕ್ರೋಫೋನ್ ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ',
-      'speech_not_available': 'ಈ ಸಾಧನದಲ್ಲಿ ಭಾಷಾ ಗುರುತಿಸುವಿಕೆ ಲಭ್ಯವಿಲ್ಲ',
-      'number_of_farms': 'ಫಾರ್ಮ್\u200Cಗಳ ಸಂಖ್ಯೆ',
-      'select_number_of_farms': 'ನಿಮಗೆ ಎಷ್ಟು ಫಾರ್ಮ್\u200Cಗಳಿವೆ?',
-      'farm_card': 'ಫಾರ್ಮ್',
-      'of_label': 'ರಲ್ಲಿ',
-      'farm_name': 'ಫಾರ್ಮ್ ಹೆಸರು',
-      'farm_size': 'ಫಾರ್ಮ್ ಗಾತ್ರ',
-      'farm_location': 'ಫಾರ್ಮ್ ಸ್ಥಳ',
-      'irrigation_type': 'ನೀರಾವರಿ ಪ್ರಕಾರ',
-      'water_source': 'ನೀರಿನ ಮೂಲ',
-      'soil_type': 'ಮಣ್ಣಿನ ಪ್ರಕಾರ',
-      'ai_soil_scan': 'AI ಮಣ್ಣು ಸ್ಕ್ಯಾನ್',
-      'farm_details': 'ಫಾರ್ಮ್ ವಿವರಗಳು',
-      'confirm_delete_farm': 'ಫಾರ್ಮ್\u200Cಗಳ ಸಂಖ್ಯೆಯನ್ನು ಕಡಿಮೆ ಮಾಡುವುದು ಕೊನೆಯ ಫಾರ್ಮ್ ಡೇಟಾವನ್ನು ಅಳಿಸುತ್ತದೆ. ಮುಂದುವರಿಯಬೇಕೇ?',
-      'yes': 'ಹೌದು',
-      'no': 'ಇಲ್ಲ',
-      'cancel': 'ರದ್ದುಮಾಡಿ',
-      'save': 'ಉಳಿಸಿ',
-      'next': 'ಮುಂದೆ',
-      'complete_profile_form': 'ಉಳಿಸಿ & ಮುಂದುವರಿಸಿ',
-      'address_search_hint': 'ನಿಮ್ಮ ವಿಳಾಸವನ್ನು ಟೈಪ್ ಮಾಡಿ...',
-      'location_search_error': 'ಈ ಸ್ಥಳವನ್ನು ಹುಡುಲಾಗಲಿಲ್ಲ. ಬೇರೆ ಹುಡುಕಾಟ ಪ್ರಯತ್ನಿಸಿ.',
-      'water_availability': 'ನೀರಿನ ಲಭ್ಯತೆ',
-    },
-    'ml': {
-      'app_name': 'വിഡ്\u200Cഎയ്‌ഐ',
-      'tagline': 'കൃഷി ഇക്കോസിസ്റ്റം',
-      'splash_title': 'വിഡ്\u200Cഎയ്‌ഐ',
-      'splash_tagline': 'കൃഷി ഇക്കോസിസ്റ്റം',
-      'select_language': 'നിങ്ങളുടെ ഭാഷ തിരഞ്ഞെടുക്കുക',
-      'language_subtitle': 'VidhAI ഇന്റർഫേസിനായി നിങ്ങളുടെ ഇഷ്ടപ്പെട്ട ഭാഷ തിരഞ്ഞെടുക്കുക',
-      'continue_btn': 'തുടരുക',
-      'choose_domain': 'നിങ്ങളുടെ ഡൊമെയ്ൻ തിരഞ്ഞെടുക്കുക',
-      'farmer_console': 'കർഷകൻ കൺസോൾ',
-      'consumer_console': 'ഉപഭോക്താവ് കൺസോൾ',
-      'farmer_description': 'നിങ്ങളുടെ ഫാം, വിളകൾ, AI ഇൻസൈറ്റുകൾ എന്നിവ നിയന്ത്രിക്കുക',
-      'consumer_description': 'പുതിയ ഉൽപ്പന്നങ്ങൾ എക്സ്പ്ലോർ ചെയ്യുകയും പ്രാദേശിക കർഷകരുമായി ബന്ധപ്പെടുകയും ചെയ്യുക',
-      'farmer_home': 'കർഷകൻ ഹോം',
-      'consumer_home': 'ഉപഭോക്താവ് ഹോം',
-      'welcome_back': 'തിരികെ സ്വാഗതം!',
-      'quick_actions': 'ദ്രുത പ്രവർത്തനങ്ങൾ',
-      'ai_quick_action': 'AI ദ്രുത പ്രവർത്തനം',
-      'crop_support': 'വിള / തോട്ടം പിന്തുണ',
-      'pest_detection': 'കീടങ്ങളും രോഗവും കണ്ടെത്തൽ',
-      'ai_guidance': 'AI മാർഗനിർദേശം',
-      'market_insights': 'വിപണി & വില ഇൻസൈറ്റുകൾ',
-      'market_prices': 'വിപണി വിലകൾ',
-      'demand_forecast': 'ആവശ്യകത പ്രവചനം',
-      'community': 'സമൂഹം',
-      'marketplace': 'വിപണി കണക്ഷൻ',
-      'your_farm': 'നിങ്ങളുടെ ഫാം',
-      'farm_info': 'ഫാം വിവരം',
-      'profile': 'പ്രൊഫൈൽ',
-      'logout': 'ലോഗ് ഔട്ട്',
-      'explore_products': 'ഉൽപ്പന്നങ്ങൾ എക്സ്പ്ലോർ ചെയ്യുക',
-      'fresh_produce': 'പുതിയ ഉൽപ്പന്നങ്ങൾ',
-      'local_farmers': 'പ്രാദേശിക കർഷകർ',
-      'order_history': 'ഓർഡർ ചരിത്രം',
-      'complete_profile': 'നിങ്ങളുടെ പ്രൊഫൈൽ പൂർത്തിയാക്കുക',
-      'full_name': 'പൂർണ്ണ നാമം',
-      'age': 'വയസ്സ്',
-      'gender': 'ലിംഗം',
-      'address': 'വിലാസം',
-      'user_role': 'ഉപഭോക്താവ് റോൾ',
-      'complete_onboarding': 'ഓൺബോർഡിംഗ് പൂർത്തിയാക്കുക',
-      'email': 'ഇമെയിൽ',
-      'password': 'പാസ്‌വേഡ്',
-      'login': 'ലോഗിൻ',
-      'create_account': 'അക്കൗണ്ട് സൃഷ്ടിക്കുക',
-      'error_unavailable': 'സേവനം ലഭ്യമല്ല',
-      'select_one_language': 'തുടരാൻ ഒരു ഭാഷ തിരഞ്ഞെടുക്കുക',
-      'enter_email': 'നിങ്ങളുടെ ഇമെയിൽ വിലാസം നൽകുക',
-      'verify_email': 'ഇമെയിൽ സ്ഥിരീകരിക്കുക',
-      'email_subtitle': 'നിങ്ങളുടെ ഇമെയിൽ സ്ഥിരീകരിക്കാൻ ഒരു സ്ഥിരീകരണ കോഡ് അയക്കും',
-      'verification_sent_to': 'സ്ഥിരീകരണ കോഡ് അയച്ചു',
-      'enter_code': '6 അക്ഷരങ്ങളുള്ള കോഡ് നൽകുക',
-      'resend_code': 'കോഡ് വീണ്ടും അയക്കുക',
-      'resend_in': 'വീണ്ടും അയക്കുക',
-      'verify': 'സ്ഥിരീകരിക്കുക',
-      'skip_for_now': 'ഇപ്പോൾ ഒഴിവാക്കുക',
-      'invalid_email': 'സാധുവായ ഇമെയിൽ വിലാസം നൽകുക',
-      'invalid_code': 'അസാധുവായ സ്ഥിരീകരണ കോഡ്. വീണ്ടും ശ്രമിക്കുക.',
-      'code_expired': 'സ്ഥിരീകരണ കോഡിന്റെ കാലാവധി കഴിഞ്ഞു. വീണ്ടും അയക്കുക.',
-      'network_error': 'നെറ്റ്‌വർക്ക് പിശക്. നിങ്ങളുടെ കണക്ഷൻ പരിശോധിക്കുക.',
-      'already_registered': 'ഈ ഇമെയിൽ ഇതിനകം രജിസ്റ്റർ ചെയ്തിട്ടുണ്ട്',
-      'code_sent_success': 'സ്ഥിരീകരണ കോഡ് വിജയകരമായി അയച്ചു',
-      'guest_note': 'നിങ്ങൾക്ക് പിന്നീട് പ്രൊഫൈൽ ക്രമീകരണങ്ങളിൽ നിന്ന് നിങ്ങളുടെ ഇമെയിൽ സ്ഥിരീകരിക്കാം',
-      'personal_details': 'വ്യക്തിഗത വിവരങ്ങൾ',
-      'profile_avatar': 'പ്രൊഫൈൽ ഫോട്ടോ',
-      'change_photo': 'ഫോട്ടോ മാറ്റുക',
-      'take_photo': 'ഫോട്ടോ എടുക്കുക',
-      'choose_from_gallery': 'ഗാലറിയിൽ നിന്ന് തിരഞ്ഞെടുക്കുക',
-      'date_of_birth': 'ജനന തീയതി',
-      'select_date': 'തീയതി തിരഞ്ഞെടുക്കുക',
-      'age_calculated': 'പ്രായം (കണക്കാക്കിയത്)',
-      'verified_address': 'പരിശോധിച്ച വിലാസം',
-      'search_address': 'വിലാസം തിരയുക',
-      'select_from_suggestions': 'നിർദ്ദേശങ്ങളിൽ നിന്ന് തിരഞ്ഞെടുക്കുക',
-      'required_field': 'ഈ ഫീൽഡ് ആവശ്യമാണ്',
-      'voice_input': 'വോയ്\u200Cസ് ഇൻപുട്ട്',
-      'listening': 'കേൾക്കുന്നു...',
-      'processing': 'പ്രോസസ്സിംഗ്...',
-      'permission_denied': 'മൈക്രോഫോൺ അനുമതി നിഷേധിച്ചു',
-      'speech_not_available': 'ഈ ഉപകരണത്തിൽ സ്പീച്ച് റെക്കഗ്നിഷൻ ലഭ്യമല്ല',
-      'number_of_farms': 'ഫാമുകളുടെ എണ്ണം',
-      'select_number_of_farms': 'നിങ്ങൾക്ക് എത്ര ഫാമുകൾ ഉണ്ട്?',
-      'farm_card': 'ഫാം',
-      'of_label': 'എന്നതിൽ',
-      'farm_name': 'ഫാമിന്റെ പേര്',
-      'farm_size': 'ഫാമിന്റെ വലുപ്പം',
-      'farm_location': 'ഫാമിന്റെ സ്ഥലം',
-      'irrigation_type': 'ജലസേചന തരം',
-      'water_source': 'ജലസ്രോതസ്സ്',
-      'soil_type': 'മണ്ണ് തരം',
-      'ai_soil_scan': 'AI മണ്ണ് സ്കാൻ',
-      'farm_details': 'ഫാം വിവരങ്ങൾ',
-      'confirm_delete_farm': 'ഫാമുകളുടെ എണ്ണം കുറയ്ക്കുന്നത് അവസാന ഫാം ഡേറ്റാ ഇല്ലാതാക്കും. തുടരണോ?',
-      'yes': 'അതെ',
-      'no': 'ഇല്ല',
-      'cancel': 'റദ്ദാക്കുക',
-      'save': 'സേവ് ചെയ്യുക',
-      'next': 'അടുത്തത്',
-      'complete_profile_form': 'സേവ് ചെയ്ത് തുടരുക',
-      'address_search_hint': 'നിങ്ങളുടെ വിലാസം ടൈപ്പ് ചെയ്യുക...',
-      'location_search_error': 'ഈ സ്ഥലം കണ്ടെത്താനായില്ല. മറ്റൊരു തിരയൽ ശ്രമിക്കുക.',
-      'water_availability': 'ജല ലഭ്യത',
-    },
-    'hi': {
-      'app_name': 'विधएआई',
-      'tagline': 'कृषि पारिस्थितिकी तंत्र',
-      'splash_title': 'विधएआई',
-      'splash_tagline': 'कृषि पारिस्थितिकी तंत्र',
-      'select_language': 'अपनी भाषा चुनें',
-      'language_subtitle': 'VidhAI इंटरफ़ेस के लिए अपनी पसंदीदा भाषा चुनें',
-      'continue_btn': 'जारी रखें',
-      'choose_domain': 'अपना डोमेन चुनें',
-      'farmer_console': 'किसान कंसोल',
-      'consumer_console': 'उपभोक्ता कंसोल',
-      'farmer_description': 'अपना खेत, फसल और AI अंतर्दृष्टि प्रबंधित करें',
-      'consumer_description': 'ताज़ा उत्पादों का अन्वेषण करें और स्थानीय किसानों से जुड़ें',
-      'farmer_home': 'किसान होम',
-      'consumer_home': 'उपभोक्ता होम',
-      'welcome_back': 'वापसी पर स्वागत है!',
-      'quick_actions': 'त्वरित कार्य',
-      'ai_quick_action': 'AI त्वरित कार्य',
-      'crop_support': 'फसल / बागवानी सहायता',
-      'pest_detection': 'कीट और रोग पहचान',
-      'ai_guidance': 'AI मार्गदर्शन',
-      'market_insights': 'बाज़ार और मूल्य अंतर्दृष्टि',
-      'market_prices': 'बाज़ार मूल्य',
-      'demand_forecast': 'मांग पूर्वानुमान',
-      'community': 'समुदाय',
-      'marketplace': 'बाज़ार कनेक्शन',
-      'your_farm': 'आपका खेत',
-      'farm_info': 'खेत की जानकारी',
-      'profile': 'प्रोफ़ाइल',
-      'logout': 'लॉग आउट',
-      'explore_products': 'उत्पाद खोजें',
-      'fresh_produce': 'ताज़ा उत्पाद',
-      'local_farmers': 'स्थानीय किसान',
-      'order_history': 'ऑर्डर इतिहास',
-      'complete_profile': 'अपनी प्रोफ़ाइल पूरी करें',
-      'full_name': 'पूरा नाम',
-      'age': 'आयु',
-      'gender': 'लिंग',
-      'address': 'पता',
-      'user_role': 'उपयोगकर्ता भूमिका',
-      'complete_onboarding': 'ऑनबोर्डिंग पूरी करें',
-      'email': 'ईमेल',
-      'password': 'पासवर्ड',
-      'login': 'लॉगिन',
-      'create_account': 'खाता बनाएं',
-      'error_unavailable': 'सेवा उपलब्ध नहीं है',
-      'select_one_language': 'जारी रखने के लिए एक भाषा चुनें',
-      'enter_email': 'अपना ईमेल पता दर्ज करें',
-      'verify_email': 'ईमेल सत्यापित करें',
-      'email_subtitle': 'आपके ईमेल की पुष्टि करने के लिए हम एक सत्यापन कोड भेजेंगे',
-      'verification_sent_to': 'सत्यापन कोड भेजा गया',
-      'enter_code': '6 अंकों का कोड दर्ज करें',
-      'resend_code': 'कोड पुनः भेजें',
-      'resend_in': 'पुनः भेजें',
-      'verify': 'सत्यापित करें',
-      'skip_for_now': 'अभी के लिए छोड़ें',
-      'invalid_email': 'कृपया एक मान्य ईमेल पता दर्ज करें',
-      'invalid_code': 'अमान्य सत्यापन कोड। कृपया पुनः प्रयास करें।',
-      'code_expired': 'सत्यापन कोड की समय सीमा समाप्त हो गई। कृपया पुनः भेजें।',
-      'network_error': 'नेटवर्क त्रुटि। कृपया अपना कनेक्शन जांचें।',
-      'already_registered': 'यह ईमेल पहले से पंजीकृत है',
-      'code_sent_success': 'सत्यापन कोड सफलतापूर्वक भेजा गया',
-      'guest_note': 'आप बाद में प्रोफ़ाइल सेटिंग्स से अपना ईमेल सत्यापित कर सकते हैं',
-      'personal_details': 'व्यक्तिगत विवरण',
-      'profile_avatar': 'प्रोफ़ाइल फ़ोटो',
-      'change_photo': 'फ़ोटो बदलें',
-      'take_photo': 'फ़ोटो लें',
-      'choose_from_gallery': 'गैलरी से चुनें',
-      'date_of_birth': 'जन्म तिथि',
-      'select_date': 'तिथि चुनें',
-      'age_calculated': 'आयु (गणना की गई)',
-      'verified_address': 'सत्यापित पता',
-      'search_address': 'पता खोजें',
-      'select_from_suggestions': 'सुझावों में से चुनें',
-      'required_field': 'यह फ़ील्ड आवश्यक है',
-      'voice_input': 'वॉयस इनपुट',
-      'listening': 'सुन रहा है...',
-      'processing': 'प्रसंस्करण...',
-      'permission_denied': 'माइक्रोफ़ोन अनुमति अस्वीकृत',
-      'speech_not_available': 'इस डिवाइस पर वाणी पहचान उपलब्ध नहीं है',
-      'number_of_farms': 'खेतों की संख्या',
-      'select_number_of_farms': 'आपके कितने खेत हैं?',
-      'farm_card': 'खेत',
-      'of_label': 'में से',
-      'farm_name': 'खेत का नाम',
-      'farm_size': 'खेत का आकार',
-      'farm_location': 'खेत का स्थान',
-      'irrigation_type': 'सिंचाई का प्रकार',
-      'water_source': 'पानी का स्रोत',
-      'soil_type': 'मिट्टी का प्रकार',
-      'ai_soil_scan': 'AI मिट्टी स्कैन',
-      'farm_details': 'खेत की जानकारी',
-      'confirm_delete_farm': 'खेतों की संख्या कम करने से अंतिम खेत का डेटा हट जाएगा। जारी रखें?',
-      'yes': 'हाँ',
-      'no': 'नहीं',
-      'cancel': 'रद्द करें',
-      'save': 'सहेजें',
-      'next': 'अगला',
-      'complete_profile_form': 'सहेजें और जारी रखें',
-      'address_search_hint': 'अपना पता टाइप करें...',
-      'location_search_error': 'यह स्थान नहीं मिल सका। कोई अन्य खोज आज़माएं।',
-      'water_availability': 'पानी की उपलब्धता',
-    },
-    'bn': {
-      'app_name': 'ভিধএআই',
-      'tagline': 'কৃষি পরিবেশ তন্ত্র',
-      'splash_title': 'ভিধএআই',
-      'splash_tagline': 'কৃষি পরিবেশ তন্ত্র',
-      'select_language': 'আপনার ভাষা নির্বাচন করুন',
-      'language_subtitle': 'VidhAI ইন্টারফেসের জন্য আপনার পছন্দের ভাষা নির্বাচন করুন',
-      'continue_btn': 'চালিয়ে যান',
-      'choose_domain': 'আপনার ডোমেন নির্বাচন করুন',
-      'farmer_console': 'কৃষক কনসোল',
-      'consumer_console': 'ভোক্তা কনসোল',
-      'farmer_description': 'আপনার খামার, ফসল এবং AI অন্তর্দৃষ্টি পরিচালনা করুন',
-      'consumer_description': 'সতেজ পণ্য অনুসন্ধান করুন এবং স্থানীয় কৃষকদের সাথে সংযুক্ত হন',
-      'farmer_home': 'কৃষক হোম',
-      'consumer_home': 'ভোক্তা হোম',
-      'welcome_back': 'স্বাগতম!',
-      'quick_actions': 'দ্রুত পদক্ষেপ',
-      'ai_quick_action': 'AI দ্রুত পদক্ষেপ',
-      'crop_support': 'ফসল / বাগান সমর্থন',
-      'pest_detection': 'পোকা ও রোগ সনাক্তকরণ',
-      'ai_guidance': 'AI নির্দেশনা',
-      'market_insights': 'বাজার ও মূল্য অন্তর্দৃষ্টি',
-      'market_prices': 'বাজার মূল্য',
-      'demand_forecast': 'চাহিদা পূর্বাভাস',
-      'community': 'সম্প্রদায়',
-      'marketplace': 'বাজার সংযোগ',
-      'your_farm': 'আপনার খামার',
-      'farm_info': 'খামার তথ্য',
-      'profile': 'প্রোফাইল',
-      'logout': 'লগ আউট',
-      'explore_products': 'পণ্য অনুসন্ধান',
-      'fresh_produce': 'সতেজ পণ্য',
-      'local_farmers': 'স্থানীয় কৃষক',
-      'order_history': 'অর্ডার ইতিহাস',
-      'complete_profile': 'আপনার প্রোফাইল সম্পূর্ণ করুন',
-      'full_name': 'পুরো নাম',
-      'age': 'বয়স',
-      'gender': 'লিঙ্গ',
-      'address': 'ঠিকানা',
-      'user_role': 'ব্যবহারকারীর ভূমিকা',
-      'complete_onboarding': 'অনবোর্ডিং সম্পূর্ণ করুন',
-      'email': 'ইমেইল',
-      'password': 'পাসওয়ার্ড',
-      'login': 'লগইন',
-      'create_account': 'অ্যাকাউন্ট তৈরি করুন',
-      'error_unavailable': 'পরিষেবা পাওয়া যায়নি',
-      'select_one_language': 'চালিয়ে যেতে একটি ভাষা নির্বাচন করুন',
-      'enter_email': 'আপনার ইমেইল ঠিকানা লিখুন',
-      'verify_email': 'ইমেইল যাচাই করুন',
-      'email_subtitle': 'আপনার ইমেইল যাচাই করতে আমরা একটি যাচাইকরণ কোড পাঠাব',
-      'verification_sent_to': 'যাচাইকরণ কোড পাঠানো হয়েছে',
-      'enter_code': '6 সংখ্যার কোড লিখুন',
-      'resend_code': 'কোড পুনরায় পাঠান',
-      'resend_in': 'পুনরায় পাঠান',
-      'verify': 'যাচাই করুন',
-      'skip_for_now': 'এখন এড়িয়ে যান',
-      'invalid_email': 'অনুগ্রহ করে একটি বৈধ ইমেইল ঠিকানা লিখুন',
-      'invalid_code': 'অবৈধ যাচাইকরণ কোড। অনুগ্রহ করে আবার চেষ্টা করুন।',
-      'code_expired': 'যাচাইকরণ কোডের মেয়াদ শেষ হয়েছে। অনুগ্রহ করে পুনরায় পাঠান।',
-      'network_error': 'নেটওয়ার্ক ত্রুটি। অনুগ্রহ করে আপনার সংযোগ পরীক্ষা করুন।',
-      'already_registered': 'এই ইমেইল ইতিমধ্যে নিবন্ধিত',
-      'code_sent_success': 'যাচাইকরণ কোড সফলভাবে পাঠানো হয়েছে',
-      'guest_note': 'আপনি পরে প্রোফাইল সেটিংস থেকে আপনার ইমেইল যাচাই করতে পারেন',
-      'personal_details': 'ব্যক্তিগত বিবরণ',
-      'profile_avatar': 'প্রোফাইল ছবি',
-      'change_photo': 'ছবি পরিবর্তন করুন',
-      'take_photo': 'ছবি তুলুন',
-      'choose_from_gallery': 'গ্যালারি থেকে বেছে নিন',
-      'date_of_birth': 'জন্ম তারিখ',
-      'select_date': 'তারিখ বেছে নিন',
-      'age_calculated': 'বয়স (গণনা করা)',
-      'verified_address': 'যাচাইকৃত ঠিকানা',
-      'search_address': 'ঠিকানা খুঁজুন',
-      'select_from_suggestions': 'পরামর্শ থেকে বেছে নিন',
-      'required_field': 'এই ক্ষেত্রটি প্রয়োজনীয়',
-      'voice_input': 'ভয়েস ইনপুট',
-      'listening': 'শুনছে...',
-      'processing': 'প্রক্রিয়াকরণ...',
-      'permission_denied': 'মাইক্রোফোন অনুমতি অস্বীকৃত',
-      'speech_not_available': 'এই ডিভাইসে বাক্\u200C চেনা সম্ভব নয়',
-      'number_of_farms': 'খামারের সংখ্যা',
-      'select_number_of_farms': 'আপনার কতটি খামার আছে?',
-      'farm_card': 'খামার',
-      'of_label': 'এর মধ্যে',
-      'farm_name': 'খামারের নাম',
-      'farm_size': 'খামারের আকার',
-      'farm_location': 'খামারের অবস্থান',
-      'irrigation_type': 'সেচের ধরন',
-      'water_source': 'পানির উৎস',
-      'soil_type': 'মাটির ধরন',
-      'ai_soil_scan': 'AI মাটি স্ক্যান',
-      'farm_details': 'খামারের বিবরণ',
-      'confirm_delete_farm': 'খামারের সংখ্যা কমালে শেষ খামারের তথ্য মুছে যাবে। চালিয়ে যেতে চান?',
-      'yes': 'হ্যাঁ',
-      'no': 'না',
-      'cancel': 'বাতিল',
-      'save': 'সংরক্ষণ',
-      'next': 'পরবর্তী',
-      'complete_profile_form': 'সংরক্ষণ ও চালিয়ে যান',
-      'address_search_hint': 'আপনার ঠিকানা টাইপ করুন...',
-      'location_search_error': 'এই অবস্থান খুঁজে পাওয়া যায়নি। অন্য অনুসন্ধান চেষ্টা করুন।',
-      'water_availability': 'পানির প্রাপ্যতা',
-    },
-    'mr': {
-      'app_name': 'विधएआय',
-      'tagline': 'शेती परिसंस्था',
-      'splash_title': 'विधएआय',
-      'splash_tagline': 'शेती परिसंस्था',
-      'select_language': 'तुमची भाषा निवडा',
-      'language_subtitle': 'VidhAI इंटरफेससाठी तुमची पसंतीची भाषा निवडा',
-      'continue_btn': 'सुरू ठेवा',
-      'choose_domain': 'तुमचा डोमेन निवडा',
-      'farmer_console': 'शेतकरी कन्सोल',
-      'consumer_console': 'वापरदार कन्सोल',
-      'farmer_description': 'तुमचे शेत, पिके आणि AI अंतर्दृष्टी व्यवस्थापित करा',
-      'consumer_description': 'ताजी उत्पादने शोधा आणि स्थानिक शेतकऱ्यांशी जोडले जा',
-      'farmer_home': 'शेतकरी होम',
-      'consumer_home': 'वापरदार होम',
-      'welcome_back': 'परत स्वागत आहे!',
-      'quick_actions': 'जलद क्रिया',
-      'ai_quick_action': 'AI जलद क्रिया',
-      'crop_support': 'पीक / बागायती समर्थन',
-      'pest_detection': 'कीड आणि रोग ओळख',
-      'ai_guidance': 'AI मार्गदर्शन',
-      'market_insights': 'बाजार आणि किंमत अंतर्दृष्टी',
-      'market_prices': 'बाजार किंमती',
-      'demand_forecast': 'मागणी अंदाज',
-      'community': 'समुदाय',
-      'marketplace': 'बाजार जोडणी',
-      'your_farm': 'तुमचे शेत',
-      'farm_info': 'शेत माहिती',
-      'profile': 'प्रोफाइल',
-      'logout': 'लॉग आउट',
-      'explore_products': 'उत्पादने शोधा',
-      'fresh_produce': 'ताजी उत्पादने',
-      'local_farmers': 'स्थानिक शेतकरी',
-      'order_history': 'ऑर्डर इतिहास',
-      'complete_profile': 'तुमची प्रोफाइल पूर्ण करा',
-      'full_name': 'पूर्ण नाव',
-      'age': 'वय',
-      'gender': 'लिंग',
-      'address': 'पत्ता',
-      'user_role': 'वापरदार भूमिका',
-      'complete_onboarding': 'ऑनबोर्डिंग पूर्ण करा',
-      'email': 'ईमेल',
-      'password': 'पासवर्ड',
-      'login': 'लॉगिन',
-      'create_account': 'खाते तयार करा',
-      'error_unavailable': 'सेवा उपलब्ध नाही',
-      'select_one_language': 'सुरू ठेवण्यासाठी भाषा निवडा',
-      'enter_email': 'तुमचा ईमेल पत्ता टाका',
-      'verify_email': 'ईमेल पडताळा',
-      'email_subtitle': 'तुमचा ईमेल पडताळण्यासाठी आम्ही एक पडताळणी कोड पाठवू',
-      'verification_sent_to': 'पडताळणी कोड पाठवला',
-      'enter_code': '6 अंकांचा कोड टाका',
-      'resend_code': 'कोड पुन्हा पाठवा',
-      'resend_in': 'पुन्हा पाठवा',
-      'verify': 'पडताळा',
-      'skip_for_now': 'आता सोडा',
-      'invalid_email': 'कृपया वैध ईमेल पत्ता टाका',
-      'invalid_code': 'अवैध पडताळणी कोड. कृपया पुन्हा प्रयत्न करा.',
-      'code_expired': 'पडताळणी कोडची मुदत संपली. कृपया पुन्हा पाठवा.',
-      'network_error': 'नेटवर्क त्रुटी. कृपया तुमचा कनेक्शन तपासा.',
-      'already_registered': 'हा ईमेल आधीच नोंदणीकृत आहे',
-      'code_sent_success': 'पडताळणी कोड यशस्वीरित्या पाठवला',
-      'guest_note': 'तुम्ही नंतर प्रोफाइल सेटिंग्जमधून तुमचा ईमेल पडताळू शकता',
-      'personal_details': 'वैयक्तिक माहिती',
-      'profile_avatar': 'प्रोफाइल फोटो',
-      'change_photo': 'फोटो बदला',
-      'take_photo': 'फोटो काढा',
-      'choose_from_gallery': 'गॅलरीमधून निवडा',
-      'date_of_birth': 'जन्मतारीख',
-      'select_date': 'तारीख निवडा',
-      'age_calculated': 'वय (गणना केलेले)',
-      'verified_address': 'पडताळलेला पत्ता',
-      'search_address': 'पत्ता शोधा',
-      'select_from_suggestions': 'सूचनांमधून निवडा',
-      'required_field': 'हे फील्ड आवश्यक आहे',
-      'voice_input': 'व्हॉइस इनपुट',
-      'listening': 'ऐकत आहे...',
-      'processing': 'प्रक्रिया...',
-      'permission_denied': 'मायक्रोफोन परवानगी नाकारली',
-      'speech_not_available': 'या उपकरणावर बोलीचे ओळख उपलब्ध नाही',
-      'number_of_farms': 'शेतांची संख्या',
-      'select_number_of_farms': 'तुमच्याकडे किती शेत आहेत?',
-      'farm_card': 'शेत',
-      'of_label': 'पैकी',
-      'farm_name': 'शेताचे नाव',
-      'farm_size': 'शेताचा आकार',
-      'farm_location': 'शेताचे स्थान',
-      'irrigation_type': 'सिंचन प्रकार',
-      'water_source': 'पाण्याचा स्रोत',
-      'soil_type': 'माती प्रकार',
-      'ai_soil_scan': 'AI माती स्कॅन',
-      'farm_details': 'शेताची माहिती',
-      'confirm_delete_farm': 'शेतांची संख्या कमी केल्यास शेवटच्या शेताचा डेटा हटवला जाईल. सुरू ठेवायचे?',
-      'yes': 'हो',
-      'no': 'नाही',
-      'cancel': 'रद्द करा',
-      'save': 'जतन करा',
-      'next': 'पुढे',
-      'complete_profile_form': 'जतन करा आणि सुरू ठेवा',
-      'address_search_hint': 'तुमचा पत्ता टाइप करा...',
-      'location_search_error': 'हे स्थान शोधता आले नाही. वेगळी शोध प्रयत्न करा.',
-      'water_availability': 'पाण्याची उपलब्धता',
-    },
-    'gu': {
-      'app_name': 'વિધએઆઈ',
-      'tagline': 'કૃષિ ઇકોસિસ્ટમ',
-      'splash_title': 'વિધએઆઈ',
-      'splash_tagline': 'કૃષિ ઇકોસિસ્ટમ',
-      'select_language': 'તમારી ભાષા પસંદ કરો',
-      'language_subtitle': 'VidhAI ઇન્ટરફેસ માટે તમારી પસંદીદા ભાષા પસંદ કરો',
-      'continue_btn': 'ચાલુ રાખો',
-      'choose_domain': 'તમારો ડોમેન પસંદ કરો',
-      'farmer_console': 'ખેડૂત કન્સોલ',
-      'consumer_console': 'ગ્રાહક કન્સોલ',
-      'farmer_description': 'તમારું ખેતર, પાક અને AI અંતર્દૃષ્ટિ મેનેજ કરો',
-      'consumer_description': 'તાજા ઉત્પાદનો શોધો અને સ્થાનિક ખેડૂતો સાથે જોડાઓ',
-      'farmer_home': 'ખેડૂત હોમ',
-      'consumer_home': 'ગ્રાહક હોમ',
-      'welcome_back': 'પાછા આવવા બદલ સ્વાગત છે!',
-      'quick_actions': 'ઝડવી ક્રિયાઓ',
-      'ai_quick_action': 'AI ઝડવી ક્રિયા',
-      'crop_support': 'પાક / બાગાયત ટેકો',
-      'pest_detection': 'જીવજંતુ અને રોગ ઓળખ',
-      'ai_guidance': 'AI માર્ગદર્શન',
-      'market_insights': 'બજાર અને ભાવ અંતર્દૃષ્ટિ',
-      'market_prices': 'બજાર ભાવો',
-      'demand_forecast': 'માંગ આગાહી',
-      'community': 'સમુદાય',
-      'marketplace': 'બજાર જોડાણ',
-      'your_farm': 'તમારું ખેતર',
-      'farm_info': 'ખેતર માહિતી',
-      'profile': 'પ્રોફાઇલ',
-      'logout': 'લૉગ આઉટ',
-      'explore_products': 'ઉત્પાદનો શોધો',
-      'fresh_produce': 'તાજા ઉત્પાદનો',
-      'local_farmers': 'સ્થાનિક ખેડૂતો',
-      'order_history': 'ઓર્ડર ઇતિહાસ',
-      'complete_profile': 'તમારી પ્રોફાઇલ પૂર્ણ કરો',
-      'full_name': 'પૂરું નામ',
-      'age': 'ઉંમર',
-      'gender': 'લિંગ',
-      'address': 'સરનામું',
-      'user_role': 'વપરાશકર્તા ભૂમિકા',
-      'complete_onboarding': 'ઓનબોર્ડિંગ પૂર્ણ કરો',
-      'email': 'ઇમેઇલ',
-      'password': 'પાસવર્ડ',
-      'login': 'લૉગિન',
-      'create_account': 'ખાતું બનાવો',
-      'error_unavailable': 'સેવા ઉપલબ્ધ નથી',
-      'select_one_language': 'ચાલુ રાખવા માટે ભાષા પસંદ કરો',
-      'enter_email': 'તમારું ઇમેઇલ સરનામું દાખલ કરો',
-      'verify_email': 'ઇમેઇલ ચકાસો',
-      'email_subtitle': 'તમારા ઇમેઇલની પુષ્ટિ કરવા માટે અમે એક ચકાસણી કોડ મોકલીશું',
-      'verification_sent_to': 'ચકાસણી કોડ મોકલવામાં આવ્યો',
-      'enter_code': '6 અંકોનો કોડ દાખલ કરો',
-      'resend_code': 'કોડ ફરીથી મોકલો',
-      'resend_in': 'ફરીથી મોકલો',
-      'verify': 'ચકાસો',
-      'skip_for_now': 'હમણાં છોડો',
-      'invalid_email': 'કૃપા કરીને માન્ય ઇમેઇલ સરનામું દાખલ કરો',
-      'invalid_code': 'અમાન્ય ચકાસણી કોડ. કૃપા કરીને ફરીથી પ્રયાસ કરો.',
-      'code_expired': 'ચકાસણી કોડની મુદત સમાપ્ત થઈ. કૃપા કરીને ફરીથી મોકલો.',
-      'network_error': 'નેટવર્ક ભૂલ. કૃપા કરીને તમારું કનેક્શન તપાસો.',
-      'already_registered': 'આ ઇમેઇલ પહેલેથી નોંધાયેલ છે',
-      'code_sent_success': 'ચકાસણી કોડ સફળતાપૂર્વક મોકલવામાં આવ્યો',
-      'guest_note': 'તમે પછીથી પ્રોફાઇલ સેટિંગ્સમાંથી તમારું ઇમેઇલ ચકાસી શકો છો',
-      'personal_details': 'વ્યક્તિગત માહિતી',
-      'profile_avatar': 'પ્રોફાઈલ ફોટો',
-      'change_photo': 'ફોટો બદલો',
-      'take_photo': 'ફોટો લો',
-      'choose_from_gallery': 'ગેલેરીમાંથી પસંદ કરો',
-      'date_of_birth': 'જન્મ તારીખ',
-      'select_date': 'તારીખ પસંદ કરો',
-      'age_calculated': 'ઉંમર (ગણતરી કરેલ)',
-      'verified_address': 'ચકાસાયેલ સરનામું',
-      'search_address': 'સરનામું શોધો',
-      'select_from_suggestions': 'સૂચનોમાંથી પસંદ કરો',
-      'required_field': 'આ ફીલ્ડ જરૂરી છે',
-      'voice_input': 'વૉઇસ ઇનપુટ',
-      'listening': 'સાંભળી રહ્યા છીએ...',
-      'processing': 'પ્રક્રિયા...',
-      'permission_denied': 'માઇક્રોફોન પરવાનગી નામંજૂર',
-      'speech_not_available': 'આ ઉપકરણ પર સ્પીચ રેકગ્નિશન ઉપલબ્ધ નથી',
-      'number_of_farms': 'ખેતરોની સંખ્યા',
-      'select_number_of_farms': 'તમારી પાસે કેટલા ખેતરો છે?',
-      'farm_card': 'ખેતર',
-      'of_label': 'માંથી',
-      'farm_name': 'ખેતરનું નામ',
-      'farm_size': 'ખેતરનું કદ',
-      'farm_location': 'ખેતરનું સ્થાન',
-      'irrigation_type': 'સિંચાઈ પ્રકાર',
-      'water_source': 'પાણીનો સ્રોત',
-      'soil_type': 'માટીનો પ્રકાર',
-      'ai_soil_scan': 'AI માટી સ્કેન',
-      'farm_details': 'ખેતરની માહિતી',
-      'confirm_delete_farm': 'ખેતરોની સંખ્યા ઘટાડવાથી છેલ્લા ખેતરનો ડેટા કાઢી નાખશે. ચાલુ રાખવું છે?',
-      'yes': 'હા',
-      'no': 'ના',
-      'cancel': 'રદ કરો',
-      'save': 'સાચવો',
-      'next': 'આગળ',
-      'complete_profile_form': 'સાચવો અને ચાલુ રાખો',
-      'address_search_hint': 'તમારું સરનામું ટાઇપ કરો...',
-      'location_search_error': 'આ સ્થાન શોધી શકાયું નહીં. અલગ શોધ અજમાવો.',
-      'water_availability': 'પાણીની ઉપલબ્ધતા',
-    },
-    'pa': {
-      'app_name': 'ਵਿਧਏਆਈ',
-      'tagline': 'ਖੇਤੀ ਇਕੋਸਿਸਟਮ',
-      'splash_title': 'ਵਿਧਏਆਈ',
-      'splash_tagline': 'ਖੇਤੀ ਇਕੋਸਿਸਟਮ',
-      'select_language': 'ਆਪਣੀ ਭਾਸ਼ਾ ਚੁਣੋ',
-      'language_subtitle': 'VidhAI ਇੰਟਰਫੇਸ ਲਈ ਆਪਣੀ ਪਸੰਦੀਦਾ ਭਾਸ਼ਾ ਚੁਣੋ',
-      'continue_btn': 'ਜਾਰੀ ਰੱਖੋ',
-      'choose_domain': 'ਆਪਣਾ ਡੋਮੇਨ ਚੁਣੋ',
-      'farmer_console': 'ਕਿਸਾਨ ਕਨਸੋਲ',
-      'consumer_console': 'ਉਪਭੋਗਤਾ ਕਨਸੋਲ',
-      'farmer_description': 'ਆਪਣੇ ਖੇਤ, ਫ਼ਸਲਾਂ ਅਤੇ AI ਅੰਤਰਦ੍ਰਿਸ਼ਟੀ ਪ੍ਰਬੰਧਿਤ ਕਰੋ',
-      'consumer_description': 'ਤਾਜ਼ਾ ਉਤਪਾਦ ਖੋਜੋ ਅਤੇ ਸਥਾਨਕ ਕਿਸਾਨਾਂ ਨਾਲ ਜੁੜੋ',
-      'farmer_home': 'ਕਿਸਾਨ ਹੋਮ',
-      'consumer_home': 'ਉਪਭੋਗਤਾ ਹੋਮ',
-      'welcome_back': 'ਵਾਪਸੀ ਤੇ ਸੁਆਗਤ ਹੈ!',
-      'quick_actions': 'ਤੇਜ਼ ਕਾਰਵਾਈਆਂ',
-      'ai_quick_action': 'AI ਤੇਜ਼ ਕਾਰਵਾਈ',
-      'crop_support': 'ਫ਼ਸਲ / ਬਾਗਬਾਨੀ ਸਹਾਇਤਾ',
-      'pest_detection': 'ਕੀੜੇ ਅਤੇ ਰੋਗ ਪਛਾਣ',
-      'ai_guidance': 'AI ਮਾਰਗਦਰਸ਼ਨ',
-      'market_insights': 'ਮਾਰਕੀਟ ਅਤੇ ਕੀਮਤ ਅੰਤਰਦ੍ਰਿਸ਼ਟੀ',
-      'market_prices': 'ਮਾਰਕੀਟ ਕੀਮਤਾਂ',
-      'demand_forecast': 'ਮੰਗ ਪੂਰਵਾਨੁਮਾਨ',
-      'community': 'ਕਮਿਊਨਿਟੀ',
-      'marketplace': 'ਮਾਰਕੀਟਪਲੇਸ ਕਨੈਕਸ਼ਨ',
-      'your_farm': 'ਤੁਹਾਡਾ ਖੇਤ',
-      'farm_info': 'ਖੇਤ ਜਾਣਕਾਰੀ',
-      'profile': 'ਪ੍ਰੋਫਾਈਲ',
-      'logout': 'ਲੌਗ ਆਊਟ',
-      'explore_products': 'ਉਤਪਾਦ ਖੋਜੋ',
-      'fresh_produce': 'ਤਾਜ਼ਾ ਉਤਪਾਦ',
-      'local_farmers': 'ਸਥਾਨਕ ਕਿਸਾਨ',
-      'order_history': 'ਆਰਡਰ ਇਤਿਹਾਸ',
-      'complete_profile': 'ਆਪਣੀ ਪ੍ਰੋਫਾਈਲ ਪੂਰੀ ਕਰੋ',
-      'full_name': 'ਪੂਰਾ ਨਾਮ',
-      'age': 'ਉਮਰ',
-      'gender': 'ਲਿੰਗ',
-      'address': 'ਪਤਾ',
-      'user_role': 'ਵਰਤੋਂਕਾਰ ਭੂਮਿਕਾ',
-      'complete_onboarding': 'ਓਨਬੋਰਡਿੰਗ ਪੂਰੀ ਕਰੋ',
-      'email': 'ਈਮੇਲ',
-      'password': 'ਪਾਸਵਰਡ',
-      'login': 'ਲੌਗਿਨ',
-      'create_account': 'ਖਾਤਾ ਬਣਾਓ',
-      'error_unavailable': 'ਸੇਵਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ',
-      'select_one_language': 'ਜਾਰੀ ਰੱਖਣ ਲਈ ਭਾਸ਼ਾ ਚੁਣੋ',
-      'enter_email': 'ਆਪਣਾ ਈਮੇਲ ਪਤਾ ਦਰਜ ਕਰੋ',
-      'verify_email': 'ਈਮੇਲ ਤਸਦੀਕ ਕਰੋ',
-      'email_subtitle': 'ਤੁਹਾਡੇ ਈਮੇਲ ਦੀ ਪੁਸ਼ਟੀ ਕਰਨ ਲਈ ਅਸੀਂ ਇੱਕ ਤਸਦੀਕੀ ਕੋਡ ਭੇਜਾਂਗੇ',
-      'verification_sent_to': 'ਤਸਦੀਕੀ ਕੋਡ ਭੇਜਿਆ ਗਿਆ',
-      'enter_code': '6 ਅੰਕਾਂ ਦਾ ਕੋਡ ਦਰਜ ਕਰੋ',
-      'resend_code': 'ਕੋਡ ਦੁਬਾਰਾ ਭੇਜੋ',
-      'resend_in': 'ਦੁਬਾਰਾ ਭੇਜੋ',
-      'verify': 'ਤਸਦੀਕ ਕਰੋ',
-      'skip_for_now': 'ਹੁਣ ਲਈ ਛੱਡੋ',
-      'invalid_email': 'ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਵੈਧ ਈਮੇਲ ਪਤਾ ਦਰਜ ਕਰੋ',
-      'invalid_code': 'ਗਲਤ ਤਸਦੀਕੀ ਕੋਡ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
-      'code_expired': 'ਤਸਦੀਕੀ ਕੋਡ ਦੀ ਮਿਆਦ ਪੁੱਗ ਗਈ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਭੇਜੋ।',
-      'network_error': 'ਨੈੱਟਵਰਕ ਗਲਤੀ। ਕਿਰਪਾ ਕਰਕੇ ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ।',
-      'already_registered': 'ਇਹ ਈਮੇਲ ਪਹਿਲਾਂ ਹੀ ਰਜਿਸਟਰਡ ਹੈ',
-      'code_sent_success': 'ਤਸਦੀਕੀ ਕੋਡ ਸਫਲਤਾਪੂਰਵਕ ਭੇਜਿਆ ਗਿਆ',
-      'guest_note': 'ਤੁਸੀਂ ਬਾਅਦ ਵਿੱਚ ਪ੍ਰੋਫਾਈਲ ਸੈਟਿੰਗਾਂ ਤੋਂ ਆਪਣਾ ਈਮੇਲ ਤਸਦੀਕ ਕਰ ਸਕਦੇ ਹੋ',
-      'personal_details': 'ਨਿੱਜੀ ਵੇਰਵੇ',
-      'profile_avatar': 'ਪ੍ਰੋਫਾਈਲ ਫੋਟੋ',
-      'change_photo': 'ਫੋਟੋ ਬਦਲੋ',
-      'take_photo': 'ਫੋਟੋ ਖਿੱਚੋ',
-      'choose_from_gallery': 'ਗੈਲਰੀ ਤੋਂ ਚੁਣੋ',
-      'date_of_birth': 'ਜਨਮ ਮਿਤੀ',
-      'select_date': 'ਮਿਤੀ ਚੁਣੋ',
-      'age_calculated': 'ਉਮਰ (ਗਣਨਾ ਕੀਤੀ)',
-      'verified_address': 'ਤਸਦੀਕ ਕੀਤਾ ਪਤਾ',
-      'search_address': 'ਪਤਾ ਲੱਭੋ',
-      'select_from_suggestions': 'ਸੁਝਾਅ ਵਿੱਚੋਂ ਚੁਣੋ',
-      'required_field': 'ਇਹ ਖੇਤਰ ਲੋੜੀਂਦਾ ਹੈ',
-      'voice_input': 'ਵੌਇਸ ਇਨਪੁੱਟ',
-      'listening': 'ਸੁਣ ਰਿਹਾ ਹੈ...',
-      'processing': 'ਪ੍ਰੋਸੈਸਿੰਗ...',
-      'permission_denied': 'ਮਾਈਕ੍ਰੋਫੋਨ ਇਜਾਜ਼ਤ ਤੋਂ ਇਨਕਾਰ',
-      'speech_not_available': 'ਇਸ ਡਿਵਾਈਸ ਤੇ ਬੋਲੀ ਪਛਾਣ ਉਪਲਬਧ ਨਹੀਂ',
-      'number_of_farms': 'ਖੇਤਾਂ ਦੀ ਗਿਣਤੀ',
-      'select_number_of_farms': 'ਤੁਹਾਡੇ ਕਿੰਨੇ ਖੇਤ ਹਨ?',
-      'farm_card': 'ਖੇਤ',
-      'of_label': 'ਵਿੱਚੋਂ',
-      'farm_name': 'ਖੇਤ ਦਾ ਨਾਮ',
-      'farm_size': 'ਖੇਤ ਦਾ ਆਕਾਰ',
-      'farm_location': 'ਖੇਤ ਦੀ ਥਾਂ',
-      'irrigation_type': 'ਸਿੰਚਾਈ ਦੀ ਕਿਸਮ',
-      'water_source': 'ਪਾਣੀ ਦਾ ਸਰੋਤ',
-      'soil_type': 'ਮਿੱਟੀ ਦੀ ਕਿਸਮ',
-      'ai_soil_scan': 'AI ਮਿੱਟੀ ਸਕੈਨ',
-      'farm_details': 'ਖੇਤ ਦੀ ਜਾਣਕਾਰੀ',
-      'confirm_delete_farm': 'ਖੇਤਾਂ ਦੀ ਗਿਣਤੀ ਘਟਾਉਣ ਨਾਲ ਆਖਰੀ ਖੇਤ ਦਾ ਡੇਟਾ ਮਿਟ ਜਾਵੇਗਾ। ਜਾਰੀ ਰੱਖਣਾ ਹੈ?',
-      'yes': 'ਹਾਂ',
-      'no': 'ਨਹੀਂ',
-      'cancel': 'ਰੱਦ ਕਰੋ',
-      'save': 'ਸੰਭਾਲੋ',
-      'next': 'ਅੱਗੇ',
-      'complete_profile_form': 'ਸੰਭਾਲੋ ਅਤੇ ਜਾਰੀ ਰੱਖੋ',
-      'address_search_hint': 'ਆਪਣਾ ਪਤਾ ਟਾਈਪ ਕਰੋ...',
-      'location_search_error': 'ਇਹ ਥਾਂ ਨਹੀਂ ਲੱਭੀ। ਕੋਈ ਹੋਰ ਖੋਜ ਅਜ਼ਮਾਓ।',
-      'water_availability': 'ਪਾਣੀ ਦੀ ਉਪਲਬਧਤਾ',
-    },
-    'or': {
-      'app_name': 'ବିଧଏଆଇ',
-      'tagline': 'କୃଷି ଇକୋସିସ୍ଟମ୍',
-      'splash_title': 'ବିଧଏଆଇ',
-      'splash_tagline': 'କୃଷି ଇକୋସିସ୍ଟମ୍',
-      'select_language': 'ଆପଣଙ୍କ ଭାଷା ବାଛନ୍ତୁ',
-      'language_subtitle': 'VidhAI ଇଣ୍ଟରଫେସ୍ ପାଇଁ ଆପଣଙ୍କ ପସନ୍ଦର ଭାଷା ବାଛନ୍ତୁ',
-      'continue_btn': 'ଜାରି ରଖନ୍ତୁ',
-      'choose_domain': 'ଆପଣଙ୍କ ଡୋମେନ୍ ବାଛନ୍ତୁ',
-      'farmer_console': 'ଚାଷୀ କନସୋଲ୍',
-      'consumer_console': 'ଉପଭୋକ୍ତା କନସୋଲ୍',
-      'farmer_description': 'ଆପଣଙ୍କ ଖେତ, ଫସଲ ଏବଂ AI ଅନ୍ତର୍ଦୃଷ୍ଟି ପରିଚାଳନା କରନ୍ତୁ',
-      'consumer_description': 'ତାଜା ଉତ୍ପାଦ ଅନୁସନ୍ଧାନ କରନ୍ତୁ ଏବଂ ସ୍ଥାନୀୟ ଚାଷୀମାନଙ୍କ ସହ ସଂଯୁକ୍ତ ହୁଅନ୍ତୁ',
-      'farmer_home': 'ଚାଷୀ ହୋମ୍',
-      'consumer_home': 'ଉପଭୋକ୍ତା ହୋମ୍',
-      'welcome_back': 'ସ୍ୱାଗତ!',
-      'quick_actions': 'ଦ୍ରୁତ କାର୍ଯ୍ୟ',
-      'ai_quick_action': 'AI ଦ୍ରୁତ କାର୍ଯ୍ୟ',
-      'crop_support': 'ଫସଲ / ବଗିଚା ସହାୟତା',
-      'pest_detection': 'ପୋକ ଏବଂ ରୋଗ ଚିହ୍ନଟ',
-      'ai_guidance': 'AI ମାର୍ଗଦର୍ଶନ',
-      'market_insights': 'ବଜାର ଏବଂ ମୂଲ୍ୟ ଅନ୍ତର୍ଦୃଷ୍ଟି',
-      'market_prices': 'ବଜାର ମୂଲ୍ୟ',
-      'demand_forecast': 'ଚାହିଦା ପୂର୍ବାନୁମାନ',
-      'community': 'ସମ୍ପ୍ରଦାୟ',
-      'marketplace': 'ବଜାର ସଂଯୋଗ',
-      'your_farm': 'ଆପଣଙ୍କ ଖେତ',
-      'farm_info': 'ଖେତ ସୂଚନା',
-      'profile': 'ପ୍ରୋଫାଇଲ୍',
-      'logout': 'ଲଗ୍ ଆଉଟ୍',
-      'explore_products': 'ଉତ୍ପାଦ ଅନୁସନ୍ଧାନ',
-      'fresh_produce': 'ତାଜା ଉତ୍ପାଦ',
-      'local_farmers': 'ସ୍ଥାନୀୟ ଚାଷୀ',
-      'order_history': 'ଅର୍ଡର ଇତିହାସ',
-      'complete_profile': 'ଆପଣଙ୍କ ପ୍ରୋଫାଇଲ୍ ସମ୍ପୂର୍ଣ୍ଣ କରନ୍ତୁ',
-      'full_name': 'ପୂର୍ଣ୍ଣ ନାମ',
-      'age': 'ବୟସ',
-      'gender': 'ଲିଙ୍ଗ',
-      'address': 'ଠିକଣା',
-      'user_role': 'ବ୍ୟବହାରକାରୀ ଭୂମିକା',
-      'complete_onboarding': 'ଅନବୋର୍ଡିଂ ସମ୍ପୂର୍ଣ୍ଣ କରନ୍ତୁ',
-      'email': 'ଇମେଲ୍',
-      'password': 'ପାସୱାର୍ଡ୍',
-      'login': 'ଲଗିନ୍',
-      'create_account': 'ଖାତା ସୃଷ୍ଟି କରନ୍ତୁ',
-      'error_unavailable': 'ସେବା ଉପଲବ୍ଧ ନାହିଁ',
-      'select_one_language': 'ଜାରି ରଖିବାକୁ ଭାଷା ବାଛନ୍ତୁ',
-      'enter_email': 'ଆପଣଙ୍କ ଇମେଲ୍ ଠିକଣା ଲେଖନ୍ତୁ',
-      'verify_email': 'ଇମେଲ୍ ଯାଞ୍ଚ କରନ୍ତୁ',
-      'email_subtitle': 'ଆପଣଙ୍କ ଇମେଲ୍ ଯାଞ୍ଚ କରିବାକୁ ଆମେ ଏକ ଯାଞ୍ଚ କୋଡ୍ ପଠାଇବୁ',
-      'verification_sent_to': 'ଯାଞ୍ଚ କୋଡ୍ ପଠାଯାଇଛି',
-      'enter_code': '6 ଅଙ୍କର କୋଡ୍ ଲେଖନ୍ତୁ',
-      'resend_code': 'କୋଡ୍ ପୁଣି ପଠାନ୍ତୁ',
-      'resend_in': 'ପୁଣି ପଠାନ୍ତୁ',
-      'verify': 'ଯାଞ୍ଚ କରନ୍ତୁ',
-      'skip_for_now': 'ଏବେ ଏଡ଼ାନ୍ତୁ',
-      'invalid_email': 'ଦୟାକରି ଏକ ବୈଧ ଇମେଲ୍ ଠିକଣା ଲେଖନ୍ତୁ',
-      'invalid_code': 'ଅବୈଧ ଯାଞ୍ଚ କୋଡ୍। ଦୟାକରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
-      'code_expired': 'ଯାଞ୍ଚ କୋଡ୍ ମିଆଦ ସମାପ୍ତ ହୋଇଛି। ଦୟାକରି ପୁଣି ପଠାନ୍ତୁ।',
-      'network_error': 'ନେଟୱର୍କ ତ୍ରୁଟି। ଦୟାକରି ଆପଣଙ୍କ ସଂଯୋଗ ଯାଞ୍ଚ କରନ୍ତୁ।',
-      'already_registered': 'ଏହି ଇମେଲ୍ ପୂର୍ବରୁ ପଞ୍ଜୀକୃତ',
-      'code_sent_success': 'ଯାଞ୍ଚ କୋଡ୍ ସଫଳତାର ସହ ପଠାଯାଇଛି',
-      'guest_note': 'ଆପଣ ପରେ ପ୍ରୋଫାଇଲ୍ ସେଟିଂଗ୍‌ରୁ ଆପଣଙ୍କ ଇମେଲ୍ ଯାଞ୍ଚ କରିପାରିବେ',
-      'personal_details': 'ବ୍ୟକ୍ତିଗତ ବିବରଣୀ',
-      'profile_avatar': 'ପ୍ରୋଫାଇଲ୍ ଫଟୋ',
-      'change_photo': 'ଫଟୋ ପରିବର୍ତ୍ତନ କରନ୍ତୁ',
-      'take_photo': 'ଫଟୋ ନିଅନ୍ତୁ',
-      'choose_from_gallery': 'ଗ୍ୟାଲେରୀରୁ ବାଛନ୍ତୁ',
-      'date_of_birth': 'ଜନ୍ମ ତାରିଖ',
-      'select_date': 'ତାରିଖ ବାଛନ୍ତୁ',
-      'age_calculated': 'ବୟସ୍ (ଗଣନା କରାଯାଇଛି)',
-      'verified_address': 'ଯାଚିତ ଠିକଣା',
-      'search_address': 'ଠିକଣା ଖୋଜନ୍ତୁ',
-      'select_from_suggestions': 'ପରାମର୍ଶରୁ ବାଛନ୍ତୁ',
-      'required_field': 'ଏହି କ୍ଷେତ୍ର ଆବଶ୍ୟକ',
-      'voice_input': 'ଭଏସ୍ ଇନପୁଟ୍',
-      'listening': 'ଶୁଣୁଛି...',
-      'processing': 'ପ୍ରକ୍ରିୟାକରଣ...',
-      'permission_denied': 'ମାଇକ୍ରୋଫୋନ୍ ଅନୁମତି ନାମଞ୍ଜୁର',
-      'speech_not_available': 'ଏହି ଡିଭାଇସ୍\u200Cରେ ବାକ୍ ଚିହ୍ନଟ ଉପଲବ୍ଧ ନୁହେଁ',
-      'number_of_farms': 'ଖେତର ସଂଖ୍ୟା',
-      'select_number_of_farms': 'ଆପଣଙ୍କ ପାଖରେ କେତେ ଖେତ ଅଛି?',
-      'farm_card': 'ଖେତ',
-      'of_label': 'ରୁ',
-      'farm_name': 'ଖେତର ନାମ',
-      'farm_size': 'ଖେତର ଆକାର',
-      'farm_location': 'ଖେତର ସ୍ଥାନ',
-      'irrigation_type': 'ଜଳସେଚନ ପ୍ରକାର',
-      'water_source': 'ଜଳ ସ୍ରୋତ',
-      'soil_type': 'ମାଟି ପ୍ରକାର',
-      'ai_soil_scan': 'AI ମାଟି ସ୍କାନ',
-      'farm_details': 'ଖେତ ବିବରଣୀ',
-      'confirm_delete_farm': 'ଖେତର ସଂଖ୍ୟା କମ୍ କଲେ ଶେଷ ଖେତର ଡାଟା ଡିଲିଟ୍ ହେବ। ଜାରି ରଖିବେ?',
-      'yes': 'ହଁ',
-      'no': 'ନାହିଁ',
-      'cancel': 'ବାତିଲ',
-      'save': 'ସଞ୍ଚୟ କରନ୍ତୁ',
-      'next': 'ପରବର୍ତ୍ତୀ',
-      'complete_profile_form': 'ସଞ୍ଚୟ ଓ ଜାରି ରଖନ୍ତୁ',
-      'address_search_hint': 'ଆପଣଙ୍କ ଠିକଣା ଟାଇପ୍ କରନ୍ତୁ...',
-      'location_search_error': 'ଏହି ସ୍ଥାନ ମିଳିଲା ନାହିଁ। ଅନ୍ୟ ସର୍ଚ୍ଚ ଚେଷ୍ଟା କରନ୍ତୁ।',
-      'water_availability': 'ଜଳ ଉପଲବ୍ଧତା',
-    },
-    'as': {
-      'app_name': 'ভিধএআই',
-      'tagline': 'কৃষি পৰিৱেশ ব্যৱস্থা',
-      'splash_title': 'ভিধএআই',
-      'splash_tagline': 'কৃষি পৰিৱেশ ব্যৱস্থা',
-      'select_language': 'আপোনাৰ ভাষা নিৰ্বাচন কৰক',
-      'language_subtitle': 'VidhAI ইণ্টাৰফেছৰ বাবে আপোনাৰ পছন্দৰ ভাষা নিৰ্বাচন কৰক',
-      'continue_btn': 'অব্যাহত ৰাখক',
-      'choose_domain': 'আপোনাৰ ডমেইন নিৰ্বাচন কৰক',
-      'farmer_console': 'কৃষক কনচ\'ল',
-      'consumer_console': 'উপভোক্তা কনচ\'ল',
-      'farmer_description': 'আপোনাৰ খেত, শস্য আৰু AI অন্তৰ্দৃষ্টি পৰিচালনা কৰক',
-      'consumer_description': 'তাজা উৎপাদন অনুসন্ধান কৰক আৰু স্থানীয় কৃষকৰ সৈতে সংযোগ কৰক',
-      'farmer_home': 'কৃষক হোম',
-      'consumer_home': 'উপভোক্তা হোম',
-      'welcome_back': 'স্বাগতম!',
-      'quick_actions': 'দ্ৰুত কাৰ্য',
-      'ai_quick_action': 'AI দ্ৰুত কাৰ্য',
-      'crop_support': 'শস্য / বাগিচা সমৰ্থন',
-      'pest_detection': 'পোকা আৰু ৰোগ চিহ্নিতকৰণ',
-      'ai_guidance': 'AI নিৰ্দেশনা',
-      'market_insights': 'বজাৰ আৰু মূল্য অন্তৰ্দৃষ্টি',
-      'market_prices': 'বজাৰ মূল্য',
-      'demand_forecast': 'চাহিদা পূৰ্বানুমান',
-      'community': 'সম্প্ৰদায়',
-      'marketplace': 'বজাৰ সংযোগ',
-      'your_farm': 'আপোনাৰ খেত',
-      'farm_info': 'খেত তথ্য',
-      'profile': 'প্ৰ\'ফাইল',
-      'logout': 'লগ আউট',
-      'explore_products': 'উৎপাদন অনুসন্ধান',
-      'fresh_produce': 'তাজা উৎপাদন',
-      'local_farmers': 'স্থানীয় কৃষক',
-      'order_history': 'অৰ্ডাৰ ইতিহাস',
-      'complete_profile': 'আপোনাৰ প্ৰ\'ফাইল সম্পূৰ্ণ কৰক',
-      'full_name': 'পূৰ্ণ নাম',
-      'age': 'বয়স',
-      'gender': 'লিংগ',
-      'address': 'ঠিকনা',
-      'user_role': 'ব্যৱহাৰকাৰী ভূমিকা',
-      'complete_onboarding': 'অনবোৰ্ডিং সম্পূৰ্ণ কৰক',
-      'email': 'ইমেইল',
-      'password': 'পাছৱৰ্ড',
-      'login': 'লগইন',
-      'create_account': 'একাউণ্ট সৃষ্টি কৰক',
-      'error_unavailable': 'সেৱা উপলব্ধ নাহি',
-      'select_one_language': 'অব্যাহত ৰাখিবলৈ ভাষা নিৰ্বাচন কৰক',
-      'enter_email': 'আপোনাৰ ইমেইল ঠিকনা লিখক',
-      'verify_email': 'ইমেইল পুষ্টি কৰক',
-      'email_subtitle': 'আপোনাৰ ইমেইল পুষ্টি কৰিবলৈ আমি এটা পুষ্টি ক\'ড পঠাওঁ',
-      'verification_sent_to': 'পুষ্টি ক\'ড পঠিয়া হৈছে',
-      'enter_code': '6 অংকৰ ক\'ড লিখক',
-      'resend_code': 'ক\'ড পুনৰায় পঠাওক',
-      'resend_in': 'পুনৰায় পঠাওক',
-      'verify': 'পুষ্টি কৰক',
-      'skip_for_now': 'এতিয়া এৰি দিয়ক',
-      'invalid_email': 'অনুগ্ৰহ কৰি এটা বৈধ ইমেইল ঠিকনা লিখক',
-      'invalid_code': 'অবৈধ পুষ্টি ক\'ড। অনুগ্ৰহ কৰি পুনৰায় চেষ্টা কৰক।',
-      'code_expired': 'পুষ্টি ক\'ডৰ মিয়াদ শেষ হৈছে। অনুগ্ৰহ কৰি পুনৰায় পঠাওক।',
-      'network_error': 'নেটৱৰ্ক ত্ৰুটি। অনুগ্ৰহ কৰি আপোনাৰ সংযোগ পৰীক্ষা কৰক।',
-      'already_registered': 'এই ইমেইল ইতিমধ্যে পঞ্জীকৃত',
-      'code_sent_success': 'পুষ্টি ক\'ড সফলভাবে পঠিয়া হৈছে',
-      'guest_note': 'আপুনি পিছত প্ৰ\'ফাইল ছেটিংছৰ পৰা আপোনাৰ ইমেইল পুষ্টি কৰিব পাৰে',
-      'personal_details': 'ব্যক্তিগত তথ্য',
-      'profile_avatar': 'প্ৰ\'ফাইল ফ\'টো',
-      'change_photo': 'ফ\'টো সলনি কৰক',
-      'take_photo': 'ফ\'টো লওক',
-      'choose_from_gallery': 'গেলেৰীৰ পৰা বাছনি কৰক',
-      'date_of_birth': 'জন্ম তাৰিখ',
-      'select_date': 'তাৰিখ বাছনি কৰক',
-      'age_calculated': 'বয়স (গণনা কৰা)',
-      'verified_address': 'পৰীক্ষিত ঠিকনা',
-      'search_address': 'ঠিকনা সন্ধান কৰক',
-      'select_from_suggestions': 'পৰামৰ্শৰ পৰা বাছনি কৰক',
-      'required_field': 'এই ক্ষেত্ৰটো প্ৰয়োজনীয়',
-      'voice_input': 'ভয়েছ ইনপুট',
-      'listening': 'শুনি আছে...',
-      'processing': 'প্ৰক্ৰিয়াকৰণ...',
-      'permission_denied': 'মাইক্ৰ\'ফ\'ন অনুমতি নামঞ্জুৰ',
-      'speech_not_available': 'এই ডিভাইচত বাক্ চেনা সম্ভৱ নহয়',
-      'number_of_farms': 'খেতৰ সংখ্যা',
-      'select_number_of_farms': 'আপোনাৰ কিমান খেত আছে?',
-      'farm_card': 'খেত',
-      'of_label': 'ৰ পৰা',
-      'farm_name': 'খেতৰ নাম',
-      'farm_size': 'খেতৰ আকাৰ',
-      'farm_location': 'খেতৰ স্থান',
-      'irrigation_type': 'সিঞ্চন প্ৰকাৰ',
-      'water_source': 'পানীৰ উৎস',
-      'soil_type': 'মাটিৰ প্ৰকাৰ',
-      'ai_soil_scan': 'AI মাটি স্কেন',
-      'farm_details': 'খেতৰ তথ্য',
-      'confirm_delete_farm': 'খেতৰ সংখ্যা কমাইলে শেষ খেতৰ তথ্য মচি যাব। অব্যাহত ৰাখিবলৈ নেকি?',
-      'yes': 'হয়',
-      'no': 'নহয়',
-      'cancel': 'বাতিল',
-      'save': 'সংৰক্ষণ',
-      'next': 'পৰৱৰ্তী',
-      'complete_profile_form': 'সংৰক্ষণ আৰু অব্যাহত ৰাখক',
-      'address_search_hint': 'আপোনাৰ ঠিকনা টাইপ কৰক...',
-      'location_search_error': 'এই স্থান পোৱা নগ\'ল। অন্য সন্ধান চেষ্টা কৰক।',
-      'water_availability': 'পানীৰ প্ৰাপ্যতা',
-    },
-    'ur': {
-      'app_name': 'وِدھ اے آئی',
-      'tagline': 'کاشتی ماحولیاتی نظام',
-      'splash_title': 'وِدھ اے آئی',
-      'splash_tagline': 'کاشتی ماحولیاتی نظام',
-      'select_language': 'اپنی زبان منتخب کریں',
-      'language_subtitle': 'VidhAI انٹر فیس کے لیے اپنی پسندیدہ زبان منتخب کریں',
-      'continue_btn': 'جاری رکھیں',
-      'choose_domain': 'اپنا ڈومین منتخب کریں',
-      'farmer_console': 'کسان کنسول',
-      'consumer_console': 'صارف کنسول',
-      'farmer_description': 'اپنا کھیت، فصلیں اور AI بصیرت کا انتظام کریں',
-      'consumer_description': 'تازہ پیداوار دریافت کریں اور مقامی کسانوں سے جڑیں',
-      'farmer_home': 'کسان ہوم',
-      'consumer_home': 'صارف ہوم',
-      'welcome_back': 'خوش آمدید!',
-      'quick_actions': 'فوری اقدامات',
-      'ai_quick_action': 'AI فوری اقدام',
-      'crop_support': 'فصل / باغبانی معاونت',
-      'pest_detection': 'کیڑے اور بیماری کی شناخت',
-      'ai_guidance': 'AI رہنمائی',
-      'market_insights': 'بازار اور قیمت کی بصیرت',
-      'market_prices': 'بازار قیمتیں',
-      'demand_forecast': ' demand کی پیشگوئی',
-      'community': 'کمیونٹی',
-      'marketplace': 'بازار رابطہ',
-      'your_farm': 'آپ کا کھیت',
-      'farm_info': 'کھیت کی معلومات',
-      'profile': 'پروفائل',
-      'logout': 'لاگ آؤٹ',
-      'explore_products': 'مصنوعات دریافت کریں',
-      'fresh_produce': 'تازہ پیداوار',
-      'local_farmers': 'مقامی کسان',
-      'order_history': 'آرڈر کی تاریخ',
-      'complete_profile': 'اپنا پروفائل مکمل کریں',
-      'full_name': 'پورا نام',
-      'age': 'عمر',
-      'gender': 'جنس',
-      'address': 'پتہ',
-      'user_role': 'صارف کا کردار',
-      'complete_onboarding': 'آن بورڈنگ مکمل کریں',
-      'email': 'ای میل',
-      'password': 'پاس ورڈ',
-      'login': 'لاگ ان',
-      'create_account': 'اکاؤنٹ بنائیں',
-      'error_unavailable': 'سروس دستیاب نہیں',
-      'select_one_language': 'جاری رکھنے کے لیے زبان منتخب کریں',
-      'enter_email': 'اپنا ای میل ایڈریس درج کریں',
-      'verify_email': 'ای میل کی تصدیق کریں',
-      'email_subtitle': 'آپ کے ای میل کی تصدیق کے لیے ہم ایک تصدیق کوڈ بھیجیں گے',
-      'verification_sent_to': 'تصدیق کوڈ بھیج دیا گیا',
-      'enter_code': '6 ہندسوں کا کوڈ درج کریں',
-      'resend_code': 'کوڈ دوبارہ بھیجیں',
-      'resend_in': 'دوبارہ بھیجیں',
-      'verify': 'تصدیق کریں',
-      'skip_for_now': 'ابھی چھوڑیں',
-      'invalid_email': 'براہ کرم درست ای میل ایڈریس درج کریں',
-      'invalid_code': 'غلط تصدیق کوڈ۔ براہ کرم دوبارہ کوشش کریں۔',
-      'code_expired': 'تصدیق کوڈ کی میعاد ختم ہو گئی۔ براہ کرم دوبارہ بھیجیں۔',
-      'network_error': 'نیٹ ورک خرابی۔ براہ کرم اپنا کنکشن چیک کریں۔',
-      'already_registered': 'یہ ای میل پہلے سے رجسٹرڈ ہے',
-      'code_sent_success': 'تصدیق کوڈ کامیابی سے بھیج دیا گیا',
-      'guest_note': 'آپ بعد میں پروفائل سیٹنگز سے اپنا ای میل تصدیق کر سکتے ہیں',
-      'personal_details': 'ذاتی تفصیلات',
-      'profile_avatar': 'پروفائل تصویر',
-      'change_photo': 'تصویر تبدیل کریں',
-      'take_photo': 'تصویر لیں',
-      'choose_from_gallery': 'گیلری سے منتخب کریں',
-      'date_of_birth': 'تاریخ پیدائش',
-      'select_date': 'تاریخ منتخب کریں',
-      'age_calculated': 'عمر (حساب شدہ)',
-      'verified_address': 'تصدیق شدہ پتہ',
-      'search_address': 'پتہ تلاش کریں',
-      'select_from_suggestions': 'تجاویز میں سے منتخب کریں',
-      'required_field': 'یہ فیلڈ ضروری ہے',
-      'voice_input': 'آواز ان پٹ',
-      'listening': 'سن رہا ہے...',
-      'processing': 'پروسیسنگ...',
-      'permission_denied': 'مائیکروفون اجازت مسترد',
-      'speech_not_available': 'اس ڈیوائس پر آواز کی پہچان دستیاب نہیں',
-      'number_of_farms': 'کھیتوں کی تعداد',
-      'select_number_of_farms': 'آپ کے کتنے کھیت ہیں؟',
-      'farm_card': 'کھیت',
-      'of_label': 'میں سے',
-      'farm_name': 'کھیت کا نام',
-      'farm_size': 'کھیت کا سائز',
-      'farm_location': 'کھیت کی جگہ',
-      'irrigation_type': 'آبپاشی کی قسم',
-      'water_source': 'پانی کا ذریعہ',
-      'soil_type': 'مٹی کی قسم',
-      'ai_soil_scan': 'AI مٹی اسکین',
-      'farm_details': 'کھیت کی تفصیلات',
-      'confirm_delete_farm': 'کھیتوں کی تعداد کم کرنے سے آخری کھیت کا ڈیٹا حذف ہو جائے گا۔ جاری رکھیں؟',
-      'yes': 'ہاں',
-      'no': 'نہیں',
-      'cancel': 'منسوخ',
-      'save': 'محفوظ کریں',
-      'next': 'اگلا',
-      'complete_profile_form': 'محفوظ کریں اور جاری رکھیں',
-      'address_search_hint': 'اپنا پتہ ٹائپ کریں...',
-      'location_search_error': 'یہ مقام نہیں مل سکا۔ کوئی اور تلاش آزمائیں۔',
-      'water_availability': 'پانی کی دستیابی',
-    },
-  };
+  String get aiChatTitle =>
+      _strings[languageCode]?['ai_chat_title'] ??
+      _strings['en']!['ai_chat_title']!;
+
+  String get aiChatAssistantHeading =>
+      _strings[languageCode]?['ai_chat_assistant_heading'] ??
+      _strings['en']!['ai_chat_assistant_heading']!;
+  String get askFarmingDesc =>
+      _strings[languageCode]?['ask_farming_desc'] ??
+      _strings['en']!['ask_farming_desc']!;
+  String get govtSchemes =>
+      _strings[languageCode]?['govt_schemes'] ??
+      _strings['en']!['govt_schemes']!;
+  String get govtSchemesDesc =>
+      _strings[languageCode]?['govt_schemes_desc'] ??
+      _strings['en']!['govt_schemes_desc']!;
+  String get communityDesc =>
+      _strings[languageCode]?['community_desc'] ??
+      _strings['en']!['community_desc']!;
+
+  // Weather screen
+  String get weatherDataUnavailable =>
+      _strings[languageCode]?['weather_data_unavailable'] ??
+      _strings['en']!['weather_data_unavailable']!;
+  String get hourlyForecastHeading =>
+      _strings[languageCode]?['hourly_forecast_heading'] ??
+      _strings['en']!['hourly_forecast_heading']!;
+  String get dailyForecastHeading =>
+      _strings[languageCode]?['daily_forecast_heading'] ??
+      _strings['en']!['daily_forecast_heading']!;
+  String get weatherLastUpdated =>
+      _strings[languageCode]?['weather_last_updated'] ??
+      _strings['en']!['weather_last_updated']!;
+  String get weatherFeelsLike =>
+      _strings[languageCode]?['weather_feels_like'] ??
+      _strings['en']!['weather_feels_like']!;
+  String get weatherHumidity =>
+      _strings[languageCode]?['weather_humidity'] ??
+      _strings['en']!['weather_humidity']!;
+  String get weatherWind =>
+      _strings[languageCode]?['weather_wind'] ??
+      _strings['en']!['weather_wind']!;
+  String get weatherDirection =>
+      _strings[languageCode]?['weather_direction'] ??
+      _strings['en']!['weather_direction']!;
+  String get weatherPressure =>
+      _strings[languageCode]?['weather_pressure'] ??
+      _strings['en']!['weather_pressure']!;
+  String get weatherGusts =>
+      _strings[languageCode]?['weather_gusts'] ??
+      _strings['en']!['weather_gusts']!;
+  String get weatherRain =>
+      _strings[languageCode]?['weather_rain'] ??
+      _strings['en']!['weather_rain']!;
+  String get weatherHourNow =>
+      _strings[languageCode]?['weather_hour_now'] ??
+      _strings['en']!['weather_hour_now']!;
+  String get weatherDayToday =>
+      _strings[languageCode]?['weather_day_today'] ??
+      _strings['en']!['weather_day_today']!;
+  String get weatherDayTomorrow =>
+      _strings[languageCode]?['weather_day_tomorrow'] ??
+      _strings['en']!['weather_day_tomorrow']!;
+  String get weekdayMon =>
+      _strings[languageCode]?['weekday_mon'] ?? _strings['en']!['weekday_mon']!;
+  String get weekdayTue =>
+      _strings[languageCode]?['weekday_tue'] ?? _strings['en']!['weekday_tue']!;
+  String get weekdayWed =>
+      _strings[languageCode]?['weekday_wed'] ?? _strings['en']!['weekday_wed']!;
+  String get weekdayThu =>
+      _strings[languageCode]?['weekday_thu'] ?? _strings['en']!['weekday_thu']!;
+  String get weekdayFri =>
+      _strings[languageCode]?['weekday_fri'] ?? _strings['en']!['weekday_fri']!;
+  String get weekdaySat =>
+      _strings[languageCode]?['weekday_sat'] ?? _strings['en']!['weekday_sat']!;
+  String get weekdaySun =>
+      _strings[languageCode]?['weekday_sun'] ?? _strings['en']!['weekday_sun']!;
+
+  // Notification center
+  String get notificationCenterTitle =>
+      _strings[languageCode]?['notification_center_title'] ??
+      _strings['en']!['notification_center_title']!;
+  String get markAllAsRead =>
+      _strings[languageCode]?['mark_all_as_read'] ??
+      _strings['en']!['mark_all_as_read']!;
+  String get noNotificationsYet =>
+      _strings[languageCode]?['no_notifications_yet'] ??
+      _strings['en']!['no_notifications_yet']!;
+  String get notificationsEmptyHint =>
+      _strings[languageCode]?['notifications_empty_hint'] ??
+      _strings['en']!['notifications_empty_hint']!;
+  String get timeAgoJustNow =>
+      _strings[languageCode]?['time_ago_just_now'] ??
+      _strings['en']!['time_ago_just_now']!;
+  String get timeAgoM =>
+      _strings[languageCode]?['time_ago_m'] ?? _strings['en']!['time_ago_m']!;
+  String get timeAgoH =>
+      _strings[languageCode]?['time_ago_h'] ?? _strings['en']!['time_ago_h']!;
+  String get timeAgoD =>
+      _strings[languageCode]?['time_ago_d'] ?? _strings['en']!['time_ago_d']!;
+
+  // Recommendation loading
+  String get loadingText1 =>
+      _strings[languageCode]?['loading_text_1'] ??
+      _strings['en']!['loading_text_1']!;
+  String get loadingText2 =>
+      _strings[languageCode]?['loading_text_2'] ??
+      _strings['en']!['loading_text_2']!;
+  String get loadingText3 =>
+      _strings[languageCode]?['loading_text_3'] ??
+      _strings['en']!['loading_text_3']!;
+  String get loadingText4 =>
+      _strings[languageCode]?['loading_text_4'] ??
+      _strings['en']!['loading_text_4']!;
+  String get recLoading =>
+      _strings[languageCode]?['rec_loading'] ?? _strings['en']!['rec_loading']!;
+  String get newPost =>
+      _strings[languageCode]?['new_post'] ?? _strings['en']!['new_post']!;
+  String get postBtn =>
+      _strings[languageCode]?['post_btn'] ?? _strings['en']!['post_btn']!;
+  String get postContentHint =>
+      _strings[languageCode]?['post_content_hint'] ??
+      _strings['en']!['post_content_hint']!;
+  String get category =>
+      _strings[languageCode]?['category'] ?? _strings['en']!['category']!;
+
+  String get governmentSchemesTitle =>
+      _strings[languageCode]?['government_schemes_title'] ??
+      _strings['en']!['government_schemes_title']!;
+  String get searchSchemes =>
+      _strings[languageCode]?['search_schemes'] ??
+      _strings['en']!['search_schemes']!;
+  String get noSchemesFound =>
+      _strings[languageCode]?['no_schemes_found'] ??
+      _strings['en']!['no_schemes_found']!;
+  String get stateBadge =>
+      _strings[languageCode]?['state_badge'] ?? _strings['en']!['state_badge']!;
+  String get requiredDocuments =>
+      _strings[languageCode]?['required_documents'] ??
+      _strings['en']!['required_documents']!;
+  String get websiteUrlCopied =>
+      _strings[languageCode]?['website_url_copied'] ??
+      _strings['en']!['website_url_copied']!;
+  String get visitOfficialWebsite =>
+      _strings[languageCode]?['visit_official_website'] ??
+      _strings['en']!['visit_official_website']!;
+  String get helplineNumberCopied =>
+      _strings[languageCode]?['helpline_number_copied'] ??
+      _strings['en']!['helpline_number_copied']!;
+  String get helplineLabel =>
+      _strings[languageCode]?['helpline_label'] ??
+      _strings['en']!['helpline_label']!;
+  String get aboutSection =>
+      _strings[languageCode]?['about_section'] ??
+      _strings['en']!['about_section']!;
+  String get eligibility =>
+      _strings[languageCode]?['eligibility'] ?? _strings['en']!['eligibility']!;
+  String get benefits =>
+      _strings[languageCode]?['benefits'] ?? _strings['en']!['benefits']!;
+  String get howToApply =>
+      _strings[languageCode]?['how_to_apply'] ??
+      _strings['en']!['how_to_apply']!;
+
+  String get cropSearchTitle =>
+      _strings[languageCode]?['crop_search_title'] ??
+      _strings['en']!['crop_search_title']!;
+  String get cropSearchHint =>
+      _strings[languageCode]?['crop_search_hint'] ??
+      _strings['en']!['crop_search_hint']!;
+  String get cropSearchCount =>
+      _strings[languageCode]?['crop_search_count'] ??
+      _strings['en']!['crop_search_count']!;
+  String get noCropsFound =>
+      _strings[languageCode]?['no_crops_found'] ??
+      _strings['en']!['no_crops_found']!;
+  String get growthDetailsHeading =>
+      _strings[languageCode]?['growth_details_heading'] ??
+      _strings['en']!['growth_details_heading']!;
+  String get duration =>
+      _strings[languageCode]?['duration'] ?? _strings['en']!['duration']!;
+  String get water =>
+      _strings[languageCode]?['water'] ?? _strings['en']!['water']!;
+  String get temperature =>
+      _strings[languageCode]?['temperature'] ?? _strings['en']!['temperature']!;
+  String get season =>
+      _strings[languageCode]?['season'] ?? _strings['en']!['season']!;
+  String get sowing =>
+      _strings[languageCode]?['sowing'] ?? _strings['en']!['sowing']!;
+  String get harvest =>
+      _strings[languageCode]?['harvest'] ?? _strings['en']!['harvest']!;
+  String get investmentReturnsHeading =>
+      _strings[languageCode]?['investment_returns_heading'] ??
+      _strings['en']!['investment_returns_heading']!;
+  String get investmentPerAcre =>
+      _strings[languageCode]?['investment_per_acre'] ??
+      _strings['en']!['investment_per_acre']!;
+  String get expectedYield =>
+      _strings[languageCode]?['expected_yield'] ??
+      _strings['en']!['expected_yield']!;
+  String get revenuePerAcre =>
+      _strings[languageCode]?['revenue_per_acre'] ??
+      _strings['en']!['revenue_per_acre']!;
+  String get profitPerAcre =>
+      _strings[languageCode]?['profit_per_acre'] ??
+      _strings['en']!['profit_per_acre']!;
+  String get suitableRegionsHeading =>
+      _strings[languageCode]?['suitable_regions_heading'] ??
+      _strings['en']!['suitable_regions_heading']!;
+  String get suitableSoilsLabel =>
+      _strings[languageCode]?['suitable_soils_label'] ??
+      _strings['en']!['suitable_soils_label']!;
+  String get suitableStatesLabel =>
+      _strings[languageCode]?['suitable_states_label'] ??
+      _strings['en']!['suitable_states_label']!;
+  String get agroClimaticLabel =>
+      _strings[languageCode]?['agro_climatic_label'] ??
+      _strings['en']!['agro_climatic_label']!;
+  String get marketRiskHeading =>
+      _strings[languageCode]?['market_risk_heading'] ??
+      _strings['en']!['market_risk_heading']!;
+  String get marketDemand =>
+      _strings[languageCode]?['market_demand'] ??
+      _strings['en']!['market_demand']!;
+  String get riskLevel =>
+      _strings[languageCode]?['risk_level'] ?? _strings['en']!['risk_level']!;
+  String get cropAnalysisLoading =>
+      _strings[languageCode]?['crop_analysis_loading'] ??
+      _strings['en']!['crop_analysis_loading']!;
+  String get noFarmsFoundTitle =>
+      _strings[languageCode]?['no_farms_found_title'] ??
+      _strings['en']!['no_farms_found_title']!;
+  String get noFarmsFoundBody =>
+      _strings[languageCode]?['no_farms_found_body'] ??
+      _strings['en']!['no_farms_found_body']!;
+  String get ok => _strings[languageCode]?['ok'] ?? _strings['en']!['ok']!;
+  String get cropAnalysisTitle =>
+      _strings[languageCode]?['crop_analysis_title'] ??
+      _strings['en']!['crop_analysis_title']!;
+  String get errorPrefix =>
+      _strings[languageCode]?['error_prefix'] ??
+      _strings['en']!['error_prefix']!;
+  String get close =>
+      _strings[languageCode]?['close'] ?? _strings['en']!['close']!;
+  String get analysisFailed =>
+      _strings[languageCode]?['analysis_failed'] ??
+      _strings['en']!['analysis_failed']!;
+  String get analyzeForMyFarm =>
+      _strings[languageCode]?['analyze_for_my_farm'] ??
+      _strings['en']!['analyze_for_my_farm']!;
+
+  String get aiRecommendationLoading =>
+      _strings[languageCode]?['ai_recommendation_loading'] ??
+      _strings['en']!['ai_recommendation_loading']!;
+  String get aiRecommendationTitle =>
+      _strings[languageCode]?['ai_recommendation_title'] ??
+      _strings['en']!['ai_recommendation_title']!;
+  String get aiRecommendationFailed =>
+      _strings[languageCode]?['ai_recommendation_failed'] ??
+      _strings['en']!['ai_recommendation_failed']!;
+  String get aiRecommendationTitle2 =>
+      _strings[languageCode]?['ai_recommendation_title'] ??
+      _strings['en']!['ai_recommendation_title']!;
+  String get searchFertilizersHint =>
+      _strings[languageCode]?['search_fertilizers_hint'] ??
+      _strings['en']!['search_fertilizers_hint']!;
+  String get fertilizerCount =>
+      _strings[languageCode]?['fertilizer_count'] ??
+      _strings['en']!['fertilizer_count']!;
+  String get noFertilizersFound =>
+      _strings[languageCode]?['no_fertilizers_found'] ??
+      _strings['en']!['no_fertilizers_found']!;
+  String get npkPrefix =>
+      _strings[languageCode]?['npk_prefix'] ?? _strings['en']!['npk_prefix']!;
+  String get useCaseLabel =>
+      _strings[languageCode]?['use_case_label'] ??
+      _strings['en']!['use_case_label']!;
+  String get targetCropsLabel =>
+      _strings[languageCode]?['target_crops_label'] ??
+      _strings['en']!['target_crops_label']!;
+  String get applicationRateLabel =>
+      _strings[languageCode]?['application_rate_label'] ??
+      _strings['en']!['application_rate_label']!;
+
+  String get searchCommodityHint =>
+      _strings[languageCode]?['search_commodity_hint'] ??
+      _strings['en']!['search_commodity_hint']!;
+  String get loading =>
+      _strings[languageCode]?['loading'] ?? _strings['en']!['loading']!;
+  String get commodityPricesCount =>
+      _strings[languageCode]?['commodity_prices_count'] ??
+      _strings['en']!['commodity_prices_count']!;
+  String get failedToLoadPrices =>
+      _strings[languageCode]?['failed_to_load_prices'] ??
+      _strings['en']!['failed_to_load_prices']!;
+  String get retry =>
+      _strings[languageCode]?['retry'] ?? _strings['en']!['retry']!;
+  String get noPricesFound =>
+      _strings[languageCode]?['no_prices_found'] ??
+      _strings['en']!['no_prices_found']!;
+  String get priceMinLabel =>
+      _strings[languageCode]?['price_min_label'] ??
+      _strings['en']!['price_min_label']!;
+  String get priceModalLabel =>
+      _strings[languageCode]?['price_modal_label'] ??
+      _strings['en']!['price_modal_label']!;
+  String get priceMaxLabel =>
+      _strings[languageCode]?['price_max_label'] ??
+      _strings['en']!['price_max_label']!;
+
+  String get marketPricesSubtitle =>
+      _strings[languageCode]?['mk_subtitle'] ?? _strings['en']!['mk_subtitle']!;
+  String get marketOverview =>
+      _strings[languageCode]?['mk_overview'] ?? _strings['en']!['mk_overview']!;
+  String get marketStatesCovered =>
+      _strings[languageCode]?['mk_states_covered'] ??
+      _strings['en']!['mk_states_covered']!;
+  String get marketDataPoints =>
+      _strings[languageCode]?['mk_data_points'] ??
+      _strings['en']!['mk_data_points']!;
+  String get marketLatestUpdate =>
+      _strings[languageCode]?['mk_latest_update'] ??
+      _strings['en']!['mk_latest_update']!;
+  String get marketCommoditiesAvailable =>
+      _strings[languageCode]?['mk_commodities'] ??
+      _strings['en']!['mk_commodities']!;
+  String get marketSearchHint =>
+      _strings[languageCode]?['mk_search_hint'] ??
+      _strings['en']!['mk_search_hint']!;
+  String get marketSelectState =>
+      _strings[languageCode]?['mk_select_state'] ??
+      _strings['en']!['mk_select_state']!;
+  String get marketSelectDistrict =>
+      _strings[languageCode]?['mk_select_district'] ??
+      _strings['en']!['mk_select_district']!;
+  String get marketSelectCommodity =>
+      _strings[languageCode]?['mk_select_commodity'] ??
+      _strings['en']!['mk_select_commodity']!;
+  String get refresh =>
+      _strings[languageCode]?['mk_refresh'] ?? _strings['en']!['mk_refresh']!;
+  String get marketStateDashboard =>
+      _strings[languageCode]?['mk_state_dashboard'] ??
+      _strings['en']!['mk_state_dashboard']!;
+  String get marketLatestPrices =>
+      _strings[languageCode]?['mk_latest_prices'] ??
+      _strings['en']!['mk_latest_prices']!;
+  String get marketDistrictPrices =>
+      _strings[languageCode]?['mk_district_prices'] ??
+      _strings['en']!['mk_district_prices']!;
+  String get marketMarket =>
+      _strings[languageCode]?['mk_market'] ?? _strings['en']!['mk_market']!;
+  String get marketCommodity =>
+      _strings[languageCode]?['mk_commodity'] ??
+      _strings['en']!['mk_commodity']!;
+  String get marketVariety =>
+      _strings[languageCode]?['mk_variety'] ?? _strings['en']!['mk_variety']!;
+  String get marketPricePerKg =>
+      _strings[languageCode]?['mk_price_per_kg'] ??
+      _strings['en']!['mk_price_per_kg']!;
+  String get marketMinPrice =>
+      _strings[languageCode]?['mk_min_price'] ??
+      _strings['en']!['mk_min_price']!;
+  String get marketModalPrice =>
+      _strings[languageCode]?['mk_modal_price'] ??
+      _strings['en']!['mk_modal_price']!;
+  String get marketMaxPrice =>
+      _strings[languageCode]?['mk_max_price'] ??
+      _strings['en']!['mk_max_price']!;
+  String get marketUpdated =>
+      _strings[languageCode]?['mk_updated'] ?? _strings['en']!['mk_updated']!;
+  String get marketLastUpdated =>
+      _strings[languageCode]?['mk_last_updated'] ??
+      _strings['en']!['mk_last_updated']!;
+  String get marketOriginalUnit =>
+      _strings[languageCode]?['mk_original_unit'] ??
+      _strings['en']!['mk_original_unit']!;
+  String get marketUnitConversion =>
+      _strings[languageCode]?['mk_unit_conversion'] ??
+      _strings['en']!['mk_unit_conversion']!;
+  String get marketPriceUnitUnavailable =>
+      _strings[languageCode]?['mk_price_unit_unavailable'] ??
+      _strings['en']!['mk_price_unit_unavailable']!;
+  String get marketAllIndia =>
+      _strings[languageCode]?['mk_all_india'] ??
+      _strings['en']!['mk_all_india']!;
+  String get marketAllIndiaDetail =>
+      _strings[languageCode]?['mk_all_india_detail'] ??
+      _strings['en']!['mk_all_india_detail']!;
+  String get marketOfflineBanner =>
+      _strings[languageCode]?['mk_offline_banner'] ??
+      _strings['en']!['mk_offline_banner']!;
+  String get marketInsightHeading =>
+      _strings[languageCode]?['mk_insight'] ?? _strings['en']!['mk_insight']!;
+  String get marketInsightEmpty =>
+      _strings[languageCode]?['mk_insight_empty'] ??
+      _strings['en']!['mk_insight_empty']!;
+  String get marketDisclaimer =>
+      _strings[languageCode]?['mk_disclaimer'] ??
+      _strings['en']!['mk_disclaimer']!;
+  String get marketViewDetails =>
+      _strings[languageCode]?['mk_view_details'] ??
+      _strings['en']!['mk_view_details']!;
+  String get marketArrivals =>
+      _strings[languageCode]?['mk_arrivals'] ?? _strings['en']!['mk_arrivals']!;
+  String get marketSource =>
+      _strings[languageCode]?['mk_source'] ?? _strings['en']!['mk_source']!;
+  String get marketNoPrices =>
+      _strings[languageCode]?['mk_no_prices'] ??
+      _strings['en']!['mk_no_prices']!;
+  String get marketDistricts =>
+      _strings[languageCode]?['mk_districts'] ??
+      _strings['en']!['mk_districts']!;
+  String get marketStates =>
+      _strings[languageCode]?['mk_states'] ?? _strings['en']!['mk_states']!;
+  String get marketState =>
+      _strings[languageCode]?['mk_state'] ?? _strings['en']!['mk_state']!;
+  String get marketTapCommodity =>
+      _strings[languageCode]?['mk_tap_commodity'] ??
+      _strings['en']!['mk_tap_commodity']!;
+  String get marketBackToIndia =>
+      _strings[languageCode]?['mk_back_to_india'] ??
+      _strings['en']!['mk_back_to_india']!;
+  String get marketFarmContext =>
+      _strings[languageCode]?['mk_farm_context'] ??
+      _strings['en']!['mk_farm_context']!;
+  String get marketPriceHistory =>
+      _strings[languageCode]?['mk_price_history'] ??
+      _strings['en']!['mk_price_history']!;
+  String get marketHistory7d =>
+      _strings[languageCode]?['mk_history_7d'] ??
+      _strings['en']!['mk_history_7d']!;
+  String get marketHistory30d =>
+      _strings[languageCode]?['mk_history_30d'] ??
+      _strings['en']!['mk_history_30d']!;
+  String get marketHistoryNone =>
+      _strings[languageCode]?['mk_history_none'] ??
+      _strings['en']!['mk_history_none']!;
+  String get marketHistoryNote =>
+      _strings[languageCode]?['mk_history_note'] ??
+      _strings['en']!['mk_history_note']!;
+
+  String get pestPickImageFailed =>
+      _strings[languageCode]?['pest_pick_image_failed'] ??
+      _strings['en']!['pest_pick_image_failed']!;
+  String get pestValidateMessage =>
+      _strings[languageCode]?['pest_validate_message'] ??
+      _strings['en']!['pest_validate_message']!;
+  String get treatmentImmediate =>
+      _strings[languageCode]?['treatment_immediate'] ??
+      _strings['en']!['treatment_immediate']!;
+  String get treatmentBiological =>
+      _strings[languageCode]?['treatment_biological'] ??
+      _strings['en']!['treatment_biological']!;
+  String get treatmentChemical =>
+      _strings[languageCode]?['treatment_chemical'] ??
+      _strings['en']!['treatment_chemical']!;
+  String get unknown =>
+      _strings[languageCode]?['unknown'] ?? _strings['en']!['unknown']!;
+  String get pestTreatmentFallback =>
+      _strings[languageCode]?['pest_treatment_fallback'] ??
+      _strings['en']!['pest_treatment_fallback']!;
+  String get pestPreventionFallback =>
+      _strings[languageCode]?['pest_prevention_fallback'] ??
+      _strings['en']!['pest_prevention_fallback']!;
+  String get pestSeverityScore =>
+      _strings[languageCode]?['pest_severity_score'] ??
+      _strings['en']!['pest_severity_score']!;
+  String get crop =>
+      _strings[languageCode]?['crop'] ?? _strings['en']!['crop']!;
+  String get pestAnalysisErrorTitle =>
+      _strings[languageCode]?['pest_analysis_error_title'] ??
+      _strings['en']!['pest_analysis_error_title']!;
+  String get pestAnalyzeFailed =>
+      _strings[languageCode]?['pest_analyze_failed'] ??
+      _strings['en']!['pest_analyze_failed']!;
+  String get pestNoFarmMessage =>
+      _strings[languageCode]?['pest_no_farm_message'] ??
+      _strings['en']!['pest_no_farm_message']!;
+  String get pestSavedRecordsSnackbar =>
+      _strings[languageCode]?['pest_saved_records_snackbar'] ??
+      _strings['en']!['pest_saved_records_snackbar']!;
+  String get pestDetectHeader =>
+      _strings[languageCode]?['pest_detect_header'] ??
+      _strings['en']!['pest_detect_header']!;
+  String get pestStepCropTitle =>
+      _strings[languageCode]?['pest_step_crop_title'] ??
+      _strings['en']!['pest_step_crop_title']!;
+  String get pestCropHint =>
+      _strings[languageCode]?['pest_crop_hint'] ??
+      _strings['en']!['pest_crop_hint']!;
+  String get pestStepPhotosTitle =>
+      _strings[languageCode]?['pest_step_photos_title'] ??
+      _strings['en']!['pest_step_photos_title']!;
+  String get camera =>
+      _strings[languageCode]?['camera'] ?? _strings['en']!['camera']!;
+  String get gallery =>
+      _strings[languageCode]?['gallery'] ?? _strings['en']!['gallery']!;
+  String get pestPhotosSelected =>
+      _strings[languageCode]?['pest_photos_selected'] ??
+      _strings['en']!['pest_photos_selected']!;
+  String get pestAiAnalysisTitle =>
+      _strings[languageCode]?['pest_ai_analysis_title'] ??
+      _strings['en']!['pest_ai_analysis_title']!;
+  String get analyzeImagesButton =>
+      _strings[languageCode]?['analyze_images_button'] ??
+      _strings['en']!['analyze_images_button']!;
+  String get pestAnalyzingHeading =>
+      _strings[languageCode]?['pest_analyzing_heading'] ??
+      _strings['en']!['pest_analyzing_heading']!;
+  String get pestAnalyzingBody =>
+      _strings[languageCode]?['pest_analyzing_body'] ??
+      _strings['en']!['pest_analyzing_body']!;
+  String get pestAiAnalysisTitle2 =>
+      _strings[languageCode]?['pest_ai_analysis_title'] ??
+      _strings['en']!['pest_ai_analysis_title']!;
+  String get riskSuffix =>
+      _strings[languageCode]?['risk_suffix'] ?? _strings['en']!['risk_suffix']!;
+  String get pestBasedOnVisual =>
+      _strings[languageCode]?['pest_based_on_visual'] ??
+      _strings['en']!['pest_based_on_visual']!;
+  String get pestConfidence =>
+      _strings[languageCode]?['pest_confidence'] ??
+      _strings['en']!['pest_confidence']!;
+  String get pestTreatmentLabel =>
+      _strings[languageCode]?['pest_treatment_label'] ??
+      _strings['en']!['pest_treatment_label']!;
+  String get pestPreventionLabel =>
+      _strings[languageCode]?['pest_prevention_label'] ??
+      _strings['en']!['pest_prevention_label']!;
+  String get pestDisclaimer =>
+      _strings[languageCode]?['pest_disclaimer'] ??
+      _strings['en']!['pest_disclaimer']!;
+  String get pestSavedButton =>
+      _strings[languageCode]?['pest_saved_button'] ??
+      _strings['en']!['pest_saved_button']!;
+  String get pestSaveButton =>
+      _strings[languageCode]?['pest_save_button'] ??
+      _strings['en']!['pest_save_button']!;
+
+  // Main shell screen
+  String get home =>
+      _strings[languageCode]?['home'] ?? _strings['en']!['home']!;
+  String get farm =>
+      _strings[languageCode]?['farm'] ?? _strings['en']!['farm']!;
+  String get tools =>
+      _strings[languageCode]?['tools'] ?? _strings['en']!['tools']!;
+  String get account =>
+      _strings[languageCode]?['account'] ?? _strings['en']!['account']!;
+
+  // Account screen
+  String get userFallback =>
+      _strings[languageCode]?['user_fallback'] ??
+      _strings['en']!['user_fallback']!;
+  String get editProfile =>
+      _strings[languageCode]?['edit_profile'] ??
+      _strings['en']!['edit_profile']!;
+  String get language =>
+      _strings[languageCode]?['language'] ?? _strings['en']!['language']!;
+  String get appearance =>
+      _strings[languageCode]?['appearance'] ?? _strings['en']!['appearance']!;
+  String get notifications =>
+      _strings[languageCode]?['notifications'] ??
+      _strings['en']!['notifications']!;
+  String get helpSupport =>
+      _strings[languageCode]?['help_support'] ??
+      _strings['en']!['help_support']!;
+  String get aboutVidhai =>
+      _strings[languageCode]?['about_vidhai'] ??
+      _strings['en']!['about_vidhai']!;
+  String get console =>
+      _strings[languageCode]?['console'] ?? _strings['en']!['console']!;
+  String get googleAccount =>
+      _strings[languageCode]?['google_account'] ??
+      _strings['en']!['google_account']!;
+  String get googleAlreadyLinked =>
+      _strings[languageCode]?['google_already_linked'] ??
+      _strings['en']!['google_already_linked']!;
+  String get googleAlreadyLinkedMsg =>
+      _strings[languageCode]?['google_already_linked_msg'] ??
+      _strings['en']!['google_already_linked_msg']!;
+  String get googleLinkFailed =>
+      _strings[languageCode]?['google_link_failed'] ??
+      _strings['en']!['google_link_failed']!;
+  String get googleAlreadyLinkedMsgAr =>
+      _strings[languageCode]?['google_already_linked_msg_ar'] ??
+      _strings['en']!['google_already_linked_msg_ar']!;
+  String get invalidGoogleCredentials =>
+      _strings[languageCode]?['invalid_google_credentials'] ??
+      _strings['en']!['invalid_google_credentials']!;
+  String get googleSigninCancelled =>
+      _strings[languageCode]?['google_signin_cancelled'] ??
+      _strings['en']!['google_signin_cancelled']!;
+  String get signInWithGoogle =>
+      _strings[languageCode]?['sign_in_with_google'] ??
+      _strings['en']!['sign_in_with_google']!;
+  String get signInDescription =>
+      _strings[languageCode]?['sign_in_description'] ??
+      _strings['en']!['sign_in_description']!;
+  String get signingIn =>
+      _strings[languageCode]?['signing_in'] ?? _strings['en']!['signing_in']!;
+  String get signInFailed =>
+      _strings[languageCode]?['sign_in_failed'] ??
+      _strings['en']!['sign_in_failed']!;
+  String get signInConfigError =>
+      _strings[languageCode]?['sign_in_config_error'] ??
+      _strings['en']!['sign_in_config_error']!;
+  // Post detail screen
+  String get postTitle =>
+      _strings[languageCode]?['post_title'] ?? _strings['en']!['post_title']!;
+  String get comments =>
+      _strings[languageCode]?['comments'] ?? _strings['en']!['comments']!;
+  String get noCommentsYet =>
+      _strings[languageCode]?['no_comments_yet'] ??
+      _strings['en']!['no_comments_yet']!;
+  String get writeCommentHint =>
+      _strings[languageCode]?['write_comment_hint'] ??
+      _strings['en']!['write_comment_hint']!;
+  String get timeAgoNow =>
+      _strings[languageCode]?['time_ago_now'] ??
+      _strings['en']!['time_ago_now']!;
+
+  // Time ago short methods
+  String timeAgoShortM(String minutes) =>
+      _strings[languageCode]?['time_ago_short_m'] ??
+      _strings['en']!['time_ago_short_m']!;
+  String timeAgoShortH(String hours) =>
+      _strings[languageCode]?['time_ago_short_h'] ??
+      _strings['en']!['time_ago_short_h']!;
+  String timeAgoShortD(String days) =>
+      _strings[languageCode]?['time_ago_short_d'] ??
+      _strings['en']!['time_ago_short_d']!;
+  String timeAgoShortW(String weeks) =>
+      _strings[languageCode]?['time_ago_short_w'] ??
+      _strings['en']!['time_ago_short_w']!;
+
+  // Farmer home screen
+  String get goodMorning =>
+      _strings[languageCode]?['good_morning'] ??
+      _strings['en']!['good_morning']!;
+  String get goodAfternoon =>
+      _strings[languageCode]?['good_afternoon'] ??
+      _strings['en']!['good_afternoon']!;
+  String get goodEvening =>
+      _strings[languageCode]?['good_evening'] ??
+      _strings['en']!['good_evening']!;
+  String get goodNight =>
+      _strings[languageCode]?['good_night'] ?? _strings['en']!['good_night']!;
+  String get quote1 =>
+      _strings[languageCode]?['quote1'] ?? _strings['en']!['quote1']!;
+  String get quote2 =>
+      _strings[languageCode]?['quote2'] ?? _strings['en']!['quote2']!;
+  String get quote3 =>
+      _strings[languageCode]?['quote3'] ?? _strings['en']!['quote3']!;
+  String get quote4 =>
+      _strings[languageCode]?['quote4'] ?? _strings['en']!['quote4']!;
+  String get quote5 =>
+      _strings[languageCode]?['quote5'] ?? _strings['en']!['quote5']!;
+  String get addFarmLocationWeather =>
+      _strings[languageCode]?['add_farm_location_weather'] ??
+      _strings['en']!['add_farm_location_weather']!;
+  String get noWeatherData =>
+      _strings[languageCode]?['no_weather_data'] ??
+      _strings['en']!['no_weather_data']!;
+  String get seeAll =>
+      _strings[languageCode]?['see_all'] ?? _strings['en']!['see_all']!;
+  String get moreTasks =>
+      _strings[languageCode]?['more_tasks'] ?? _strings['en']!['more_tasks']!;
+
+  // Crop setup screen
+  String get cropSetup =>
+      _strings[languageCode]?['crop_setup'] ?? _strings['en']!['crop_setup']!;
+  String get cropSetupHelpText =>
+      _strings[languageCode]?['crop_setup_help_text'] ??
+      _strings['en']!['crop_setup_help_text']!;
+  String get lastCropGrown =>
+      _strings[languageCode]?['last_crop_grown'] ??
+      _strings['en']!['last_crop_grown']!;
+  String get hintLastCrop =>
+      _strings[languageCode]?['hint_last_crop'] ??
+      _strings['en']!['hint_last_crop']!;
+  String get whenWasItHarvested =>
+      _strings[languageCode]?['when_was_it_harvested'] ??
+      _strings['en']!['when_was_it_harvested']!;
+  String get selectHarvestDate =>
+      _strings[languageCode]?['select_harvest_date'] ??
+      _strings['en']!['select_harvest_date']!;
+  String get howLongLandIdle =>
+      _strings[languageCode]?['how_long_land_idle'] ??
+      _strings['en']!['how_long_land_idle']!;
+  String get selectDuration =>
+      _strings[languageCode]?['select_duration'] ??
+      _strings['en']!['select_duration']!;
+  String get whenLastIrrigation =>
+      _strings[languageCode]?['when_last_irrigation'] ??
+      _strings['en']!['when_last_irrigation']!;
+  String get selectLastIrrigationDate =>
+      _strings[languageCode]?['select_last_irrigation_date'] ??
+      _strings['en']!['select_last_irrigation_date']!;
+  String get currentWaterAvailability =>
+      _strings[languageCode]?['current_water_availability'] ??
+      _strings['en']!['current_water_availability']!;
+  String get selectSoilType =>
+      _strings[languageCode]?['select_soil_type'] ??
+      _strings['en']!['select_soil_type']!;
+  String get soilCondition =>
+      _strings[languageCode]?['soil_condition'] ??
+      _strings['en']!['soil_condition']!;
+  String get selectSoilCondition =>
+      _strings[languageCode]?['select_soil_condition'] ??
+      _strings['en']!['select_soil_condition']!;
+  String get irrigationSystemAvailable =>
+      _strings[languageCode]?['irrigation_system_available'] ??
+      _strings['en']!['irrigation_system_available']!;
+  String get selectIrrigationSystem =>
+      _strings[languageCode]?['select_irrigation_system'] ??
+      _strings['en']!['select_irrigation_system']!;
+  String get autoFilledFromFarmData =>
+      _strings[languageCode]?['auto_filled_from_farm_data'] ??
+      _strings['en']!['auto_filled_from_farm_data']!;
+
+  // Farm history screen
+  String get previousExpenses =>
+      _strings[languageCode]?['previous_expenses'] ??
+      _strings['en']!['previous_expenses']!;
+  String get noExpenseRecordsFound =>
+      _strings[languageCode]?['no_expense_records_found'] ??
+      _strings['en']!['no_expense_records_found']!;
+  String get importantEvents =>
+      _strings[languageCode]?['important_events'] ??
+      _strings['en']!['important_events']!;
+  String get noImportantEventsRecorded =>
+      _strings[languageCode]?['no_important_events_recorded'] ??
+      _strings['en']!['no_important_events_recorded']!;
+  String get resolvedPrefix =>
+      _strings[languageCode]?['resolved_prefix'] ??
+      _strings['en']!['resolved_prefix']!;
+  String get detectedPrefix =>
+      _strings[languageCode]?['detected_prefix'] ??
+      _strings['en']!['detected_prefix']!;
+  String get noHistoryRecordsYet =>
+      _strings[languageCode]?['no_history_records_yet'] ??
+      _strings['en']!['no_history_records_yet']!;
+  String get farmHistoryEmptyDesc =>
+      _strings[languageCode]?['farm_history_empty_desc'] ??
+      _strings['en']!['farm_history_empty_desc']!;
+
+  // Disease screen
+  String get diseasePestRecords =>
+      _strings[languageCode]?['disease_pest_records'] ??
+      _strings['en']!['disease_pest_records']!;
+  String get editRecord =>
+      _strings[languageCode]?['edit_record'] ?? _strings['en']!['edit_record']!;
+  String get addDiseasePest =>
+      _strings[languageCode]?['add_disease_pest'] ??
+      _strings['en']!['add_disease_pest']!;
+  String get detectedDate =>
+      _strings[languageCode]?['detected_date'] ??
+      _strings['en']!['detected_date']!;
+  String get hintCrop =>
+      _strings[languageCode]?['hint_crop'] ?? _strings['en']!['hint_crop']!;
+  String get problem =>
+      _strings[languageCode]?['problem'] ?? _strings['en']!['problem']!;
+  String get hintProblem =>
+      _strings[languageCode]?['hint_problem'] ??
+      _strings['en']!['hint_problem']!;
+  String get severity =>
+      _strings[languageCode]?['severity'] ?? _strings['en']!['severity']!;
+  String get selectSeverity =>
+      _strings[languageCode]?['select_severity'] ??
+      _strings['en']!['select_severity']!;
+  String get treatmentOptional =>
+      _strings[languageCode]?['treatment_optional'] ??
+      _strings['en']!['treatment_optional']!;
+  String get hintTreatment =>
+      _strings[languageCode]?['hint_treatment'] ??
+      _strings['en']!['hint_treatment']!;
+  String get status =>
+      _strings[languageCode]?['status'] ?? _strings['en']!['status']!;
+  String get noDiseaseRecords =>
+      _strings[languageCode]?['no_disease_records'] ??
+      _strings['en']!['no_disease_records']!;
+  String get trackDiseasesPests =>
+      _strings[languageCode]?['track_diseases_pests'] ??
+      _strings['en']!['track_diseases_pests']!;
+
+  // Fertilizer screen
+  String get fertilizerRecords =>
+      _strings[languageCode]?['fertilizer_records'] ??
+      _strings['en']!['fertilizer_records']!;
+  String get qty => _strings[languageCode]?['qty'] ?? _strings['en']!['qty']!;
+  String get method =>
+      _strings[languageCode]?['method'] ?? _strings['en']!['method']!;
+  String get deleteRecord =>
+      _strings[languageCode]?['delete_record'] ??
+      _strings['en']!['delete_record']!;
+  String get delete =>
+      _strings[languageCode]?['delete'] ?? _strings['en']!['delete']!;
+  String get editFertilizerRecord =>
+      _strings[languageCode]?['edit_fertilizer_record'] ??
+      _strings['en']!['edit_fertilizer_record']!;
+  String get addFertilizerRecord =>
+      _strings[languageCode]?['add_fertilizer_record'] ??
+      _strings['en']!['add_fertilizer_record']!;
+  String get productName =>
+      _strings[languageCode]?['product_name'] ??
+      _strings['en']!['product_name']!;
+  String get hintProductName =>
+      _strings[languageCode]?['hint_product_name'] ??
+      _strings['en']!['hint_product_name']!;
+  String get type =>
+      _strings[languageCode]?['type'] ?? _strings['en']!['type']!;
+  String get selectType =>
+      _strings[languageCode]?['select_type'] ?? _strings['en']!['select_type']!;
+  String get date =>
+      _strings[languageCode]?['date'] ?? _strings['en']!['date']!;
+  String get quantity =>
+      _strings[languageCode]?['quantity'] ?? _strings['en']!['quantity']!;
+  String get hintQuantity =>
+      _strings[languageCode]?['hint_quantity'] ??
+      _strings['en']!['hint_quantity']!;
+  String get applicationMethod =>
+      _strings[languageCode]?['application_method'] ??
+      _strings['en']!['application_method']!;
+  String get hintApplicationMethod =>
+      _strings[languageCode]?['hint_application_method'] ??
+      _strings['en']!['hint_application_method']!;
+  String get cropOptional =>
+      _strings[languageCode]?['crop_optional'] ??
+      _strings['en']!['crop_optional']!;
+  String get hintCropWheatPaddy =>
+      _strings[languageCode]?['hint_crop_wheat_paddy'] ??
+      _strings['en']!['hint_crop_wheat_paddy']!;
+  String get update =>
+      _strings[languageCode]?['update'] ?? _strings['en']!['update']!;
+  String get noFertilizerRecords =>
+      _strings[languageCode]?['no_fertilizer_records'] ??
+      _strings['en']!['no_fertilizer_records']!;
+  String get trackFertilizerApplications =>
+      _strings[languageCode]?['track_fertilizer_applications'] ??
+      _strings['en']!['track_fertilizer_applications']!;
+
+  // Pesticide screen
+  String get pesticideRecords =>
+      _strings[languageCode]?['pesticide_records'] ??
+      _strings['en']!['pesticide_records']!;
+  String get area =>
+      _strings[languageCode]?['area'] ?? _strings['en']!['area']!;
+  String get purpose =>
+      _strings[languageCode]?['purpose'] ?? _strings['en']!['purpose']!;
+  String get deleteRecord2 =>
+      _strings[languageCode]?['delete_record'] ??
+      _strings['en']!['delete_record']!;
+  String get delete2 =>
+      _strings[languageCode]?['delete'] ?? _strings['en']!['delete']!;
+  String get editPesticideRecord =>
+      _strings[languageCode]?['edit_pesticide_record'] ??
+      _strings['en']!['edit_pesticide_record']!;
+  String get addPesticideRecord =>
+      _strings[languageCode]?['add_pesticide_record'] ??
+      _strings['en']!['add_pesticide_record']!;
+  String get productName2 =>
+      _strings[languageCode]?['product_name'] ??
+      _strings['en']!['product_name']!;
+  String get hintProductNamePesticide =>
+      _strings[languageCode]?['hint_product_name_pesticide'] ??
+      _strings['en']!['hint_product_name_pesticide']!;
+  String get date2 =>
+      _strings[languageCode]?['date'] ?? _strings['en']!['date']!;
+  String get quantity2 =>
+      _strings[languageCode]?['quantity'] ?? _strings['en']!['quantity']!;
+  String get hintQuantityMl =>
+      _strings[languageCode]?['hint_quantity_ml'] ??
+      _strings['en']!['hint_quantity_ml']!;
+  String get applicationArea =>
+      _strings[languageCode]?['application_area'] ??
+      _strings['en']!['application_area']!;
+  String get hintApplicationArea =>
+      _strings[languageCode]?['hint_application_area'] ??
+      _strings['en']!['hint_application_area']!;
+  String get purpose2 =>
+      _strings[languageCode]?['purpose'] ?? _strings['en']!['purpose']!;
+  String get hintPurpose =>
+      _strings[languageCode]?['hint_purpose'] ??
+      _strings['en']!['hint_purpose']!;
+  // Expense screen
+  String expenseCountLabel(String count) =>
+      _strings[languageCode]?['expense_count_label'] ??
+      _strings['en']!['expense_count_label']!;
+  String get deleteExpense =>
+      _strings[languageCode]?['delete_expense'] ??
+      _strings['en']!['delete_expense']!;
+  String deleteExpenseConfirm(String category, String amount) =>
+      _strings[languageCode]?['delete_expense_confirm'] ??
+      _strings['en']!['delete_expense_confirm']!;
+  String get editExpense =>
+      _strings[languageCode]?['edit_expense'] ??
+      _strings['en']!['edit_expense']!;
+  String get addExpense =>
+      _strings[languageCode]?['add_expense'] ?? _strings['en']!['add_expense']!;
+  String get selectCategoryHint =>
+      _strings[languageCode]?['select_category_hint'] ??
+      _strings['en']!['select_category_hint']!;
+  String get amount =>
+      _strings[languageCode]?['amount'] ?? _strings['en']!['amount']!;
+  String get description =>
+      _strings[languageCode]?['description'] ?? _strings['en']!['description']!;
+  String get hintDescription =>
+      _strings[languageCode]?['hint_description'] ??
+      _strings['en']!['hint_description']!;
+  String get vendorOptional =>
+      _strings[languageCode]?['vendor_optional'] ??
+      _strings['en']!['vendor_optional']!;
+  String get hintVendor =>
+      _strings[languageCode]?['hint_vendor'] ?? _strings['en']!['hint_vendor']!;
+  String get receiptPhotoOptional =>
+      _strings[languageCode]?['receipt_photo_optional'] ??
+      _strings['en']!['receipt_photo_optional']!;
+  String get tapToAddReceipt =>
+      _strings[languageCode]?['tap_to_add_receipt'] ??
+      _strings['en']!['tap_to_add_receipt']!;
+  String get noExpensesYet =>
+      _strings[languageCode]?['no_expenses_yet'] ??
+      _strings['en']!['no_expenses_yet']!;
+  String get trackFarmExpenses =>
+      _strings[languageCode]?['track_farm_expenses'] ??
+      _strings['en']!['track_farm_expenses']!;
+
+  String get cropOptional2 =>
+      _strings[languageCode]?['crop_optional'] ??
+      _strings['en']!['crop_optional']!;
+  String get hintCropWheatRice =>
+      _strings[languageCode]?['hint_crop_wheat_rice'] ??
+      _strings['en']!['hint_crop_wheat_rice']!;
+  String get notesOptional =>
+      _strings[languageCode]?['notes_optional'] ??
+      _strings['en']!['notes_optional']!;
+  String get hintNotes =>
+      _strings[languageCode]?['hint_notes'] ?? _strings['en']!['hint_notes']!;
+  String get update2 =>
+      _strings[languageCode]?['update'] ?? _strings['en']!['update']!;
+  String get noPesticideRecords =>
+      _strings[languageCode]?['no_pesticide_records'] ??
+      _strings['en']!['no_pesticide_records']!;
+
+  // Farmer home screen
+  String get trackPesticideApplications =>
+      _strings[languageCode]?['track_pesticide_applications'] ??
+      _strings['en']!['track_pesticide_applications']!;
+
+  // Farm history screen
+  String get overview =>
+      _strings[languageCode]?['overview'] ?? _strings['en']!['overview']!;
+  String get previousTreatments =>
+      _strings[languageCode]?['previous_treatments'] ??
+      _strings['en']!['previous_treatments']!;
+  String get diseases =>
+      _strings[languageCode]?['diseases'] ?? _strings['en']!['diseases']!;
+  String get previousCrops =>
+      _strings[languageCode]?['previous_crops'] ??
+      _strings['en']!['previous_crops']!;
+  String get noCropRecordsFound =>
+      _strings[languageCode]?['no_crop_records_found'] ??
+      _strings['en']!['no_crop_records_found']!;
+  String get noTreatmentRecordsFound =>
+      _strings[languageCode]?['no_treatment_records_found'] ??
+      _strings['en']!['no_treatment_records_found']!;
+  String get noFertilizerRecordsFound =>
+      _strings[languageCode]?['no_fertilizer_records_found'] ??
+      _strings['en']!['no_fertilizer_records_found']!;
+  String get diseaseRecords =>
+      _strings[languageCode]?['disease_records'] ??
+      _strings['en']!['disease_records']!;
+  String get noIrrigationRecordsFound =>
+      _strings[languageCode]?['no_irrigation_records_found'] ??
+      _strings['en']!['no_irrigation_records_found']!;
+  String recordCountLabel(String count) =>
+      _strings[languageCode]?['record_count_label'] ??
+      _strings['en']!['record_count_label']!;
+
+  // Tasks screen
+  String get todaysTasks =>
+      _strings[languageCode]?['todays_tasks'] ??
+      _strings['en']!['todays_tasks']!;
+  String get tasksCompletedCount =>
+      _strings[languageCode]?['tasks_completed_count'] ??
+      _strings['en']!['tasks_completed_count']!;
+  String get farmAssistantTitle =>
+      _strings[languageCode]?['farm_assistant_title'] ??
+      _strings['en']!['farm_assistant_title']!;
+  String get aiAssistantWhatNow =>
+      _strings[languageCode]?['ai_assistant_what_now'] ??
+      _strings['en']!['ai_assistant_what_now']!;
+  String get ask => _strings[languageCode]?['ask'] ?? _strings['en']!['ask']!;
+  String get vidhaiAssistant =>
+      _strings[languageCode]?['vidhai_assistant'] ??
+      _strings['en']!['vidhai_assistant']!;
+  String get assistantConfirm =>
+      _strings[languageCode]?['assistant_confirm'] ??
+      _strings['en']!['assistant_confirm']!;
+  String get assistantWelcome =>
+      _strings[languageCode]?['assistant_welcome'] ??
+      _strings['en']!['assistant_welcome']!;
+  String get assistantWelcomeBack =>
+      _strings[languageCode]?['assistant_welcome_back'] ??
+      _strings['en']!['assistant_welcome_back']!;
+  String assistantWelcomeBackNamed(String name) =>
+      (_strings[languageCode]?['assistant_welcome_back_named'] ??
+              _strings['en']!['assistant_welcome_back_named']!)
+          .replaceAll('{name}', name);
+  String get assistantHint =>
+      _strings[languageCode]?['assistant_hint'] ??
+      _strings['en']!['assistant_hint']!;
+  String get assistantLimit =>
+      _strings[languageCode]?['assistant_limit'] ??
+      _strings['en']!['assistant_limit']!;
+  String get assistantReview =>
+      _strings[languageCode]?['assistant_review'] ??
+      _strings['en']!['assistant_review']!;
+  String get askAboutFarm =>
+      _strings[languageCode]?['ask_about_farm'] ??
+      _strings['en']!['ask_about_farm']!;
+  String get askVoiceOrTyping =>
+      _strings[languageCode]?['ask_voice_or_typing'] ??
+      _strings['en']!['ask_voice_or_typing']!;
+  String get aiResponsePlaceholder =>
+      _strings[languageCode]?['ai_response_placeholder'] ??
+      _strings['en']!['ai_response_placeholder']!;
+  String get noTasksYet =>
+      _strings[languageCode]?['no_tasks_yet'] ??
+      _strings['en']!['no_tasks_yet']!;
+  String get configureFarmsSmartTasks =>
+      _strings[languageCode]?['configure_farms_smart_tasks'] ??
+      _strings['en']!['configure_farms_smart_tasks']!;
+
+  // Farm screen
+  String get myFarms =>
+      _strings[languageCode]?['my_farms'] ?? _strings['en']!['my_farms']!;
+  String get addFarm =>
+      _strings[languageCode]?['add_farm'] ?? _strings['en']!['add_farm']!;
+  String get noFarmsYet =>
+      _strings[languageCode]?['no_farms_yet'] ??
+      _strings['en']!['no_farms_yet']!;
+  String get tapAddFarmToCreate =>
+      _strings[languageCode]?['tap_add_farm_to_create'] ??
+      _strings['en']!['tap_add_farm_to_create']!;
+  String get myFarm =>
+      _strings[languageCode]?['my_farm'] ?? _strings['en']!['my_farm']!;
+  String get stage =>
+      _strings[languageCode]?['stage'] ?? _strings['en']!['stage']!;
+  String get currentStage =>
+      _strings[languageCode]?['current_stage'] ??
+      _strings['en']!['current_stage']!;
+  String get edit =>
+      _strings[languageCode]?['edit'] ?? _strings['en']!['edit']!;
+  String get editFarm =>
+      _strings[languageCode]?['edit_farm'] ?? _strings['en']!['edit_farm']!;
+  String get cropStatus =>
+      _strings[languageCode]?['crop_status'] ?? _strings['en']!['crop_status']!;
+  String get farmInformation =>
+      _strings[languageCode]?['farm_information'] ??
+      _strings['en']!['farm_information']!;
+  String get totalExpenses =>
+      _strings[languageCode]?['total_expenses'] ??
+      _strings['en']!['total_expenses']!;
+  String get deleteFarm =>
+      _strings[languageCode]?['delete_farm'] ?? _strings['en']!['delete_farm']!;
+  String deleteFarmConfirm(String name) {
+    final t = _strings[languageCode]?['delete_farm_confirm'] ??
+        _strings['en']!['delete_farm_confirm']!;
+    return t.replaceAll('{name}', name);
+  }
+
+  String get farmDeleted =>
+      _strings[languageCode]?['farm_deleted'] ??
+      _strings['en']!['farm_deleted']!;
+  String get deleteFarmFailed =>
+      _strings[languageCode]?['delete_farm_failed'] ??
+      _strings['en']!['delete_farm_failed']!;
+  String get totalFarms =>
+      _strings[languageCode]?['total_farms'] ?? _strings['en']!['total_farms']!;
+  String get activeFarms =>
+      _strings[languageCode]?['active_farms'] ??
+      _strings['en']!['active_farms']!;
+  String get notConfigured =>
+      _strings[languageCode]?['not_configured'] ??
+      _strings['en']!['not_configured']!;
+  String get noLocation =>
+      _strings[languageCode]?['no_location'] ?? _strings['en']!['no_location']!;
+  String get noCrop =>
+      _strings[languageCode]?['no_crop'] ?? _strings['en']!['no_crop']!;
+  String get loadingWeather =>
+      _strings[languageCode]?['loading_weather'] ??
+      _strings['en']!['loading_weather']!;
+
+  // Crop setup screen
+  String get currentSeason =>
+      _strings[languageCode]?['current_season'] ??
+      _strings['en']!['current_season']!;
+  String get autoDetected =>
+      _strings[languageCode]?['auto_detected'] ??
+      _strings['en']!['auto_detected']!;
+  String get cropDurationPreference =>
+      _strings[languageCode]?['crop_duration_preference'] ??
+      _strings['en']!['crop_duration_preference']!;
+  String get cropCategoryPreference =>
+      _strings[languageCode]?['crop_category_preference'] ??
+      _strings['en']!['crop_category_preference']!;
+  String get getRecommendations =>
+      _strings[languageCode]?['get_recommendations'] ??
+      _strings['en']!['get_recommendations']!;
+
+  // Farm details screen
+  String get farmNotFound =>
+      _strings[languageCode]?['farm_not_found'] ??
+      _strings['en']!['farm_not_found']!;
+  String get active =>
+      _strings[languageCode]?['active'] ?? _strings['en']!['active']!;
+  String get noLocationSet =>
+      _strings[languageCode]?['no_location_set'] ??
+      _strings['en']!['no_location_set']!;
+  String get size =>
+      _strings[languageCode]?['size'] ?? _strings['en']!['size']!;
+  String get notSet =>
+      _strings[languageCode]?['not_set'] ?? _strings['en']!['not_set']!;
+  String get cropInfo =>
+      _strings[languageCode]?['crop_info'] ?? _strings['en']!['crop_info']!;
+  String get configureCrop =>
+      _strings[languageCode]?['configure_crop'] ??
+      _strings['en']!['configure_crop']!;
+  String get weather =>
+      _strings[languageCode]?['weather'] ?? _strings['en']!['weather']!;
+  String get tapToView =>
+      _strings[languageCode]?['tap_to_view'] ?? _strings['en']!['tap_to_view']!;
+  String get noDataYet =>
+      _strings[languageCode]?['no_data_yet'] ?? _strings['en']!['no_data_yet']!;
+  String get soil =>
+      _strings[languageCode]?['soil'] ?? _strings['en']!['soil']!;
+  String get expenses =>
+      _strings[languageCode]?['expenses'] ?? _strings['en']!['expenses']!;
+  String get viewRecords =>
+      _strings[languageCode]?['view_records'] ??
+      _strings['en']!['view_records']!;
+  String get pesticides =>
+      _strings[languageCode]?['pesticides'] ?? _strings['en']!['pesticides']!;
+  String get fertilizers =>
+      _strings[languageCode]?['fertilizers'] ?? _strings['en']!['fertilizers']!;
+  String get disease =>
+      _strings[languageCode]?['disease'] ?? _strings['en']!['disease']!;
+  String get viewAlerts =>
+      _strings[languageCode]?['view_alerts'] ?? _strings['en']!['view_alerts']!;
+  String get history =>
+      _strings[languageCode]?['history'] ?? _strings['en']!['history']!;
+  String get farmHistory =>
+      _strings[languageCode]?['farm_history'] ??
+      _strings['en']!['farm_history']!;
+  String get recommend =>
+      _strings[languageCode]?['recommend'] ?? _strings['en']!['recommend']!;
+  String get aiCropAdvice =>
+      _strings[languageCode]?['ai_crop_advice'] ??
+      _strings['en']!['ai_crop_advice']!;
+  String get farming =>
+      _strings[languageCode]?['farming'] ?? _strings['en']!['farming']!;
+  String get farmingMethod =>
+      _strings[languageCode]?['farming_method'] ??
+      _strings['en']!['farming_method']!;
+  String get noFarmingMethodConfigured =>
+      _strings[languageCode]?['no_farming_method_configured'] ??
+      _strings['en']!['no_farming_method_configured']!;
+  String get availabilityLabel =>
+      _strings[languageCode]?['availability_label'] ??
+      _strings['en']!['availability_label']!;
+  String get sourceLabel =>
+      _strings[languageCode]?['source_label'] ??
+      _strings['en']!['source_label']!;
+  String get noWaterDataConfigured =>
+      _strings[languageCode]?['no_water_data_configured'] ??
+      _strings['en']!['no_water_data_configured']!;
+  String get aiAnalysisLabel =>
+      _strings[languageCode]?['ai_analysis_label'] ??
+      _strings['en']!['ai_analysis_label']!;
+  String get noSoilDataConfigured =>
+      _strings[languageCode]?['no_soil_data_configured'] ??
+      _strings['en']!['no_soil_data_configured']!;
+  String get noIrrigationDataConfigured =>
+      _strings[languageCode]?['no_irrigation_data_configured'] ??
+      _strings['en']!['no_irrigation_data_configured']!;
+  String get irrigation =>
+      _strings[languageCode]?['irrigation'] ?? _strings['en']!['irrigation']!;
+  String get typeLabel =>
+      _strings[languageCode]?['type_label'] ?? _strings['en']!['type_label']!;
+
+  // Community screen
+  String get aiAssisted =>
+      _strings[languageCode]?['ai_assisted'] ?? _strings['en']!['ai_assisted']!;
+  String get communityCategoryGeneral =>
+      _strings[languageCode]?['community_category_general'] ??
+      _strings['en']!['community_category_general']!;
+  String get communityCategoryCrops =>
+      _strings[languageCode]?['community_category_crops'] ??
+      _strings['en']!['community_category_crops']!;
+  String get communityCategoryPestControl =>
+      _strings[languageCode]?['community_category_pest_control'] ??
+      _strings['en']!['community_category_pest_control']!;
+  String get communityCategoryIrrigation =>
+      _strings[languageCode]?['community_category_irrigation'] ??
+      _strings['en']!['community_category_irrigation']!;
+  String get communityCategoryMarket =>
+      _strings[languageCode]?['community_category_market'] ??
+      _strings['en']!['community_category_market']!;
+  String get communityCategoryEquipment =>
+      _strings[languageCode]?['community_category_equipment'] ??
+      _strings['en']!['community_category_equipment']!;
+  String get communityCategoryOrganic =>
+      _strings[languageCode]?['community_category_organic'] ??
+      _strings['en']!['community_category_organic']!;
+  String get communityCategoryWeather =>
+      _strings[languageCode]?['community_category_weather'] ??
+      _strings['en']!['community_category_weather']!;
+  String get communityCategorySchemes =>
+      _strings[languageCode]?['community_category_schemes'] ??
+      _strings['en']!['community_category_schemes']!;
+  String get postPublished =>
+      _strings[languageCode]?['post_published'] ??
+      _strings['en']!['post_published']!;
+  String get postFailed =>
+      _strings[languageCode]?['post_failed'] ?? _strings['en']!['post_failed']!;
+
+  String get linkGoogleAccount =>
+      _strings[languageCode]?['link_google_account'] ??
+      _strings['en']!['link_google_account']!;
+
+  String get appearanceDesc =>
+      _strings[languageCode]?['appearance_desc'] ??
+      _strings['en']!['appearance_desc']!;
+
+  String get lightMode =>
+      _strings[languageCode]?['light_mode'] ?? _strings['en']!['light_mode']!;
+
+  String get darkMode =>
+      _strings[languageCode]?['dark_mode'] ?? _strings['en']!['dark_mode']!;
+
+  String get mintTheme =>
+      _strings[languageCode]?['mint_theme'] ?? _strings['en']!['mint_theme']!;
+
+  String get pistachioTheme =>
+      _strings[languageCode]?['pistachio_theme'] ??
+      _strings['en']!['pistachio_theme']!;
+
+  String get systemDefault =>
+      _strings[languageCode]?['system_default'] ??
+      _strings['en']!['system_default']!;
+
+  String get followDeviceSetting =>
+      _strings[languageCode]?['follow_device_setting'] ??
+      _strings['en']!['follow_device_setting']!;
+
+  String get logoutConfirmation =>
+      _strings[languageCode]?['logout_confirmation'] ??
+      _strings['en']!['logout_confirmation']!;
+
+  String get emailUs =>
+      _strings[languageCode]?['email_us'] ?? _strings['en']!['email_us']!;
+
+  String get callUs =>
+      _strings[languageCode]?['call_us'] ?? _strings['en']!['call_us']!;
+
+  String get liveChat =>
+      _strings[languageCode]?['live_chat'] ?? _strings['en']!['live_chat']!;
+
+  String get liveChatAvailability =>
+      _strings[languageCode]?['live_chat_availability'] ??
+      _strings['en']!['live_chat_availability']!;
+
+  String get faq => _strings[languageCode]?['faq'] ?? _strings['en']!['faq']!;
+
+  String get helpCenter =>
+      _strings[languageCode]?['help_center'] ?? _strings['en']!['help_center']!;
+
+  String get copyrightNotice =>
+      _strings[languageCode]?['copyright_notice'] ??
+      _strings['en']!['copyright_notice']!;
+
+  String get aboutDescription =>
+      _strings[languageCode]?['about_description'] ??
+      _strings['en']!['about_description']!;
+
+  String get switchConsole =>
+      _strings[languageCode]?['switch_console'] ??
+      _strings['en']!['switch_console']!;
+
+  String get consoleSwitched =>
+      _strings[languageCode]?['console_switched'] ??
+      _strings['en']!['console_switched']!;
+
+  String get consoleSwitchedMessage =>
+      _strings[languageCode]?['console_switched_message'] ??
+      _strings['en']!['console_switched_message']!;
+
+  String get linkGoogleDescription =>
+      _strings[languageCode]?['link_google_description'] ??
+      _strings['en']!['link_google_description']!;
+
+  String get linkNow =>
+      _strings[languageCode]?['link_now'] ?? _strings['en']!['link_now']!;
+
+  String get googleLinkedSuccess =>
+      _strings[languageCode]?['google_linked_success'] ??
+      _strings['en']!['google_linked_success']!;
+
+  String get googleLinkedOtherUser =>
+      _strings[languageCode]?['google_linked_other_user'] ??
+      _strings['en']!['google_linked_other_user']!;
+
+  String get cropBudgetPerAcre =>
+      _strings[languageCode]?['cropBudgetPerAcre'] ??
+      _strings['en']!['cropBudgetPerAcre']!;
+
+  String get cropBudgetHint =>
+      _strings[languageCode]?['cropBudgetHint'] ??
+      _strings['en']!['cropBudgetHint']!;
+
+  String get cropBudgetHelper =>
+      _strings[languageCode]?['cropBudgetHelper'] ??
+      _strings['en']!['cropBudgetHelper']!;
+
+  String t(String key) {
+    final value = _strings[languageCode]?[key] ?? _strings['en']?[key];
+    if (value != null && value.isNotEmpty) return value;
+    debugPrint('[AppLocalizations] missing translation key: $key');
+    return key;
+  }
+
+  // Consumer home + exploration
+  String get helloNamed =>
+      _strings[languageCode]?['hello_named'] ?? _strings['en']!['hello_named']!;
+  String get discoverFresh =>
+      _strings[languageCode]?['discover_fresh'] ??
+      _strings['en']!['discover_fresh']!;
+  String get liveMarketPrices =>
+      _strings[languageCode]?['live_market_prices'] ??
+      _strings['en']!['live_market_prices']!;
+  String get marketPricesEmpty =>
+      _strings[languageCode]?['market_prices_empty'] ??
+      _strings['en']!['market_prices_empty']!;
+  String get explore =>
+      _strings[languageCode]?['explore'] ?? _strings['en']!['explore']!;
+  String get cropGuide =>
+      _strings[languageCode]?['crop_guide'] ?? _strings['en']!['crop_guide']!;
+  String get cropGuideDesc =>
+      _strings[languageCode]?['crop_guide_desc'] ??
+      _strings['en']!['crop_guide_desc']!;
+  String get priceTrends =>
+      _strings[languageCode]?['price_trends'] ??
+      _strings['en']!['price_trends']!;
+  String get priceTrendsDesc =>
+      _strings[languageCode]?['price_trends_desc'] ??
+      _strings['en']!['price_trends_desc']!;
+  String get askAi =>
+      _strings[languageCode]?['ask_ai'] ?? _strings['en']!['ask_ai']!;
+  String get askAiDesc =>
+      _strings[languageCode]?['ask_ai_desc'] ?? _strings['en']!['ask_ai_desc']!;
+
+  // AI chat
+  String get chatHistory =>
+      _strings[languageCode]?['chat_history'] ??
+      _strings['en']!['chat_history']!;
+  String get chatHint =>
+      _strings[languageCode]?['chat_hint'] ?? _strings['en']!['chat_hint']!;
+  String get photo =>
+      _strings[languageCode]?['photo'] ?? _strings['en']!['photo']!;
+  String get voice =>
+      _strings[languageCode]?['voice'] ?? _strings['en']!['voice']!;
+  String get historyBtn =>
+      _strings[languageCode]?['history_btn'] ?? _strings['en']!['history_btn']!;
+  String get addAttachment =>
+      _strings[languageCode]?['add_attachment'] ??
+      _strings['en']!['add_attachment']!;
+  String get askAnything =>
+      _strings[languageCode]?['ask_anything'] ??
+      _strings['en']!['ask_anything']!;
+  String get newChat =>
+      _strings[languageCode]?['new_chat'] ?? _strings['en']!['new_chat']!;
+  String get noChatsYet =>
+      _strings[languageCode]?['no_chats_yet'] ??
+      _strings['en']!['no_chats_yet']!;
+
+  // Live voice
+  String get exitLiveVoice =>
+      _strings[languageCode]?['exit_live_voice'] ??
+      _strings['en']!['exit_live_voice']!;
+  String get stop =>
+      _strings[languageCode]?['stop'] ?? _strings['en']!['stop']!;
+  String get autoContinueOn =>
+      _strings[languageCode]?['auto_continue_on'] ??
+      _strings['en']!['auto_continue_on']!;
+  String get autoContinueOff =>
+      _strings[languageCode]?['auto_continue_off'] ??
+      _strings['en']!['auto_continue_off']!;
+
+  // Farm card
+  String get farmNameLabel =>
+      _strings[languageCode]?['farm_name_label'] ??
+      _strings['en']!['farm_name_label']!;
+  String get farmSizeLabel =>
+      _strings[languageCode]?['farm_size_label'] ??
+      _strings['en']!['farm_size_label']!;
+  String get farmLocationLabel =>
+      _strings[languageCode]?['farm_location_label'] ??
+      _strings['en']!['farm_location_label']!;
+  String get village =>
+      _strings[languageCode]?['village'] ?? _strings['en']!['village']!;
+  String get permissionDeniedText =>
+      _strings[languageCode]?['permission_denied_text'] ??
+      _strings['en']!['permission_denied_text']!;
+  String get permissionPermanent =>
+      _strings[languageCode]?['permission_permanent'] ??
+      _strings['en']!['permission_permanent']!;
+  String get settings =>
+      _strings[languageCode]?['settings'] ?? _strings['en']!['settings']!;
+  String get locationDisabled =>
+      _strings[languageCode]?['location_disabled'] ??
+      _strings['en']!['location_disabled']!;
+  String get microphonePermission =>
+      _strings[languageCode]?['microphone_permission'] ??
+      _strings['en']!['microphone_permission']!;
+  String get chooseGallery =>
+      _strings[languageCode]?['choose_gallery'] ??
+      _strings['en']!['choose_gallery']!;
+  String get viewPrevResult =>
+      _strings[languageCode]?['view_prev_result'] ??
+      _strings['en']!['view_prev_result']!;
+  String get aiAnalysisFailed =>
+      _strings[languageCode]?['ai_analysis_failed'] ??
+      _strings['en']!['ai_analysis_failed']!;
+  String get soilAnalysisError =>
+      _strings[languageCode]?['soil_analysis_error'] ??
+      _strings['en']!['soil_analysis_error']!;
+  String get aiSoilAnalysis =>
+      _strings[languageCode]?['ai_soil_analysis'] ??
+      _strings['en']!['ai_soil_analysis']!;
+  String get manualSelect =>
+      _strings[languageCode]?['manual_select'] ??
+      _strings['en']!['manual_select']!;
+  String get ageYears =>
+      _strings[languageCode]?['age_years'] ?? _strings['en']!['age_years']!;
+  String get saveProfile =>
+      _strings[languageCode]?['save_profile'] ??
+      _strings['en']!['save_profile']!;
+  String get useAnyway =>
+      _strings[languageCode]?['use_anyway'] ?? _strings['en']!['use_anyway']!;
+  String get aiChat =>
+      _strings[languageCode]?['ai_chat'] ?? _strings['en']!['ai_chat']!;
+  String get attachPhotoHint =>
+      _strings[languageCode]?['attach_photo_hint'] ??
+      _strings['en']!['attach_photo_hint']!;
+  String get file =>
+      _strings[languageCode]?['file'] ?? _strings['en']!['file']!;
+  String get fileTypeUnsupported =>
+      _strings[languageCode]?['file_type_unsupported'] ??
+      _strings['en']!['file_type_unsupported']!;
+  String get assistantConfirmPrompt =>
+      _strings[languageCode]?['assistant_confirm_prompt'] ??
+      _strings['en']!['assistant_confirm_prompt']!;
+  String get assistantDone =>
+      _strings[languageCode]?['assistant_done'] ??
+      _strings['en']!['assistant_done']!;
+  String get assistantFailed =>
+      _strings[languageCode]?['assistant_failed'] ??
+      _strings['en']!['assistant_failed']!;
+  String get assistantCancelled =>
+      _strings[languageCode]?['assistant_cancelled'] ??
+      _strings['en']!['assistant_cancelled']!;
+  String get assistantCouldNotSetField =>
+      _strings[languageCode]?['assistant_could_not_set_field'] ??
+      _strings['en']!['assistant_could_not_set_field']!;
+  String get defaultUserNameFarmer =>
+      _strings[languageCode]?['default_user_name_farmer'] ??
+      _strings['en']!['default_user_name_farmer']!;
+  String get defaultUserNameUser =>
+      _strings[languageCode]?['default_user_name_user'] ??
+      _strings['en']!['default_user_name_user']!;
+  String get defaultUserNameConsumer =>
+      _strings[languageCode]?['default_user_name_consumer'] ??
+      _strings['en']!['default_user_name_consumer']!;
+  String get errorGeneric =>
+      _strings[languageCode]?['error_generic'] ??
+      _strings['en']!['error_generic']!;
+  String get errorFallback =>
+      _strings[languageCode]?['error_fallback'] ??
+      _strings['en']!['error_fallback']!;
+  String get listenNowInstruction =>
+      _strings[languageCode]?['listen_now_instruction'] ??
+      _strings['en']!['listen_now_instruction']!;
+  String get listenNowListening =>
+      _strings[languageCode]?['listen_now_listening'] ??
+      _strings['en']!['listen_now_listening']!;
+  String get copy =>
+      _strings[languageCode]?['copy'] ?? _strings['en']!['copy']!;
+  String get share =>
+      _strings[languageCode]?['share'] ?? _strings['en']!['share']!;
+  String get assistantFieldNotAvailable =>
+      _strings[languageCode]?['assistant_field_not_available'] ??
+      _strings['en']!['assistant_field_not_available']!;
+  String get assistantInvalidValue =>
+      _strings[languageCode]?['assistant_invalid_value'] ??
+      _strings['en']!['assistant_invalid_value']!;
+  String get assistantActionNotRegistered =>
+      _strings[languageCode]?['assistant_action_not_registered'] ??
+      _strings['en']!['assistant_action_not_registered']!;
+  String get assistantActionFailed =>
+      _strings[languageCode]?['assistant_action_failed'] ??
+      _strings['en']!['assistant_action_failed']!;
+
+  // Community feed screen
+  String get communityNoPosts =>
+      _strings[languageCode]?['community_no_posts'] ??
+      _strings['en']!['community_no_posts']!;
+  String get communityNoPostsHint =>
+      _strings[languageCode]?['community_no_posts_hint'] ??
+      _strings['en']!['community_no_posts_hint']!;
+  String get all => _strings[languageCode]?['all'] ?? _strings['en']!['all']!;
+  String get timeAgoW =>
+      _strings[languageCode]?['time_ago_w'] ?? _strings['en']!['time_ago_w']!;
+  String get filterByLocation =>
+      _strings[languageCode]?['filter_by_location'] ??
+      _strings['en']!['filter_by_location']!;
+  String get district =>
+      _strings[languageCode]?['district'] ?? _strings['en']!['district']!;
+  String get state =>
+      _strings[languageCode]?['state'] ?? _strings['en']!['state']!;
+  String get clearFilters =>
+      _strings[languageCode]?['clear_filters'] ??
+      _strings['en']!['clear_filters']!;
+  String get apply =>
+      _strings[languageCode]?['apply'] ?? _strings['en']!['apply']!;
+
+  // Add farm screen
+  String get addNewFarm =>
+      _strings[languageCode]?['add_new_farm'] ??
+      _strings['en']!['add_new_farm']!;
+  String get saveFarm =>
+      _strings[languageCode]?['save_farm'] ?? _strings['en']!['save_farm']!;
+  String get pleaseFillFarmDetails =>
+      _strings[languageCode]?['please_fill_farm_details'] ??
+      _strings['en']!['please_fill_farm_details']!;
+  String get pleaseFillFarmRequired =>
+      _strings[languageCode]?['please_fill_farm_required'] ??
+      _strings['en']!['please_fill_farm_required']!;
+  String get savedSuccessfully =>
+      _strings[languageCode]?['saved_successfully'] ??
+      _strings['en']!['saved_successfully']!;
+  String get errorSavingFarm =>
+      _strings[languageCode]?['error_saving_farm'] ??
+      _strings['en']!['error_saving_farm']!;
+
+  // Edit profile screen
+  String get nameCannotBeEmpty =>
+      _strings[languageCode]?['name_cannot_be_empty'] ??
+      _strings['en']!['name_cannot_be_empty']!;
+  String get profileSavedSuccess =>
+      _strings[languageCode]?['profile_saved_success'] ??
+      _strings['en']!['profile_saved_success']!;
+  String get name =>
+      _strings[languageCode]?['name'] ?? _strings['en']!['name']!;
+  String get enterNameHint =>
+      _strings[languageCode]?['enter_name_hint'] ??
+      _strings['en']!['enter_name_hint']!;
+  String get ageAutoCalculated =>
+      _strings[languageCode]?['age_auto_calculated'] ??
+      _strings['en']!['age_auto_calculated']!;
+  String get currentAddress =>
+      _strings[languageCode]?['current_address'] ??
+      _strings['en']!['current_address']!;
+  String get enterAddressHint =>
+      _strings[languageCode]?['enter_address_hint'] ??
+      _strings['en']!['enter_address_hint']!;
+  String get useCurrentLocation =>
+      _strings[languageCode]?['use_current_location'] ??
+      _strings['en']!['use_current_location']!;
+  String get selectGender =>
+      _strings[languageCode]?['select_gender'] ??
+      _strings['en']!['select_gender']!;
+  String get male =>
+      _strings[languageCode]?['male'] ?? _strings['en']!['male']!;
+  String get female =>
+      _strings[languageCode]?['female'] ?? _strings['en']!['female']!;
+  String get otherGender =>
+      _strings[languageCode]?['other_gender'] ??
+      _strings['en']!['other_gender']!;
+  String get selectDateOfBirth =>
+      _strings[languageCode]?['select_date_of_birth'] ??
+      _strings['en']!['select_date_of_birth']!;
+  String get locationPermissionDenied =>
+      _strings[languageCode]?['location_permission_denied'] ??
+      _strings['en']!['location_permission_denied']!;
+  String get locationServicesDisabled =>
+      _strings[languageCode]?['location_services_disabled'] ??
+      _strings['en']!['location_services_disabled']!;
+  String get locationDetectedSuccess =>
+      _strings[languageCode]?['location_detected_success'] ??
+      _strings['en']!['location_detected_success']!;
+  String get getLocationFailed =>
+      _strings[languageCode]?['get_location_failed'] ??
+      _strings['en']!['get_location_failed']!;
+  String get voiceInputNotAvailable =>
+      _strings[languageCode]?['voice_input_not_available'] ??
+      _strings['en']!['voice_input_not_available']!;
+  String get aiOffline =>
+      _strings[languageCode]?['ai_offline'] ?? _strings['en']!['ai_offline']!;
+  String get aiAuthError =>
+      _strings[languageCode]?['ai_auth_error'] ??
+      _strings['en']!['ai_auth_error']!;
+  String get aiGenericError =>
+      _strings[languageCode]?['ai_generic_error'] ??
+      _strings['en']!['ai_generic_error']!;
+  String get aiCopied =>
+      _strings[languageCode]?['ai_copied'] ?? _strings['en']!['ai_copied']!;
+  String get aiVoiceTapToStart =>
+      _strings[languageCode]?['ai_voice_tap_to_start'] ??
+      _strings['en']!['ai_voice_tap_to_start']!;
+  String get aiVoiceListening =>
+      _strings[languageCode]?['ai_voice_listening'] ??
+      _strings['en']!['ai_voice_listening']!;
+  String get aiVoiceThinking =>
+      _strings[languageCode]?['ai_voice_thinking'] ??
+      _strings['en']!['ai_voice_thinking']!;
+  String get aiVoiceSpeaking =>
+      _strings[languageCode]?['ai_voice_speaking'] ??
+      _strings['en']!['ai_voice_speaking']!;
+  String get aiVoiceError =>
+      _strings[languageCode]?['ai_voice_error'] ??
+      _strings['en']!['ai_voice_error']!;
+  String get communityComingSoon =>
+      _strings[languageCode]?['community_coming_soon'] ??
+      _strings['en']!['community_coming_soon']!;
+  String get communityComingSoonDesc =>
+      _strings[languageCode]?['community_coming_soon_desc'] ??
+      _strings['en']!['community_coming_soon_desc']!;
+  String get farmWorkspace =>
+      _strings[languageCode]?['farm_workspace'] ??
+      _strings['en']!['farm_workspace']!;
+  String get farmWorkspaceDesc =>
+      _strings[languageCode]?['farm_workspace_desc'] ??
+      _strings['en']!['farm_workspace_desc']!;
+  String get pestAddAnotherPhoto =>
+      _strings[languageCode]?['pest_add_another_photo'] ??
+      _strings['en']!['pest_add_another_photo']!;
+  String get pestAddPhotoLabel =>
+      _strings[languageCode]?['pest_add_photo_label'] ??
+      _strings['en']!['pest_add_photo_label']!;
+  String get pestAddToTasks =>
+      _strings[languageCode]?['pest_add_to_tasks'] ??
+      _strings['en']!['pest_add_to_tasks']!;
+  String get pestAnalyzeNow =>
+      _strings[languageCode]?['pest_analyze_now'] ??
+      _strings['en']!['pest_analyze_now']!;
+  String get pestCausesLabel =>
+      _strings[languageCode]?['pest_causes_label'] ??
+      _strings['en']!['pest_causes_label']!;
+  String get pestClearPhotos =>
+      _strings[languageCode]?['pest_clear_photos'] ??
+      _strings['en']!['pest_clear_photos']!;
+  String get pestConditionLabel =>
+      _strings[languageCode]?['pest_condition_label'] ??
+      _strings['en']!['pest_condition_label']!;
+  String get pestCropAutoHint =>
+      _strings[languageCode]?['pest_crop_auto_hint'] ??
+      _strings['en']!['pest_crop_auto_hint']!;
+  String get pestFarmNone =>
+      _strings[languageCode]?['pest_farm_none'] ??
+      _strings['en']!['pest_farm_none']!;
+  String get pestFarmNoneHint =>
+      _strings[languageCode]?['pest_farm_none_hint'] ??
+      _strings['en']!['pest_farm_none_hint']!;
+  String get pestHealthy =>
+      _strings[languageCode]?['pest_healthy'] ??
+      _strings['en']!['pest_healthy']!;
+  String get pestHistorySaved =>
+      _strings[languageCode]?['pest_history_saved'] ??
+      _strings['en']!['pest_history_saved']!;
+  String get pestIssueDetected =>
+      _strings[languageCode]?['pest_issue_detected'] ??
+      _strings['en']!['pest_issue_detected']!;
+  String get pestFarmTaskTitle =>
+      _strings[languageCode]?['pest_farm_task_title'] ??
+      _strings['en']!['pest_farm_task_title']!;
+  String get pestLowConfidenceWarning =>
+      _strings[languageCode]?['pest_low_confidence_warning'] ??
+      _strings['en']!['pest_low_confidence_warning']!;
+  String get pestNoCropsFound =>
+      _strings[languageCode]?['pest_no_crops_found'] ??
+      _strings['en']!['pest_no_crops_found']!;
+  String get pestNoPhotosYet =>
+      _strings[languageCode]?['pest_no_photos_yet'] ??
+      _strings['en']!['pest_no_photos_yet']!;
+  String get pestPhotoHint =>
+      _strings[languageCode]?['pest_photo_hint'] ??
+      _strings['en']!['pest_photo_hint']!;
+  String get pestRemedyLabel =>
+      _strings[languageCode]?['pest_remedy_label'] ??
+      _strings['en']!['pest_remedy_label']!;
+  String get pestRemedyNote =>
+      _strings[languageCode]?['pest_remedy_note'] ??
+      _strings['en']!['pest_remedy_note']!;
+  String get pestRemovePhoto =>
+      _strings[languageCode]?['pest_remove_photo'] ??
+      _strings['en']!['pest_remove_photo']!;
+  String get pestMaxHint =>
+      _strings[languageCode]?['pest_maximum_hint'] ??
+      _strings['en']!['pest_maximum_hint']!;
+  String get remedyChemical =>
+      _strings[languageCode]?['remedy_chemical'] ??
+      _strings['en']!['remedy_chemical']!;
+  String get remedyOrganic =>
+      _strings[languageCode]?['remedy_organic'] ??
+      _strings['en']!['remedy_organic']!;
+  String get severityHigh =>
+      _strings[languageCode]?['severity_high'] ??
+      _strings['en']!['severity_high']!;
+  String get severityLow =>
+      _strings[languageCode]?['severity_low'] ??
+      _strings['en']!['severity_low']!;
+  String get severityMedium =>
+      _strings[languageCode]?['severity_medium'] ??
+      _strings['en']!['severity_medium']!;
+  String get pestSymptomsLabel =>
+      _strings[languageCode]?['pest_symptoms_label'] ??
+      _strings['en']!['pest_symptoms_label']!;
+  String get pestSelectFarmLabel =>
+      _strings[languageCode]?['pest_select_farm_label'] ??
+      _strings['en']!['pest_select_farm_label']!;
+  String get pestTaskAdded =>
+      _strings[languageCode]?['pest_task_added'] ??
+      _strings['en']!['pest_task_added']!;
+  String get pestTempNotSaved =>
+      _strings[languageCode]?['pest_temp_not_saved'] ??
+      _strings['en']!['pest_temp_not_saved']!;
+  String get pestUnclearPhotoWarning =>
+      _strings[languageCode]?['pest_unclear_photo_warning'] ??
+      _strings['en']!['pest_unclear_photo_warning']!;
+  String get pestViewFertilizerGuide =>
+      _strings[languageCode]?['pest_view_fertilizer_guide'] ??
+      _strings['en']!['pest_view_fertilizer_guide']!;
+  String get pestMultiTitle =>
+      _strings[languageCode]?['pest_multi_title'] ??
+      _strings['en']!['pest_multi_title']!;
+  String get pestMultiIntro =>
+      _strings[languageCode]?['pest_multi_intro'] ??
+      _strings['en']!['pest_multi_intro']!;
+  String get pestAddAnotherPart =>
+      _strings[languageCode]?['pest_add_another_part'] ??
+      _strings['en']!['pest_add_another_part']!;
+  String get pestUploadPhoto =>
+      _strings[languageCode]?['pest_upload_photo'] ??
+      _strings['en']!['pest_upload_photo']!;
+  String get pestPartLabel =>
+      _strings[languageCode]?['pest_part_label'] ??
+      _strings['en']!['pest_part_label']!;
+  String get pestSelectPartHint =>
+      _strings[languageCode]?['pest_select_part_hint'] ??
+      _strings['en']!['pest_select_part_hint']!;
+  String get pestObservationLabel =>
+      _strings[languageCode]?['pest_observation_label'] ??
+      _strings['en']!['pest_observation_label']!;
+  String get pestObservationHint =>
+      _strings[languageCode]?['pest_observation_hint'] ??
+      _strings['en']!['pest_observation_hint']!;
+  String get pestPartWholePlant =>
+      _strings[languageCode]?['pest_part_whole_plant'] ??
+      _strings['en']!['pest_part_whole_plant']!;
+  String get pestPartLeaf =>
+      _strings[languageCode]?['pest_part_leaf'] ??
+      _strings['en']!['pest_part_leaf']!;
+  String get pestPartStem =>
+      _strings[languageCode]?['pest_part_stem'] ??
+      _strings['en']!['pest_part_stem']!;
+  String get pestPartRoot =>
+      _strings[languageCode]?['pest_part_root'] ??
+      _strings['en']!['pest_part_root']!;
+  String get pestPartFlower =>
+      _strings[languageCode]?['pest_part_flower'] ??
+      _strings['en']!['pest_part_flower']!;
+  String get pestPartFruit =>
+      _strings[languageCode]?['pest_part_fruit'] ??
+      _strings['en']!['pest_part_fruit']!;
+  String get pestPartSeed =>
+      _strings[languageCode]?['pest_part_seed'] ??
+      _strings['en']!['pest_part_seed']!;
+  String get pestPartOther =>
+      _strings[languageCode]?['pest_part_other'] ??
+      _strings['en']!['pest_part_other']!;
+  String get pestPhotosLabel =>
+      _strings[languageCode]?['pest_photos_label'] ??
+      _strings['en']!['pest_photos_label']!;
+  String get pestAffectedParts =>
+      _strings[languageCode]?['pest_affected_parts'] ??
+      _strings['en']!['pest_affected_parts']!;
+  String get pestFarmerObservations =>
+      _strings[languageCode]?['pest_farmer_observations'] ??
+      _strings['en']!['pest_farmer_observations']!;
+  String get pestRecommendation =>
+      _strings[languageCode]?['pest_recommendation'] ??
+      _strings['en']!['pest_recommendation']!;
+  String get pestUncertainty =>
+      _strings[languageCode]?['pest_uncertainty'] ??
+      _strings['en']!['pest_uncertainty']!;
+  String get pestCombinedAnalysis =>
+      _strings[languageCode]?['pest_combined_analysis'] ??
+      _strings['en']!['pest_combined_analysis']!;
+  String get pestNoPhotoValidation =>
+      _strings[languageCode]?['pest_no_photo_validation'] ??
+      _strings['en']!['pest_no_photo_validation']!;
+  String get pestNoPartValidation =>
+      _strings[languageCode]?['pest_no_part_validation'] ??
+      _strings['en']!['pest_no_part_validation']!;
+  String get pestInvalidPhoto =>
+      _strings[languageCode]?['pest_invalid_photo'] ??
+      _strings['en']!['pest_invalid_photo']!;
+  String get pestCropRequired =>
+      _strings[languageCode]?['pest_crop_required'] ??
+      _strings['en']!['pest_crop_required']!;
+  String get pestWorkspaceSaveFailed =>
+      _strings[languageCode]?['pest_workspace_save_failed'] ??
+      _strings['en']!['pest_workspace_save_failed']!;
+  String get pestCaseHeading =>
+      _strings[languageCode]?['pest_case_heading'] ??
+      _strings['en']!['pest_case_heading']!;
+  String get workspaceAnalyses =>
+      _strings[languageCode]?['workspace_analyses'] ??
+      _strings['en']!['workspace_analyses']!;
+  String get workspaceLatest =>
+      _strings[languageCode]?['workspace_latest'] ??
+      _strings['en']!['workspace_latest']!;
+  String get workspaceNoAnalysis =>
+      _strings[languageCode]?['workspace_no_analysis'] ??
+      _strings['en']!['workspace_no_analysis']!;
+  String get workspaceOpen =>
+      _strings[languageCode]?['workspace_open'] ??
+      _strings['en']!['workspace_open']!;
+
+  String get workspaceAddNote =>
+      _strings[languageCode]?['workspace_add_note'] ??
+      _strings['en']!['workspace_add_note']!;
+  String get workspaceDeleteNoteConfirm =>
+      _strings[languageCode]?['workspace_delete_note_confirm'] ??
+      _strings['en']!['workspace_delete_note_confirm']!;
+  String get workspaceEditNote =>
+      _strings[languageCode]?['workspace_edit_note'] ??
+      _strings['en']!['workspace_edit_note']!;
+  String get workspaceManualNote =>
+      _strings[languageCode]?['workspace_manual_note'] ??
+      _strings['en']!['workspace_manual_note']!;
+  String get workspaceNewNote =>
+      _strings[languageCode]?['workspace_new_note'] ??
+      _strings['en']!['workspace_new_note']!;
+  String get workspaceNoFarm =>
+      _strings[languageCode]?['workspace_no_farm'] ??
+      _strings['en']!['workspace_no_farm']!;
+  String get workspaceNoteContentHint =>
+      _strings[languageCode]?['workspace_note_content_hint'] ??
+      _strings['en']!['workspace_note_content_hint']!;
+  String get workspaceNoteCrop =>
+      _strings[languageCode]?['workspace_note_crop'] ??
+      _strings['en']!['workspace_note_crop']!;
+  String get workspaceNoteDeleted =>
+      _strings[languageCode]?['workspace_note_deleted'] ??
+      _strings['en']!['workspace_note_deleted']!;
+  String get workspaceNoteFarm =>
+      _strings[languageCode]?['workspace_note_farm'] ??
+      _strings['en']!['workspace_note_farm']!;
+  String get workspaceNoteSaved =>
+      _strings[languageCode]?['workspace_note_saved'] ??
+      _strings['en']!['workspace_note_saved']!;
+  String get workspaceNoteTitleHint =>
+      _strings[languageCode]?['workspace_note_title_hint'] ??
+      _strings['en']!['workspace_note_title_hint']!;
+  String get workspaceNoteTitleRequired =>
+      _strings[languageCode]?['workspace_note_title_required'] ??
+      _strings['en']!['workspace_note_title_required']!;
+  String get workspaceNoteUpdated =>
+      _strings[languageCode]?['workspace_note_updated'] ??
+      _strings['en']!['workspace_note_updated']!;
+  String get workspaceNotesEmpty =>
+      _strings[languageCode]?['workspace_notes_empty'] ??
+      _strings['en']!['workspace_notes_empty']!;
+  String get workspaceNotesEmptyHint =>
+      _strings[languageCode]?['workspace_notes_empty_hint'] ??
+      _strings['en']!['workspace_notes_empty_hint']!;
+  String get workspaceOlder =>
+      _strings[languageCode]?['workspace_older'] ??
+      _strings['en']!['workspace_older']!;
+  String get workspacePestNote =>
+      _strings[languageCode]?['workspace_pest_note'] ??
+      _strings['en']!['workspace_pest_note']!;
+  String get workspacePestSaved =>
+      _strings[languageCode]?['workspace_pest_saved'] ??
+      _strings['en']!['workspace_pest_saved']!;
+  String get workspaceSavePest =>
+      _strings[languageCode]?['workspace_save_pest'] ??
+      _strings['en']!['workspace_save_pest']!;
+  String get workspaceToday =>
+      _strings[languageCode]?['workspace_today'] ??
+      _strings['en']!['workspace_today']!;
+  String get workspaceYesterday =>
+      _strings[languageCode]?['workspace_yesterday'] ??
+      _strings['en']!['workspace_yesterday']!;
+
+  // Personal Details redesign
+  String get pdSubtitle =>
+      _strings[languageCode]?['pd_subtitle'] ?? _strings['en']!['pd_subtitle']!;
+  String get currentLocation =>
+      _strings[languageCode]?['current_location'] ??
+      _strings['en']!['current_location']!;
+  String get detectingLocation =>
+      _strings[languageCode]?['detecting_location'] ??
+      _strings['en']!['detecting_location']!;
+  String get locationDetectionFailed =>
+      _strings[languageCode]?['location_detection_failed'] ??
+      _strings['en']!['location_detection_failed']!;
+  String get locationPermissionNeeded =>
+      _strings[languageCode]?['location_permission_needed'] ??
+      _strings['en']!['location_permission_needed']!;
+  String get aiLiveButton =>
+      _strings[languageCode]?['ai_live_button'] ??
+      _strings['en']!['ai_live_button']!;
+  String get aiLiveDescription =>
+      _strings[languageCode]?['ai_live_description'] ??
+      _strings['en']!['ai_live_description']!;
+  String get tapToChangePhoto =>
+      _strings[languageCode]?['tap_to_change_photo'] ??
+      _strings['en']!['tap_to_change_photo']!;
+  String get retryLocation =>
+      _strings[languageCode]?['retry_location'] ??
+      _strings['en']!['retry_location']!;
+
+  // AI Live (realtime streaming speech-to-text)
+  String get aiLiveTitle =>
+      _strings[languageCode]?['ai_live_title'] ??
+      _strings['en']!['ai_live_title']!;
+  String get aiLiveConnecting =>
+      _strings[languageCode]?['ai_live_connecting'] ??
+      _strings['en']!['ai_live_connecting']!;
+  String get aiLiveReconnecting =>
+      _strings[languageCode]?['ai_live_reconnecting'] ??
+      _strings['en']!['ai_live_reconnecting']!;
+  String get aiLiveOffline =>
+      _strings[languageCode]?['ai_live_offline'] ??
+      _strings['en']!['ai_live_offline']!;
+  String get aiLiveMicPermission =>
+      _strings[languageCode]?['ai_live_mic_permission'] ??
+      _strings['en']!['ai_live_mic_permission']!;
+  String get aiLiveMicUnavailable =>
+      _strings[languageCode]?['ai_live_mic_unavailable'] ??
+      _strings['en']!['ai_live_mic_unavailable']!;
+  String get aiLiveServiceError =>
+      _strings[languageCode]?['ai_live_service_error'] ??
+      _strings['en']!['ai_live_service_error']!;
+  String get aiLiveNoInternet =>
+      _strings[languageCode]?['ai_live_no_internet'] ??
+      _strings['en']!['ai_live_no_internet']!;
+  String get aiLiveHint =>
+      _strings[languageCode]?['ai_live_hint'] ??
+      _strings['en']!['ai_live_hint']!;
+  String get aiLiveEmptyTranscript =>
+      _strings[languageCode]?['ai_live_empty_transcript'] ??
+      _strings['en']!['ai_live_empty_transcript']!;
+  String get aiLiveSuggestionsTitle =>
+      _strings[languageCode]?['ai_live_suggestions_title'] ??
+      _strings['en']!['ai_live_suggestions_title']!;
+  String get aiLiveSessionError =>
+      _strings[languageCode]?['ai_live_session_error'] ??
+      _strings['en']!['ai_live_session_error']!;
+  String get aiLiveApplied =>
+      _strings[languageCode]?['ai_live_applied'] ??
+      _strings['en']!['ai_live_applied']!;
+  String get aiLiveApply =>
+      _strings[languageCode]?['ai_live_apply'] ??
+      _strings['en']!['ai_live_apply']!;
+  String get aiLiveTapToListen =>
+      _strings[languageCode]?['ai_live_tap_to_listen'] ??
+      _strings['en']!['ai_live_tap_to_listen']!;
+  String get aiLiveUnsupportedLanguage =>
+      _strings[languageCode]?['ai_live_unsupported_language'] ??
+      _strings['en']!['ai_live_unsupported_language']!;
+
+  static Map<String, Map<String, String>> get _strings => {
+        'en': enStrings,
+        'ta': taStrings,
+        'te': teStrings,
+        'kn': knStrings,
+        'ml': mlStrings,
+        'hi': hiStrings,
+        'bn': bnStrings,
+        'mr': mrStrings,
+        'gu': guStrings,
+        'pa': paStrings,
+        'or': orStrings,
+        'as': asStrings,
+        'ur': urStrings,
+      };
 }
 
 class _AppLocalizationsScope extends InheritedWidget {

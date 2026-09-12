@@ -7,15 +7,16 @@ import 'package:uuid/uuid.dart';
 import 'package:vidhai/data/models/user_profile.dart';
 import 'package:vidhai/data/models/farm_profile.dart';
 import 'package:vidhai/data/models/crop_models.dart';
+import 'package:vidhai/data/models/crop_plan_models.dart';
 import 'package:vidhai/data/models/farm_records.dart';
 import 'package:vidhai/data/models/notification_model.dart';
 
 class DataService {
-  static final DataService _instance = DataService._();
-  factory DataService() => _instance;
+  static DataService? _instance;
+  factory DataService() => _instance ??= DataService._();
   DataService._();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _uuid = const Uuid();
 
   String _getUid() => FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -24,10 +25,15 @@ class DataService {
 
   Future<UserProfile?> loadProfile() async {
     final uid = _getUid();
+    debugPrint(
+        '[DataService] loadProfile AUTH UID=${uid.isEmpty ? "NONE" : uid}');
     if (uid.isNotEmpty) {
+      debugPrint('[DataService] loadProfile DOC PATH=users/$uid');
       try {
         final doc = await _firestore.collection('users').doc(uid).get();
-        if (doc.exists && doc.data() != null) {
+        final exists = doc.exists && doc.data() != null;
+        debugPrint('[DataService] loadProfile DOC EXISTS=$exists');
+        if (exists) {
           final data = doc.data()!;
           final profile = UserProfile(
             uid: uid,
@@ -39,18 +45,23 @@ class DataService {
                 : null,
             age: data['age'] ?? 0,
             address: data['address'] != null
-                ? AddressData.fromMap(Map<String, dynamic>.from(data['address']))
+                ? AddressData.fromMap(
+                    Map<String, dynamic>.from(data['address']))
                 : null,
             avatarUrl: data['avatarUrl'] ?? '',
             role: data['role'] ?? 'farmer',
             isEmailVerified: data['isEmailVerified'] ?? false,
           );
           await _cacheProfile(profile);
+          debugPrint('[DataService] loadProfile FETCH RESULT=SUCCESS (cached)');
           return profile;
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[DataService] loadProfile ERROR CODE=${_safeErrorCode(e)}');
+      }
     }
-    return _loadCachedProfile();
+    debugPrint('[DataService] loadProfile FETCH RESULT=FALLBACK to cache');
+    return loadCachedProfile();
   }
 
   Future<void> saveProfile(UserProfile profile) async {
@@ -58,7 +69,10 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        await _firestore.collection('users').doc(uid).set(profile.toMap(), SetOptions(merge: true));
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .set(profile.toMap(), SetOptions(merge: true));
       } catch (_) {}
     }
   }
@@ -66,10 +80,6 @@ class DataService {
   Future<void> _cacheProfile(UserProfile profile) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('cached_profile', json.encode(profile.toMap()));
-  }
-
-  UserProfile? _loadCachedProfile() {
-    return null; // Will be populated from SharedPreferences by the caller
   }
 
   Future<UserProfile?> loadCachedProfile() async {
@@ -80,17 +90,21 @@ class DataService {
         return UserProfile.fromMap(json.decode(data));
       } catch (_) {}
     }
-    // Fallback: build from individual SP keys
-    final name = prefs.getString('user_display_name') ?? '';
-    final email = prefs.getString('user_email') ?? '';
-    if (name.isEmpty && email.isEmpty) return null;
-    return UserProfile(
-      uid: prefs.getString('user_uid') ?? '',
-      email: email,
-      displayName: name,
-      role: prefs.getString('selected_domain') ?? 'farmer',
-      isEmailVerified: prefs.getString('user_is_email_verified') == 'true',
-    );
+    // Fallback: build from individual SP keys (written at sign-in / onboarding).
+    try {
+      final name = prefs.getString('user_display_name') ?? '';
+      final email = prefs.getString('user_email') ?? '';
+      if (name.isEmpty && email.isEmpty) return null;
+      return UserProfile(
+        uid: prefs.getString('user_uid') ?? '',
+        email: email,
+        displayName: name,
+        role: prefs.getString('selected_domain') ?? 'farmer',
+        isEmailVerified: prefs.getBool('user_is_email_verified') ?? false,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   // ==================== FARMS ====================
@@ -99,9 +113,14 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        final snap = await _firestore.collection('users').doc(uid)
-            .collection('farms').orderBy('index').get();
-        final farms = snap.docs.map((d) => FarmProfile.fromMap(d.data())).toList();
+        final snap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('farms')
+            .orderBy('index')
+            .get();
+        final farms =
+            snap.docs.map((d) => FarmProfile.fromMap(d.data())).toList();
         if (farms.isNotEmpty) {
           await _cacheFarms(farms);
           return farms;
@@ -116,13 +135,16 @@ class DataService {
     await _cacheFarms(farms);
     debugPrint('[DataService] _cacheFarms completed');
     final uid = _getUid();
-    debugPrint('[DataService] uid: ${uid.isEmpty ? "EMPTY" : uid.substring(0, uid.length > 8 ? 8 : uid.length)}');
+    debugPrint(
+        '[DataService] uid: ${uid.isEmpty ? "EMPTY" : uid.substring(0, uid.length > 8 ? 8 : uid.length)}');
     if (uid.isNotEmpty) {
       try {
-        final farmCol = _firestore.collection('users').doc(uid).collection('farms');
+        final farmCol =
+            _firestore.collection('users').doc(uid).collection('farms');
         debugPrint('[DataService] Firestore: fetching existing farms...');
         final existing = await farmCol.get();
-        debugPrint('[DataService] Firestore: ${existing.docs.length} existing docs');
+        debugPrint(
+            '[DataService] Firestore: ${existing.docs.length} existing docs');
         final batch = _firestore.batch();
         for (final doc in existing.docs) {
           batch.delete(doc.reference);
@@ -175,7 +197,8 @@ class DataService {
 
   Future<void> _cacheFarms(List<FarmProfile> farms) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cached_farms', json.encode(farms.map((f) => f.toMap()).toList()));
+    await prefs.setString(
+        'cached_farms', json.encode(farms.map((f) => f.toMap()).toList()));
   }
 
   // ==================== CROPS ====================
@@ -184,8 +207,12 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        final snap = await _firestore.collection('users').doc(uid)
-            .collection('crops').where('farmId', isEqualTo: farmId).get();
+        final snap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crops')
+            .where('farmId', isEqualTo: farmId)
+            .get();
         return snap.docs.map((d) => CropRecord.fromMap(d.data())).toList();
       } catch (_) {}
     }
@@ -196,8 +223,12 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        await _firestore.collection('users').doc(uid)
-            .collection('crops').doc(crop.id).set(crop.toMap());
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crops')
+            .doc(crop.id)
+            .set(crop.toMap());
       } catch (_) {}
     }
     await _cacheCropLocally(crop);
@@ -207,14 +238,20 @@ class DataService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('crops').doc(cropId).delete();
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('crops')
+          .doc(cropId)
+          .delete();
     } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys().where((k) => k.startsWith('crops_'));
     for (final key in keys) {
       final existing = prefs.getString(key) ?? '[]';
-      final list = (json.decode(existing) as List).where((m) => m['id'] != cropId).toList();
+      final list = (json.decode(existing) as List)
+          .where((m) => m['id'] != cropId)
+          .toList();
       await prefs.setString(key, json.encode(list));
     }
   }
@@ -223,7 +260,9 @@ class DataService {
     final prefs = await SharedPreferences.getInstance();
     final key = 'crops_${crop.farmId}';
     final existing = prefs.getString(key) ?? '[]';
-    final list = (json.decode(existing) as List).where((m) => m['id'] != crop.id).toList();
+    final list = (json.decode(existing) as List)
+        .where((m) => m['id'] != crop.id)
+        .toList();
     list.insert(0, crop.toMap());
     await prefs.setString(key, json.encode(list));
   }
@@ -233,10 +272,321 @@ class DataService {
     final data = prefs.getString('crops_$farmId');
     if (data != null) {
       try {
-        return (json.decode(data) as List).map((m) => CropRecord.fromMap(m)).toList();
+        return (json.decode(data) as List)
+            .map((m) => CropRecord.fromMap(m))
+            .toList();
       } catch (_) {}
     }
     return [];
+  }
+
+  /// Ends an active crop, moving it into the farm crop history. The record is
+  /// kept in the same `crops` collection so it remains in the farm's history.
+  Future<void> endCrop(
+    CropRecord crop, {
+    required String endStatus,
+    String? reason,
+    String? notes,
+  }) async {
+    final updated = crop.copyWith(
+      status: endStatus,
+      endReason: reason,
+      endDate: DateTime.now(),
+      notes: notes ?? crop.notes,
+    );
+    await saveCrop(updated);
+  }
+
+  // ==================== CROP PLANS ====================
+
+  Future<void> saveCropPlan(CropPlan plan) async {
+    final uid = _getUid();
+    if (uid.isNotEmpty) {
+      try {
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crop_plans')
+            .doc(plan.cropId)
+            .set(plan.toMap());
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        'crop_plan_${plan.cropId}', json.encode(plan.toMap()));
+  }
+
+  Future<CropPlan?> loadCropPlan(String cropId) async {
+    final uid = _getUid();
+    if (uid.isNotEmpty) {
+      try {
+        final doc = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crop_plans')
+            .doc(cropId)
+            .get();
+        if (doc.exists && doc.data() != null) {
+          final plan = CropPlan.fromMap(doc.data()!);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('crop_plan_$cropId', json.encode(plan.toMap()));
+          return plan;
+        }
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('crop_plan_$cropId');
+    if (data != null) {
+      try {
+        return CropPlan.fromMap(json.decode(data));
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  // ==================== CROP TASKS (to-do) ====================
+
+  Future<void> saveCropTask(CropTask task) async {
+    final uid = _getUid();
+    if (uid.isNotEmpty) {
+      try {
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crops')
+            .doc(task.cropId)
+            .collection('tasks')
+            .doc(task.id)
+            .set(task.toMap());
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'crop_tasks_${task.cropId}';
+    final existing = prefs.getString(key) ?? '[]';
+    final list = (json.decode(existing) as List)
+        .where((m) => m['id'] != task.id)
+        .toList();
+    list.add(task.toMap());
+    list.sort((a, b) => (a['dueDate'] ?? '')
+        .toString()
+        .compareTo((b['dueDate'] ?? '').toString()));
+    await prefs.setString(key, json.encode(list));
+  }
+
+  Future<void> saveCropTasks(List<CropTask> tasks) async {
+    for (final t in tasks) {
+      await saveCropTask(t);
+    }
+  }
+
+  Future<List<CropTask>> loadCropTasks(String cropId) async {
+    final uid = _getUid();
+    if (uid.isNotEmpty) {
+      try {
+        final snap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crops')
+            .doc(cropId)
+            .collection('tasks')
+            .orderBy('dueDate')
+            .get();
+        final tasks = snap.docs.map((d) => CropTask.fromMap(d.data())).toList();
+        if (tasks.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('crop_tasks_$cropId',
+              json.encode(tasks.map((t) => t.toMap()).toList()));
+          return tasks;
+        }
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('crop_tasks_$cropId') ?? '[]';
+    try {
+      return (json.decode(data) as List)
+          .map((m) => CropTask.fromMap(m))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> completeCropTask(String cropId, String taskId,
+      {bool done = true}) async {
+    final uid = _getUid();
+    if (uid.isNotEmpty) {
+      try {
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crops')
+            .doc(cropId)
+            .collection('tasks')
+            .doc(taskId)
+            .update({
+          'status': done ? 'done' : 'pending',
+          'doneAt': done ? DateTime.now().toIso8601String() : null
+        });
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'crop_tasks_$cropId';
+    final existing = prefs.getString(key) ?? '[]';
+    final list = (json.decode(existing) as List)
+        .map((m) => Map<String, dynamic>.from(m as Map))
+        .toList();
+    for (final item in list) {
+      if (item['id'] == taskId) {
+        item['status'] = done ? 'done' : 'pending';
+        break;
+      }
+    }
+    await prefs.setString(key, json.encode(list));
+  }
+
+  // ==================== RECOMMENDATION RUNS ====================
+
+  Future<void> saveRecommendationRecord(RecommendationRecord record) async {
+    final uid = _getUid();
+    if (uid.isNotEmpty) {
+      try {
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crop_recommendations')
+            .doc(record.id)
+            .set(record.toMap());
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'crop_recommendations_${record.farmId}';
+    final existing = prefs.getString(key) ?? '[]';
+    final list = (json.decode(existing) as List)
+        .where((m) => m['id'] != record.id)
+        .toList();
+    list.insert(0, record.toMap());
+    await prefs.setString(key, json.encode(list));
+  }
+
+  Future<List<RecommendationRecord>> loadRecommendationRecords(
+      String farmId) async {
+    final uid = _getUid();
+    if (uid.isNotEmpty) {
+      try {
+        final snap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crop_recommendations')
+            .where('farmId', isEqualTo: farmId)
+            .orderBy('createdAt', descending: true)
+            .get();
+        final records = snap.docs
+            .map((d) => RecommendationRecord.fromMap(d.data()))
+            .toList();
+        if (records.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('crop_recommendations_$farmId',
+              json.encode(records.map((r) => r.toMap()).toList()));
+          return records;
+        }
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('crop_recommendations_$farmId') ?? '[]';
+    try {
+      return (json.decode(data) as List)
+          .map((m) => RecommendationRecord.fromMap(m))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ==================== MANUAL CROP CHECKS ====================
+
+  Future<void> saveManualCropCheck(ManualCropCheck check) async {
+    final uid = _getUid();
+    if (uid.isNotEmpty) {
+      try {
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crop_manual_checks')
+            .doc(check.id)
+            .set(check.toMap());
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'crop_manual_checks_${check.farmId}';
+    final existing = prefs.getString(key) ?? '[]';
+    final list = (json.decode(existing) as List)
+        .where((m) => m['id'] != check.id)
+        .toList();
+    list.insert(0, check.toMap());
+    await prefs.setString(key, json.encode(list));
+  }
+
+  Future<List<ManualCropCheck>> loadManualCropChecks(String farmId) async {
+    final uid = _getUid();
+    if (uid.isNotEmpty) {
+      try {
+        final snap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crop_manual_checks')
+            .where('farmId', isEqualTo: farmId)
+            .orderBy('createdAt', descending: true)
+            .get();
+        final checks =
+            snap.docs.map((d) => ManualCropCheck.fromMap(d.data())).toList();
+        if (checks.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('crop_manual_checks_$farmId',
+              json.encode(checks.map((c) => c.toMap()).toList()));
+          return checks;
+        }
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('crop_manual_checks_$farmId') ?? '[]';
+    try {
+      return (json.decode(data) as List)
+          .map((m) => ManualCropCheck.fromMap(m))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ==================== ALL CROPS (history across farms) ====================
+
+  Future<List<CropRecord>> loadAllCrops() async {
+    final uid = _getUid();
+    if (uid.isNotEmpty) {
+      try {
+        final snap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('crops')
+            .orderBy('plantingDate', descending: true)
+            .get();
+        return snap.docs.map((d) => CropRecord.fromMap(d.data())).toList();
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final seen = <String, CropRecord>{};
+    for (final key in prefs.getKeys().where((k) => k.startsWith('crops_'))) {
+      try {
+        final list = json.decode(prefs.getString(key) ?? '[]') as List;
+        for (final m in list) {
+          final crop = CropRecord.fromMap(m);
+          seen[crop.id] = crop;
+        }
+      } catch (_) {}
+    }
+    final crops = seen.values.toList()
+      ..sort((a, b) => b.plantingDate.compareTo(a.plantingDate));
+    return crops;
   }
 
   // ==================== EXPENSES ====================
@@ -245,29 +595,41 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        final snap = await _firestore.collection('users').doc(uid)
-            .collection('expenses').where('farmId', isEqualTo: farmId)
-            .orderBy('date', descending: true).get();
+        final snap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('expenses')
+            .where('farmId', isEqualTo: farmId)
+            .orderBy('date', descending: true)
+            .get();
         return snap.docs.map((d) => ExpenseRecord.fromMap(d.data())).toList();
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString('expenses_$farmId') ?? '[]';
-    return (json.decode(data) as List).map((m) => ExpenseRecord.fromMap(m)).toList();
+    return (json.decode(data) as List)
+        .map((m) => ExpenseRecord.fromMap(m))
+        .toList();
   }
 
   Future<void> saveExpense(ExpenseRecord record) async {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        await _firestore.collection('users').doc(uid)
-            .collection('expenses').doc(record.id).set(record.toMap());
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('expenses')
+            .doc(record.id)
+            .set(record.toMap());
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final key = 'expenses_${record.farmId}';
     final existing = prefs.getString(key) ?? '[]';
-    final list = (json.decode(existing) as List).where((m) => m['id'] != record.id).toList();
+    final list = (json.decode(existing) as List)
+        .where((m) => m['id'] != record.id)
+        .toList();
     list.insert(0, record.toMap());
     await prefs.setString(key, json.encode(list));
   }
@@ -276,13 +638,19 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        await _firestore.collection('users').doc(uid).collection('expenses').doc(id).delete();
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('expenses')
+            .doc(id)
+            .delete();
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final key = 'expenses_$farmId';
     final existing = prefs.getString(key) ?? '[]';
-    final list = (json.decode(existing) as List).where((m) => m['id'] != id).toList();
+    final list =
+        (json.decode(existing) as List).where((m) => m['id'] != id).toList();
     await prefs.setString(key, json.encode(list));
   }
 
@@ -292,29 +660,41 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        final snap = await _firestore.collection('users').doc(uid)
-            .collection('pesticides').where('farmId', isEqualTo: farmId)
-            .orderBy('date', descending: true).get();
+        final snap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('pesticides')
+            .where('farmId', isEqualTo: farmId)
+            .orderBy('date', descending: true)
+            .get();
         return snap.docs.map((d) => PesticideRecord.fromMap(d.data())).toList();
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString('pesticides_$farmId') ?? '[]';
-    return (json.decode(data) as List).map((m) => PesticideRecord.fromMap(m)).toList();
+    return (json.decode(data) as List)
+        .map((m) => PesticideRecord.fromMap(m))
+        .toList();
   }
 
   Future<void> savePesticide(PesticideRecord record) async {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        await _firestore.collection('users').doc(uid)
-            .collection('pesticides').doc(record.id).set(record.toMap());
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('pesticides')
+            .doc(record.id)
+            .set(record.toMap());
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final key = 'pesticides_${record.farmId}';
     final existing = prefs.getString(key) ?? '[]';
-    final list = (json.decode(existing) as List).where((m) => m['id'] != record.id).toList();
+    final list = (json.decode(existing) as List)
+        .where((m) => m['id'] != record.id)
+        .toList();
     list.insert(0, record.toMap());
     await prefs.setString(key, json.encode(list));
   }
@@ -323,13 +703,19 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        await _firestore.collection('users').doc(uid).collection('pesticides').doc(id).delete();
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('pesticides')
+            .doc(id)
+            .delete();
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final key = 'pesticides_$farmId';
     final existing = prefs.getString(key) ?? '[]';
-    final list = (json.decode(existing) as List).where((m) => m['id'] != id).toList();
+    final list =
+        (json.decode(existing) as List).where((m) => m['id'] != id).toList();
     await prefs.setString(key, json.encode(list));
   }
 
@@ -339,29 +725,43 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        final snap = await _firestore.collection('users').doc(uid)
-            .collection('fertilizers').where('farmId', isEqualTo: farmId)
-            .orderBy('date', descending: true).get();
-        return snap.docs.map((d) => FertilizerRecord.fromMap(d.data())).toList();
+        final snap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('fertilizers')
+            .where('farmId', isEqualTo: farmId)
+            .orderBy('date', descending: true)
+            .get();
+        return snap.docs
+            .map((d) => FertilizerRecord.fromMap(d.data()))
+            .toList();
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString('fertilizers_$farmId') ?? '[]';
-    return (json.decode(data) as List).map((m) => FertilizerRecord.fromMap(m)).toList();
+    return (json.decode(data) as List)
+        .map((m) => FertilizerRecord.fromMap(m))
+        .toList();
   }
 
   Future<void> saveFertilizer(FertilizerRecord record) async {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        await _firestore.collection('users').doc(uid)
-            .collection('fertilizers').doc(record.id).set(record.toMap());
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('fertilizers')
+            .doc(record.id)
+            .set(record.toMap());
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final key = 'fertilizers_${record.farmId}';
     final existing = prefs.getString(key) ?? '[]';
-    final list = (json.decode(existing) as List).where((m) => m['id'] != record.id).toList();
+    final list = (json.decode(existing) as List)
+        .where((m) => m['id'] != record.id)
+        .toList();
     list.insert(0, record.toMap());
     await prefs.setString(key, json.encode(list));
   }
@@ -370,13 +770,19 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        await _firestore.collection('users').doc(uid).collection('fertilizers').doc(id).delete();
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('fertilizers')
+            .doc(id)
+            .delete();
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final key = 'fertilizers_$farmId';
     final existing = prefs.getString(key) ?? '[]';
-    final list = (json.decode(existing) as List).where((m) => m['id'] != id).toList();
+    final list =
+        (json.decode(existing) as List).where((m) => m['id'] != id).toList();
     await prefs.setString(key, json.encode(list));
   }
 
@@ -386,29 +792,41 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        final snap = await _firestore.collection('users').doc(uid)
-            .collection('diseases').where('farmId', isEqualTo: farmId)
-            .orderBy('detectedDate', descending: true).get();
+        final snap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('diseases')
+            .where('farmId', isEqualTo: farmId)
+            .orderBy('detectedDate', descending: true)
+            .get();
         return snap.docs.map((d) => DiseaseRecord.fromMap(d.data())).toList();
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString('diseases_$farmId') ?? '[]';
-    return (json.decode(data) as List).map((m) => DiseaseRecord.fromMap(m)).toList();
+    return (json.decode(data) as List)
+        .map((m) => DiseaseRecord.fromMap(m))
+        .toList();
   }
 
   Future<void> saveDisease(DiseaseRecord record) async {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        await _firestore.collection('users').doc(uid)
-            .collection('diseases').doc(record.id).set(record.toMap());
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('diseases')
+            .doc(record.id)
+            .set(record.toMap());
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final key = 'diseases_${record.farmId}';
     final existing = prefs.getString(key) ?? '[]';
-    final list = (json.decode(existing) as List).where((m) => m['id'] != record.id).toList();
+    final list = (json.decode(existing) as List)
+        .where((m) => m['id'] != record.id)
+        .toList();
     list.insert(0, record.toMap());
     await prefs.setString(key, json.encode(list));
   }
@@ -417,13 +835,19 @@ class DataService {
     final uid = _getUid();
     if (uid.isNotEmpty) {
       try {
-        await _firestore.collection('users').doc(uid).collection('diseases').doc(id).delete();
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('diseases')
+            .doc(id)
+            .delete();
       } catch (_) {}
     }
     final prefs = await SharedPreferences.getInstance();
     final key = 'diseases_$farmId';
     final existing = prefs.getString(key) ?? '[]';
-    final list = (json.decode(existing) as List).where((m) => m['id'] != id).toList();
+    final list =
+        (json.decode(existing) as List).where((m) => m['id'] != id).toList();
     await prefs.setString(key, json.encode(list));
   }
 
@@ -432,7 +856,9 @@ class DataService {
   Future<List<NotificationModel>> loadNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString('notification_history') ?? '[]';
-    return (json.decode(data) as List).map((m) => NotificationModel.fromMap(m)).toList();
+    return (json.decode(data) as List)
+        .map((m) => NotificationModel.fromMap(m))
+        .toList();
   }
 
   Future<void> saveNotification(NotificationModel notification) async {
@@ -447,7 +873,9 @@ class DataService {
   Future<void> markNotificationRead(String id) async {
     final prefs = await SharedPreferences.getInstance();
     final existing = prefs.getString('notification_history') ?? '[]';
-    final list = (json.decode(existing) as List).map((m) => Map<String, dynamic>.from(m)).toList();
+    final list = (json.decode(existing) as List)
+        .map((m) => Map<String, dynamic>.from(m))
+        .toList();
     for (final item in list) {
       if (item['id'] == id) {
         item['isRead'] = true;
@@ -460,7 +888,9 @@ class DataService {
   Future<void> markAllNotificationsRead() async {
     final prefs = await SharedPreferences.getInstance();
     final existing = prefs.getString('notification_history') ?? '[]';
-    final list = (json.decode(existing) as List).map((m) => Map<String, dynamic>.from(m)).toList();
+    final list = (json.decode(existing) as List)
+        .map((m) => Map<String, dynamic>.from(m))
+        .toList();
     for (final item in list) {
       item['isRead'] = true;
     }
@@ -470,7 +900,9 @@ class DataService {
   Future<void> deleteNotification(String id) async {
     final prefs = await SharedPreferences.getInstance();
     final existing = prefs.getString('notification_history') ?? '[]';
-    final list = (json.decode(existing) as List).map((m) => Map<String, dynamic>.from(m)).toList();
+    final list = (json.decode(existing) as List)
+        .map((m) => Map<String, dynamic>.from(m))
+        .toList();
     list.removeWhere((item) => item['id'] == id);
     await prefs.setString('notification_history', json.encode(list));
   }
@@ -502,6 +934,18 @@ class DataService {
     await prefs.setString('selected_domain', console);
   }
 
+  // ==================== ACCENT COLOR ====================
+
+  Future<int> getAccentColorIndex() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('accent_color_index') ?? 0;
+  }
+
+  Future<void> setAccentColorIndex(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('accent_color_index', index);
+  }
+
   Future<bool> isOnboardingComplete() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('onboarding_complete') ?? false;
@@ -513,6 +957,14 @@ class DataService {
   }
 
   // ==================== HELPERS ====================
+
+  String _safeErrorCode(Object error) {
+    final text = error.toString();
+    final match = RegExp(r'\[[a-z_]+/([a-z0-9_-]+)\]').firstMatch(text);
+    if (match != null) return match.group(1) ?? error.runtimeType.toString();
+    if (error is FirebaseException) return error.code;
+    return error.runtimeType.toString();
+  }
 
   String generateId() => _uuid.v4();
 
@@ -530,9 +982,13 @@ class DataService {
         email: data['email'] ?? '',
         displayName: data['displayName'] ?? '',
         gender: data['gender'] ?? '',
-        dateOfBirth: data['dateOfBirth'] != null ? DateTime.tryParse(data['dateOfBirth']) : null,
+        dateOfBirth: data['dateOfBirth'] != null
+            ? DateTime.tryParse(data['dateOfBirth'])
+            : null,
         age: data['age'] ?? 0,
-        address: data['address'] != null ? AddressData.fromMap(Map<String, dynamic>.from(data['address'])) : null,
+        address: data['address'] != null
+            ? AddressData.fromMap(Map<String, dynamic>.from(data['address']))
+            : null,
         avatarUrl: data['avatarUrl'] ?? '',
         role: data['role'] ?? 'farmer',
         isEmailVerified: data['isEmailVerified'] ?? false,
@@ -549,8 +1005,14 @@ class DataService {
       }
 
       // Restore farms
-      final farmSnap = await _firestore.collection('users').doc(uid).collection('farms').orderBy('index').get();
-      final farms = farmSnap.docs.map((d) => FarmProfile.fromMap(d.data())).toList();
+      final farmSnap = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('farms')
+          .orderBy('index')
+          .get();
+      final farms =
+          farmSnap.docs.map((d) => FarmProfile.fromMap(d.data())).toList();
       if (farms.isNotEmpty) await _cacheFarms(farms);
 
       await setOnboardingComplete(true);

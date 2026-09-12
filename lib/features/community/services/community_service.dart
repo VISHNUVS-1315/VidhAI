@@ -11,7 +11,8 @@ class CommunityService {
   String? get _currentUserId => _auth.currentUser?.uid;
 
   CollectionReference get _postsRef => _firestore.collection('community_posts');
-  CollectionReference get _commentsRef => _firestore.collection('community_comments');
+  CollectionReference get _commentsRef =>
+      _firestore.collection('community_comments');
 
   Future<CommunityPost?> createPost({
     required String content,
@@ -55,7 +56,8 @@ class CommunityService {
   Future<void> deletePost(String postId) async {
     try {
       await _postsRef.doc(postId).delete();
-      final comments = await _commentsRef.where('postId', isEqualTo: postId).get();
+      final comments =
+          await _commentsRef.where('postId', isEqualTo: postId).get();
       for (final doc in comments.docs) {
         await doc.reference.delete();
       }
@@ -166,7 +168,8 @@ class CommunityService {
     final uid = _currentUserId;
     if (uid == null) return 0;
     try {
-      final snapshot = await _postsRef.where('authorId', isEqualTo: uid).count().get();
+      final snapshot =
+          await _postsRef.where('authorId', isEqualTo: uid).count().get();
       return snapshot.count ?? 0;
     } catch (_) {
       return 0;

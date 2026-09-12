@@ -76,7 +76,9 @@ class VoiceFormAI {
       return digits ?? speechInput.replaceAll(RegExp(r'[^0-9]'), '');
     }
 
-    if (fieldLower.contains('area') || fieldLower.contains('acre') || fieldLower.contains('hectare')) {
+    if (fieldLower.contains('area') ||
+        fieldLower.contains('acre') ||
+        fieldLower.contains('hectare')) {
       final numMatch = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(lower);
       return numMatch != null ? '${numMatch.group(1)} acres' : speechInput;
     }
@@ -126,7 +128,8 @@ class SoilAnalysisAI {
     }
   }
 
-  Map<String, dynamic> _fallbackAnalysis(String soilType, String ph, String? moisture) {
+  Map<String, dynamic> _fallbackAnalysis(
+      String soilType, String ph, String? moisture) {
     final phValue = double.tryParse(ph) ?? 7.0;
     int score;
     if (phValue >= 6.0 && phValue <= 7.5) {
@@ -142,7 +145,11 @@ class SoilAnalysisAI {
       'ph': ph,
       'moisture': moisture ?? 'Not measured',
       'healthScore': score,
-      'healthRating': score >= 80 ? 'Good' : score >= 60 ? 'Fair' : 'Poor',
+      'healthRating': score >= 80
+          ? 'Good'
+          : score >= 60
+              ? 'Fair'
+              : 'Poor',
       'recommendations': [
         'Get a complete Soil Health Card from your nearest lab.',
         'Add organic matter to improve soil structure.',
@@ -263,7 +270,8 @@ class CropRecommendationAI {
     }
   }
 
-  List<Map<String, dynamic>> _fallbackRecommendations(Map<String, dynamic> profile) {
+  List<Map<String, dynamic>> _fallbackRecommendations(
+      Map<String, dynamic> profile) {
     return [
       {
         'crop': 'Rice',
@@ -361,9 +369,13 @@ class DailyTaskAI {
         }
       }
 
-      return [{'farmName': 'General', 'tasks': _fallbackTasks(farms)}];
+      return [
+        {'farmName': 'General', 'tasks': _fallbackTasks(farms)}
+      ];
     } catch (e) {
-      return [{'farmName': 'General', 'tasks': _fallbackTasks(farms)}];
+      return [
+        {'farmName': 'General', 'tasks': _fallbackTasks(farms)}
+      ];
     }
   }
 
@@ -443,7 +455,9 @@ class VidhAIChatService {
             final detailText = details.map((d) => '• $d').join('\n');
             return '$answer\n\n$detailText';
           }
-          return answer.toString().isNotEmpty ? answer.toString() : response.content;
+          return answer.toString().isNotEmpty
+              ? answer.toString()
+              : response.content;
         }
         return response.content;
       }

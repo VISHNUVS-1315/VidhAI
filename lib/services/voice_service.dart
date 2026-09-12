@@ -124,22 +124,35 @@ class VoiceService {
         lower.contains('cent')) {
       return VoiceField.farmSize;
     }
-    if (lower.contains('irrigation') || lower.contains('drip') || lower.contains('sprinkler')) {
+    if (lower.contains('irrigation') ||
+        lower.contains('drip') ||
+        lower.contains('sprinkler')) {
       return VoiceField.irrigationType;
     }
-    if (lower.contains('water source') || lower.contains('well') || lower.contains('borewell') || lower.contains('river')) {
+    if (lower.contains('water source') ||
+        lower.contains('well') ||
+        lower.contains('borewell') ||
+        lower.contains('river')) {
       return VoiceField.waterSource;
     }
-    if (lower.contains('soil') || lower.contains('clay') || lower.contains('sandy') || lower.contains('loam')) {
+    if (lower.contains('soil') ||
+        lower.contains('clay') ||
+        lower.contains('sandy') ||
+        lower.contains('loam')) {
       return VoiceField.soilType;
     }
-    if (lower.contains('water availability') || lower.contains('water level') ||
-        lower.contains('水量') || lower.contains('நீர் அளவு')) {
+    if (lower.contains('water availability') ||
+        lower.contains('water level') ||
+        lower.contains('水量') ||
+        lower.contains('நீர் அளவு')) {
       return VoiceField.waterAvailability;
     }
-    if (lower.contains('farming method') || lower.contains('organic') ||
-        lower.contains('integrated') || lower.contains('conventional') ||
-        lower.contains('natural farming') || lower.contains('precision farming')) {
+    if (lower.contains('farming method') ||
+        lower.contains('organic') ||
+        lower.contains('integrated') ||
+        lower.contains('conventional') ||
+        lower.contains('natural farming') ||
+        lower.contains('precision farming')) {
       return VoiceField.farmingMethod;
     }
 
@@ -172,7 +185,13 @@ class VoiceService {
         final hasLatin = RegExp(r'[a-zA-Z]').hasMatch(text);
         if (!hasLatin) return text.trim();
         // For Latin text, try simple prefix removal
-        final simplePrefixes = ['my name is ', "i'm ", 'i am ', 'call me ', 'name '];
+        final simplePrefixes = [
+          'my name is ',
+          "i'm ",
+          'i am ',
+          'call me ',
+          'name '
+        ];
         for (final prefix in simplePrefixes) {
           if (lower.startsWith(prefix)) {
             return text.substring(prefix.length).trim();
@@ -221,7 +240,9 @@ class VoiceService {
       case VoiceField.waterSource:
         final lower3 = text.toLowerCase();
         if (lower3.contains('well') && !lower3.contains('bore')) return 'Well';
-        if (lower3.contains('borewell') || lower3.contains('bore')) return 'Borewell';
+        if (lower3.contains('borewell') || lower3.contains('bore')) {
+          return 'Borewell';
+        }
         if (lower3.contains('river')) return 'River';
         if (lower3.contains('canal')) return 'Canal';
         if (lower3.contains('rain')) return 'Rainwater';
@@ -237,7 +258,9 @@ class VoiceService {
         if (lower4.contains('peat')) return 'Peat';
         if (lower4.contains('chalk')) return 'Chalk';
         if (lower4.contains('saline')) return 'Saline';
-        if (lower4.contains('black') || lower4.contains('regur')) return 'Black (Regur)';
+        if (lower4.contains('black') || lower4.contains('regur')) {
+          return 'Black (Regur)';
+        }
         if (lower4.contains('red')) return 'Red';
         if (lower4.contains('laterite')) return 'Laterite';
         return text.trim();
@@ -249,7 +272,9 @@ class VoiceService {
         final lower5 = text.toLowerCase();
         if (lower5.contains('organic')) return 'Organic Farming';
         if (lower5.contains('integrated')) return 'Integrated Farming';
-        if (lower5.contains('conventional') || lower5.contains('chemical')) return 'Conventional/Chemical Farming';
+        if (lower5.contains('conventional') || lower5.contains('chemical')) {
+          return 'Conventional/Chemical Farming';
+        }
         if (lower5.contains('natural')) return 'Natural Farming';
         if (lower5.contains('precision')) return 'Precision Farming';
         return text.trim();
@@ -262,40 +287,92 @@ class VoiceService {
   static String? mapWaterAvailability(String text) {
     final lower = text.toLowerCase();
     // English
-    if (lower.contains('high') || lower.contains('plenty') || lower.contains('more water') ||
-        lower.contains('lots of water') || lower.contains('abundant')) {
+    if (lower.contains('high') ||
+        lower.contains('plenty') ||
+        lower.contains('more water') ||
+        lower.contains('lots of water') ||
+        lower.contains('abundant')) {
       return 'High';
     }
-    if (lower.contains('medium') || lower.contains('moderate') || lower.contains('average')) return 'Medium';
-    if (lower.contains('low') || lower.contains('less water') || lower.contains('scarce') && !lower.contains('very')) return 'Low';
-    if (lower.contains('very low') || lower.contains('very less') || lower.contains('drought') || lower.contains('severe')) return 'Very Low';
-    if (lower.contains('no water') || lower.contains('none') || lower.contains('zero')) return 'No Water';
+    if (lower.contains('medium') ||
+        lower.contains('moderate') ||
+        lower.contains('average')) {
+      return 'Medium';
+    }
+    if (lower.contains('low') ||
+        lower.contains('less water') ||
+        lower.contains('scarce') && !lower.contains('very')) {
+      return 'Low';
+    }
+    if (lower.contains('very low') ||
+        lower.contains('very less') ||
+        lower.contains('drought') ||
+        lower.contains('severe')) {
+      return 'Very Low';
+    }
+    if (lower.contains('no water') ||
+        lower.contains('none') ||
+        lower.contains('zero')) {
+      return 'No Water';
+    }
     // Tamil
-    if (lower.contains('அதிகமா') || lower.contains('நிறைய') || lower.contains('தண்ணி அதிகமா')) return 'High';
-    if (lower.contains('சராசரி') || lower.contains('சுமார்') || lower.contains('மிதமான')) return 'Medium';
-    if (lower.contains('குறைவா') || lower.contains('கம்மி') || lower.contains('தண்ணி கம்மி')) return 'Low';
-    if (lower.contains('மிகவும் குறைவா') || lower.contains('தண்ணி இல்லாம')) return 'Very Low';
-    if (lower.contains('தண்ணி இல்லை') || lower.contains('சுத்தமா இல்லை')) return 'No Water';
+    if (lower.contains('அதிகமா') ||
+        lower.contains('நிறைய') ||
+        lower.contains('தண்ணி அதிகமா')) {
+      return 'High';
+    }
+    if (lower.contains('சராசரி') ||
+        lower.contains('சுமார்') ||
+        lower.contains('மிதமான')) {
+      return 'Medium';
+    }
+    if (lower.contains('குறைவா') ||
+        lower.contains('கம்மி') ||
+        lower.contains('தண்ணி கம்மி')) {
+      return 'Low';
+    }
+    if (lower.contains('மிகவும் குறைவா') || lower.contains('தண்ணி இல்லாம')) {
+      return 'Very Low';
+    }
+    if (lower.contains('தண்ணி இல்லை') || lower.contains('சுத்தமா இல்லை')) {
+      return 'No Water';
+    }
     // Telugu
-    if (lower.contains('ఎక్కువ') || lower.contains('నీళ్లు ఎక్కువ')) return 'High';
+    if (lower.contains('ఎక్కువ') || lower.contains('నీళ్లు ఎక్కువ')) {
+      return 'High';
+    }
     if (lower.contains('మధ్యస్థం') || lower.contains('సగటు')) return 'Medium';
-    if (lower.contains('తక్కువ') && !lower.contains('చాలా తక్కువ')) return 'Low';
+    if (lower.contains('తక్కువ') && !lower.contains('చాలా తక్కువ')) {
+      return 'Low';
+    }
     if (lower.contains('చాలా తక్కువ')) return 'Very Low';
     if (lower.contains('నీళ్లు లేదు')) return 'No Water';
     // Hindi
-    if (lower.contains('ज़्यादा') || lower.contains('बहुत पानी') || lower.contains('अधिक')) return 'High';
+    if (lower.contains('ज़्यादा') ||
+        lower.contains('बहुत पानी') ||
+        lower.contains('अधिक')) {
+      return 'High';
+    }
     if (lower.contains('मध्यम') || lower.contains('औसत')) return 'Medium';
     if (lower.contains('कम') && !lower.contains('बहुत कम')) return 'Low';
-    if (lower.contains('बहुत कम') || lower.contains('अति कम')) return 'Very Low';
-    if (lower.contains('पानी नहीं') || lower.contains('कोई पानी नहीं')) return 'No Water';
+    if (lower.contains('बहुत कम') || lower.contains('अति कम')) {
+      return 'Very Low';
+    }
+    if (lower.contains('पानी नहीं') || lower.contains('कोई पानी नहीं')) {
+      return 'No Water';
+    }
     // Kannada
-    if (lower.contains('ಹೆಚ್ಚು') || lower.contains('ನೀರು ಹೆಚ್ಚು')) return 'High';
+    if (lower.contains('ಹೆಚ್ಚು') || lower.contains('ನೀರು ಹೆಚ್ಚು')) {
+      return 'High';
+    }
     if (lower.contains('ಮಧ್ಯಮ') || lower.contains('ಸರಾಸರಿ')) return 'Medium';
     if (lower.contains('ಕಡಿಮೆ') && !lower.contains('ತುಂಬಾ ಕಡಿಮೆ')) return 'Low';
     if (lower.contains('ತುಂಬಾ ಕಡಿಮೆ')) return 'Very Low';
     if (lower.contains('ನೀರು ಇಲ್ಲ')) return 'No Water';
     // Malayalam
-    if (lower.contains('കൂടുതൽ') || lower.contains('വെള്ളം കൂടുതൽ')) return 'High';
+    if (lower.contains('കൂടുതൽ') || lower.contains('വെള്ളം കൂടുതൽ')) {
+      return 'High';
+    }
     if (lower.contains('ഇടത്തരം') || lower.contains('ശരാശരി')) return 'Medium';
     if (lower.contains('കുറവ്') && !lower.contains('വളരെ കുറവ്')) return 'Low';
     if (lower.contains('വളരെ കുറവ്')) return 'Very Low';

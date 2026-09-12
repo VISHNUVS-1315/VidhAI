@@ -20,8 +20,12 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('expenses').doc(record.id).set(record.toMap());
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('expenses')
+          .doc(record.id)
+          .set(record.toMap());
     } catch (_) {}
     await _cacheExpensesLocally(record);
   }
@@ -30,8 +34,12 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('expenses').doc(record.id).update(record.toMap());
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('expenses')
+          .doc(record.id)
+          .update(record.toMap());
     } catch (_) {}
   }
 
@@ -39,8 +47,12 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('expenses').doc(id).delete();
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('expenses')
+          .doc(id)
+          .delete();
     } catch (_) {}
     await _removeCachedExpense(id);
   }
@@ -49,10 +61,15 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return [];
     try {
-      final snap = await _firestore.collection('users').doc(uid)
-          .collection('expenses').where('farmId', isEqualTo: farmId)
-          .orderBy('date', descending: true).get();
-      final records = snap.docs.map((d) => ExpenseRecord.fromMap(d.data())).toList();
+      final snap = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('expenses')
+          .where('farmId', isEqualTo: farmId)
+          .orderBy('date', descending: true)
+          .get();
+      final records =
+          snap.docs.map((d) => ExpenseRecord.fromMap(d.data())).toList();
       return records;
     } catch (_) {
       return _loadCachedExpenses(farmId);
@@ -63,7 +80,9 @@ class FarmRecordsService {
     final prefs = await SharedPreferences.getInstance();
     final key = 'expenses_${record.farmId}';
     final existing = prefs.getString(key) ?? '[]';
-    final list = (json.decode(existing) as List).where((m) => m['id'] != record.id).toList();
+    final list = (json.decode(existing) as List)
+        .where((m) => m['id'] != record.id)
+        .toList();
     list.insert(0, record.toMap());
     await prefs.setString(key, json.encode(list));
   }
@@ -72,7 +91,9 @@ class FarmRecordsService {
     final prefs = await SharedPreferences.getInstance();
     final key = 'expenses_$farmId';
     final existing = prefs.getString(key) ?? '[]';
-    return (json.decode(existing) as List).map((m) => ExpenseRecord.fromMap(m)).toList();
+    return (json.decode(existing) as List)
+        .map((m) => ExpenseRecord.fromMap(m))
+        .toList();
   }
 
   Future<void> _removeCachedExpense(String id) async {
@@ -80,7 +101,8 @@ class FarmRecordsService {
     final keys = prefs.getKeys().where((k) => k.startsWith('expenses_'));
     for (final key in keys) {
       final existing = prefs.getString(key) ?? '[]';
-      final list = (json.decode(existing) as List).where((m) => m['id'] != id).toList();
+      final list =
+          (json.decode(existing) as List).where((m) => m['id'] != id).toList();
       await prefs.setString(key, json.encode(list));
     }
   }
@@ -90,8 +112,12 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('pesticides').doc(record.id).set(record.toMap());
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('pesticides')
+          .doc(record.id)
+          .set(record.toMap());
     } catch (_) {}
   }
 
@@ -99,9 +125,13 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return [];
     try {
-      final snap = await _firestore.collection('users').doc(uid)
-          .collection('pesticides').where('farmId', isEqualTo: farmId)
-          .orderBy('date', descending: true).get();
+      final snap = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('pesticides')
+          .where('farmId', isEqualTo: farmId)
+          .orderBy('date', descending: true)
+          .get();
       return snap.docs.map((d) => PesticideRecord.fromMap(d.data())).toList();
     } catch (_) {
       return [];
@@ -112,8 +142,12 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('pesticides').doc(id).delete();
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('pesticides')
+          .doc(id)
+          .delete();
     } catch (_) {}
   }
 
@@ -122,8 +156,12 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('fertilizers').doc(record.id).set(record.toMap());
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('fertilizers')
+          .doc(record.id)
+          .set(record.toMap());
     } catch (_) {}
   }
 
@@ -131,9 +169,13 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return [];
     try {
-      final snap = await _firestore.collection('users').doc(uid)
-          .collection('fertilizers').where('farmId', isEqualTo: farmId)
-          .orderBy('date', descending: true).get();
+      final snap = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('fertilizers')
+          .where('farmId', isEqualTo: farmId)
+          .orderBy('date', descending: true)
+          .get();
       return snap.docs.map((d) => FertilizerRecord.fromMap(d.data())).toList();
     } catch (_) {
       return [];
@@ -144,8 +186,12 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('fertilizers').doc(id).delete();
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('fertilizers')
+          .doc(id)
+          .delete();
     } catch (_) {}
   }
 
@@ -154,8 +200,12 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('diseases').doc(record.id).set(record.toMap());
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('diseases')
+          .doc(record.id)
+          .set(record.toMap());
     } catch (_) {}
   }
 
@@ -163,9 +213,13 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return [];
     try {
-      final snap = await _firestore.collection('users').doc(uid)
-          .collection('diseases').where('farmId', isEqualTo: farmId)
-          .orderBy('detectedDate', descending: true).get();
+      final snap = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('diseases')
+          .where('farmId', isEqualTo: farmId)
+          .orderBy('detectedDate', descending: true)
+          .get();
       return snap.docs.map((d) => DiseaseRecord.fromMap(d.data())).toList();
     } catch (_) {
       return [];
@@ -176,8 +230,12 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('diseases').doc(record.id).update(record.toMap());
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('diseases')
+          .doc(record.id)
+          .update(record.toMap());
     } catch (_) {}
   }
 
@@ -185,8 +243,12 @@ class FarmRecordsService {
     final uid = _getUid();
     if (uid.isEmpty) return;
     try {
-      await _firestore.collection('users').doc(uid)
-          .collection('diseases').doc(id).delete();
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('diseases')
+          .doc(id)
+          .delete();
     } catch (_) {}
   }
 

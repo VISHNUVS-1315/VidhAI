@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/locale/locale.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
@@ -30,11 +31,12 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = VidhAIColorsX(context);
     final size = MediaQuery.of(context).size;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1A),
+      backgroundColor: colors.bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -49,7 +51,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                       width: 56,
                       height: 56,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A2332),
+                        color: colors.surface,
                         borderRadius: BorderRadius.circular(16),
                         image: const DecorationImage(
                           image: AssetImage('assets/images/logo.png'),
@@ -58,21 +60,21 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Choose Your Language',
+                    Text(
+                      AppLocalizations.of(context).selectLanguage,
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: colors.onBackground,
                         height: 1.2,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Select your preferred language to continue',
+                      AppLocalizations.of(context).languageSubtitle,
                       style: TextStyle(
                         fontSize: 15,
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: colors.onSurfaceMuted,
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -86,7 +88,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
         ),
       ),
       bottomSheet: Container(
-        color: const Color(0xFF0A0F1A),
+        color: colors.bg,
         padding: EdgeInsets.fromLTRB(24, 12, 24, bottomPadding + 16),
         child: SizedBox(
           width: double.infinity,
@@ -101,8 +103,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                   }
                 : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
-              disabledBackgroundColor: const Color(0xFF1A2332),
+              backgroundColor: colors.brandDeep,
+              disabledBackgroundColor: colors.surface,
               foregroundColor: Colors.white,
               disabledForegroundColor: Colors.white.withValues(alpha: 0.3),
               shape: RoundedRectangleBorder(
@@ -111,7 +113,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               elevation: 0,
             ),
             child: Text(
-              'Continue',
+              AppLocalizations.of(context).continueBtn,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -127,6 +129,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
   }
 
   Widget _buildLanguageTile(Map<String, String> lang) {
+    final colors = VidhAIColorsX(context);
     final isSelected = _selectedLanguage == lang['code'];
 
     return Padding(
@@ -146,13 +149,11 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFF4CAF50).withValues(alpha: 0.12)
-                  : const Color(0xFF111827),
+                  ? colors.brandDeep.withValues(alpha: 0.12)
+                  : colors.surface,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: isSelected
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFF1F2937),
+                color: isSelected ? colors.brandDeep : colors.borderColor,
                 width: 1.5,
               ),
             ),
@@ -163,8 +164,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                   height: 40,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF4CAF50).withValues(alpha: 0.2)
-                        : const Color(0xFF1F2937),
+                        ? colors.brandDeep.withValues(alpha: 0.2)
+                        : colors.surface,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
@@ -174,8 +175,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: isSelected
-                            ? const Color(0xFF4CAF50)
-                            : Colors.white.withValues(alpha: 0.6),
+                            ? colors.brandDeep
+                            : colors.onSurfaceMuted,
                       ),
                     ),
                   ),
@@ -191,8 +192,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
                           color: isSelected
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.8),
+                              ? colors.onBackground
+                              : colors.onBackground,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -201,23 +202,23 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           color: isSelected
-                              ? const Color(0xFF4CAF50).withValues(alpha: 0.8)
-                              : Colors.white.withValues(alpha: 0.35),
+                              ? colors.brandDeep.withValues(alpha: 0.8)
+                              : colors.onSurfaceMuted,
                         ),
                       ),
                     ],
                   ),
                 ),
                 if (isSelected)
-                  const Icon(
+                  Icon(
                     Icons.check_circle_rounded,
-                    color: Color(0xFF4CAF50),
+                    color: colors.brandDeep,
                     size: 22,
                   )
                 else
                   Icon(
                     Icons.circle_outlined,
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: colors.onSurfaceMuted.withValues(alpha: 0.3),
                     size: 22,
                   ),
               ],

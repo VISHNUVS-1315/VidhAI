@@ -1,0 +1,7 @@
+node_modules/
+lib/
+.env
+*.tsbuildinfo
+service-account.json
+.gcloudignore
+.secret.local
