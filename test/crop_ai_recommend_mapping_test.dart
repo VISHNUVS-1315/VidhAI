@@ -85,7 +85,7 @@ void main() {
       expect(tomato.marketDemand, 'Strong kharif demand');
       expect(tomato.riskLevel, 'Low');
       expect(tomato.estimatedLabel, isTrue);
-      expect(tomato.dataSources, ['Groq GPT-OSS-20B via secure backend']);
+      expect(tomato.dataSources, ['NVIDIA Nemotron via secure backend']);
 
       final wheat = results[1];
       expect(wheat.rank, 2);
