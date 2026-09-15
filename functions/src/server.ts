@@ -23,13 +23,11 @@ const server = app.listen(port, '0.0.0.0', () => {
   console.log(`[${serviceName}] listening on 0.0.0.0:${port} (env: ${nodeEnv()})`);
   logger.info('runtime_config_presence', {
     firebaseProjectId: (process.env.FIREBASE_PROJECT_ID ?? 'vidhai-app').trim(),
-    firebaseServiceAccount: Boolean((process.env.FIREBASE_SERVICE_ACCOUNT_JSON ?? '').trim()),
+    firebaseServiceAccount: Boolean(
+      (process.env.FIREBASE_SERVICE_ACCOUNT_JSON ?? '').trim(),
+    ),
     nvidia: Boolean((process.env.NVIDIA_API_KEY ?? '').trim()),
-    deepgram: Boolean((process.env.DEEPGRAM_API_KEY ?? '').trim()),
     dataGov: Boolean((process.env.DATA_GOV_API_KEY ?? '').trim()),
-    groq: Boolean((process.env.GROQ_API_KEY ?? '').trim()),
-    gemini: Boolean((process.env.GEMINI_API_KEY ?? '').trim()),
-    googleTts: Boolean((process.env.GOOGLE_CLOUD_TTS_SA_JSON ?? '').trim()),
   });
 });
 
