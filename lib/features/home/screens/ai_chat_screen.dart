@@ -13,7 +13,7 @@ import 'package:vidhai/features/home/screens/live_voice_screen.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/services/ai/ai_chat_service.dart';
 import 'package:vidhai/services/ai/domain_services.dart';
-import 'package:vidhai/services/ai/gemini_vision_service.dart';
+import 'package:vidhai/services/ai/nvidia_vision_service.dart';
 import 'package:vidhai/services/ai/tts_service.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/core/widgets/vidhai_widgets.dart';
@@ -296,7 +296,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
         carriers.add(Uint8ListLike(bytes: bytes, mimeType: _mimeFor(image)));
       }
       final prompt = text.trim().isEmpty ? loc.attachPhotoHint : text.trim();
-      final analysis = await GeminiVisionService.instance.analyze(
+      final analysis = await NvidiaVisionService.instance.analyze(
         images: carriers,
         prompt: prompt,
         language: lang,
