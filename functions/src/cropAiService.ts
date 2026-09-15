@@ -1,7 +1,7 @@
 /**
  * VidhAI AI crop recommendation service (Structured Outputs).
  *
- * The model (default `openai/gpt-oss-20b`, configurable via GROQ_MODEL) reasons
+ * NVIDIA Nemotron reasons
  * over ALL of the provided farm context at once — location, soil, water,
  * irrigation, crop history/rotation, current season, live/forecast weather,
  * recent market prices, farm size, budget, duration/category preference,
@@ -13,7 +13,7 @@
  * Financial figures are labelled estimates by the client.
  */
 
-import { groqJson, GroqChatMessage } from './groq';
+import { nvidiaJson, NvidiaChatMessage } from './nvidia';
 import { SHIPPED_CROP_KNOWLEDGE, CropKnowledgeEntry } from './cropData';
 import { scoreCrop, FarmContext } from './cropService';
 
@@ -409,12 +409,12 @@ export async function recommendWithAI(
     'Return the top 10 ranked suitable crops in the strict JSON schema.',
   ].join('\n');
 
-  const messages: GroqChatMessage[] = [
+  const messages: NvidiaChatMessage[] = [
     { role: 'system', content: system },
     { role: 'user', content: user },
   ];
 
-  const result = await groqJson<Record<string, unknown>>(messages, {
+  const result = await nvidiaJson<Record<string, unknown>>(messages, {
     schema: cropRecommendationSchema,
     language,
     temperature: 0.3,
