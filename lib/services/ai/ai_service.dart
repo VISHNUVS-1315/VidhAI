@@ -165,12 +165,12 @@ class AIResponse {
   Map<String, dynamic>? get jsonContent {
     try {
       var text = content.trim();
-      if (text.startsWith('&#96;&#96;&#96;json')) {
+      if (text.startsWith('```json')) {
         text = text.substring(7);
-      } else if (text.startsWith('&#96;&#96;&#96;')) {
+      } else if (text.startsWith('```')) {
         text = text.substring(3);
       }
-      if (text.endsWith('&#96;&#96;&#96;')) {
+      if (text.endsWith('```')) {
         text = text.substring(0, text.length - 3);
       }
       final decoded = jsonDecode(text.trim());
