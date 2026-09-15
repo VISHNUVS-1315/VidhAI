@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vidhai/services/ai/nvidia_service.dart';
 import 'package:vidhai/tools/ai_tool.dart';
@@ -20,7 +21,7 @@ class _TestTool extends VidhAITool {
   @override
   Future<Map<String, dynamic>> execute(
     Map<String, dynamic> arguments, {
-    navigatorKey,
+    GlobalKey<NavigatorState>? navigatorKey,
   }) async =>
       {'ok': true};
 }
