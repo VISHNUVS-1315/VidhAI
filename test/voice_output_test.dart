@@ -21,8 +21,11 @@ void main() {
         'ur': 'ur-IN',
       };
       cases.forEach((code, tag) {
-        expect(VoiceOutputService.ttsLanguageCode(code), tag,
-            reason: '$code should map to $tag');
+        expect(
+          VoiceOutputService.ttsLanguageCode(code),
+          tag,
+          reason: '$code should map to $tag',
+        );
       });
     });
 
@@ -32,13 +35,8 @@ void main() {
     });
   });
 
-  group('GeminiLiveVoiceOutput', () {
-    test('reports not-connected (returns false) instead of pretending to speak',
-        () async {
-      final output = GeminiLiveVoiceOutput();
-      expect(output.name, 'geminiLive');
-      expect(await output.speak('hello'), isFalse);
-      await output.stop();
-    });
+  test('voice output is device-only', () {
+    expect(VoiceOutputService.instance.name, 'deviceTts');
+    expect(VoiceOutputService.instance.activeBackend, 'deviceTts');
   });
 }
