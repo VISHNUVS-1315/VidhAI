@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import '../../services/ai/whisper_service.dart';
+import '../../services/ai/device_speech_service.dart';
 
 /// Accumulates one continuous voice turn: it records audio in short clips and
 /// transcribes each clip once a speech segment ends, so the farmer sees a live
@@ -8,10 +8,10 @@ import '../../services/ai/whisper_service.dart';
 /// on its own — the caller finalises the turn explicitly ([finish]), which is
 /// what makes the "user presses ✓ to send one combined query" flow reliable.
 class VoiceTurnRecorder {
-  VoiceTurnRecorder({WhisperService? whisper})
-      : _whisper = whisper ?? WhisperService.instance;
+  VoiceTurnRecorder({DeviceSpeechService? speech})
+      : _speech = speech ?? DeviceSpeechService.instance;
 
-  final WhisperService _whisper;
+  final DeviceSpeechService _speech;
 
   static const Duration _silenceAutoEnd = Duration(milliseconds: 1300);
   static const Duration _minHold = Duration(milliseconds: 500);
@@ -34,7 +34,7 @@ class VoiceTurnRecorder {
   bool get isListening => _listening;
 
   /// dBFS amplitude feed for the wave animation while recording.
-  Stream<double> get amplitude => _whisper.onAmplitude;
+  Stream<double> get amplitude => _speech.onAmplitude;
 
   /// Fired whenever the live [text] changes.
   void Function(String combined)? onText;
@@ -59,17 +59,17 @@ class VoiceTurnRecorder {
 
   Future<bool> _startSegment() async {
     if (_done || !_listening) return false;
-    if (await _whisper.isRecording) return false;
+    if (await _speech.isRecording) return false;
     bool started = false;
-    if (await _whisper.hasPermission()) {
-      started = await _whisper.startRecording();
+    if (await _speech.hasPermission()) {
+      started = await _speech.startRecording(language: _language);
     }
     if (!started) return false;
     _clipStarted = DateTime.now();
     _lastSpeechAt = null;
     _clipFinalized = false;
     await _ampSub?.cancel();
-    _ampSub = _whisper.onAmplitude.listen(_onTick);
+    _ampSub = _speech.onAmplitude.listen(_onTick);
     _watchdog?.cancel();
     _watchdog = Timer(_maxClip, () {
       unawaited(_finishSegment());
@@ -97,7 +97,7 @@ class VoiceTurnRecorder {
     _clipFinalized = true;
     _watchdog?.cancel();
     _watchdog = null;
-    final result = await _whisper.stopAndTranscribe(language: _language);
+    final result = await _speech.stopAndTranscribe(language: _language);
     if (_done) return;
     if (result.success && (result.text ?? '').trim().isNotEmpty) {
       _parts.add(result.text!.trim());
@@ -115,7 +115,7 @@ class VoiceTurnRecorder {
     _watchdog = null;
     final inFlight = _ampSub;
     _ampSub = null;
-    final result = await _whisper.stopAndTranscribe(language: _language);
+    final result = await _speech.stopAndTranscribe(language: _language);
     await inFlight?.cancel();
     if (result.success && (result.text ?? '').trim().isNotEmpty) {
       _parts.add(result.text!.trim());
@@ -133,7 +133,7 @@ class VoiceTurnRecorder {
     _watchdog = null;
     await _ampSub?.cancel();
     _ampSub = null;
-    await _whisper.cancel();
+    await _speech.cancel();
     _parts.clear();
     _listening = false;
     onText?.call('');
