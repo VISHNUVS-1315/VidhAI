@@ -153,6 +153,7 @@ class WhisperService implements VoiceCapturer {
           fields: {
             if (language != null && language.isNotEmpty) 'language': language,
           },
+          debugTag: 'STT',
         );
         sttProvider = 'backend';
       }
