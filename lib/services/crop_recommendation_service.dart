@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:vidhai/core/config/app_config.dart';
 import 'package:vidhai/core/connectivity/connectivity_service.dart';
 import 'package:vidhai/data/models/crop_models.dart';
 import 'package:vidhai/data/models/crop_plan_models.dart';
@@ -66,12 +65,12 @@ class CropRecommendationService {
   /// Returns the preferred top-10 crop recommendations for the farm.
   ///
   /// Order of sources:
-  ///   1. Live structured Groq AI via `/crop/ai-recommend` (all farm context +
+  ///   1. Live structured NVIDIA AI via `/crop/ai-recommend` (all farm context +
   ///      the ~6 manual inputs analysed together; strict JSON Schema output).
   ///   2. Live online `/crop/recommend` (backed by the real context bundle).
   ///   3. Cached online results — only when the decision context hash is
   ///      unchanged and within the TTL (never a stale/mismatched fabrication).
-  ///   4. Realtime AI ranking (Groq, when a key is compiled in and online) on
+  ///   4. Realtime NVIDIA ranking through the secure backend on
   ///      top of the engine-verified shortlist — reorders and explains only.
   ///   5. Deterministic local knowledge-base engine.
   Future<List<CropRecommendationResult>> getRecommendations({
@@ -89,7 +88,7 @@ class CropRecommendationService {
     final snapshot = await _buildSnapshot(farm);
     final hash = snapshot.contextHash;
 
-    // 1) Structured Groq AI first: the model reasons over the ENTIRE context
+    // 1) Structured NVIDIA AI first: the model reasons over the ENTIRE context
     //    at once. Falls back silently to the engine on any failure/emptiness.
     final ai = await CropBackendService.instance.fetchAIRecommendations(
       context: snapshot.toBackendContext(),
@@ -158,7 +157,6 @@ class CropRecommendationService {
     required AiContextSnapshot snapshot,
     required String language,
   }) async {
-    if (AppConfig.groqApiKey.isEmpty) return null;
     try {
       if (!await ConnectivityService.hasInternetConnection()) return null;
       final prompt =
