@@ -23,7 +23,7 @@ import {
   unitConversionFactor,
   unitLabel,
 } from './marketData';
-import { groqChat } from './groq';
+import { nvidiaChat } from './nvidia';
 
 export interface MarketPriceRecord {
   commodity: string;
@@ -707,7 +707,7 @@ export class MarketService {
   ): Promise<string> {
     const deterministic = this.buildMarketInsight(prices, opts.language ?? 'en');
     if (!deterministic) return '';
-    if (!process.env.GROQ_API_KEY && !process.env.NVIDIA_API_KEY) return deterministic;
+    if (!process.env.NVIDIA_API_KEY) return deterministic;
     const system = [
       'You translate a farmer-facing market insight. Follow these hard rules:',
       '1. ONLY reference the exact numbers given. Never invent trends, forecasts, or prices.',
@@ -717,7 +717,7 @@ export class MarketService {
       `Data you may use (verified numbers only): ${deterministic}`,
     ].join('\n');
     try {
-      const result = await groqChat(
+      const result = await nvidiaChat(
         [
           { role: 'system', content: system },
           { role: 'user', content: `Translate/rewrite: ${deterministic}` },
