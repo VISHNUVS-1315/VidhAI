@@ -43,7 +43,7 @@ class AssistantConfirmation {
 
 /// The VidhAI Assistant: a contextual, always-on overlay assistant that works
 /// on top of the current screen (it never navigates to AI Chat). It reuses the
-/// existing secure brain (Groq backend), Whisper STT, TTS and the safe tool
+/// secure NVIDIA brain, on-device speech input/output and safe app tools
 /// registry, so everything is real — never faked.
 ///
 /// Each turn is fully user-controlled: after the short voice greeting the
@@ -325,7 +325,7 @@ class AssistantSession extends ChangeNotifier {
           messages: messages,
           language: _language,
           context: contextJson,
-          tools: VidhAIToolRegistry.instance.groqSpecs(),
+          tools: VidhAIToolRegistry.instance.aiSpecs(),
         );
 
         if (!result.success) {
