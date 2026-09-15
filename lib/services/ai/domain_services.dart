@@ -1,4 +1,5 @@
 import 'ai_service.dart';
+import 'ai_orchestrator.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. VoiceFormAI — Voice-to-field-value conversion
@@ -421,51 +422,41 @@ class VidhAIChatService {
   static final VidhAIChatService _instance = VidhAIChatService._();
   static VidhAIChatService get instance => _instance;
 
-  final AiService _ai = AiService.instance;
+  final AiOrchestrator _orchestrator = AiOrchestrator.instance;
 
-  /// Sends a chat message and returns the AI response as a string.
-  /// Enriches context with user profile and farm data when available.
+  /// Single production chat path:
+  /// AiOrchestrator -> AiChatBrain -> SecureApiClient -> Render.
   Future<String> chat(
     String message, {
     String language = 'en',
     Map<String, dynamic>? userProfile,
     List<Map<String, dynamic>>? farms,
   }) async {
-    try {
-      final context = <String, dynamic>{
-        if (userProfile != null) 'userProfile': userProfile,
-        if (farms != null && farms.isNotEmpty) 'farms': farms,
-        'timestamp': DateTime.now().toIso8601String(),
-        'app': 'VidhAI',
-      };
+    final result = await _orchestrator.process(
+      input: message,
+      language: language,
+      userProfile: userProfile,
+      farms: farms,
+    );
 
-      final response = await _ai.chat(
-        message,
-        language: language,
-        context: context,
-      );
-
-      if (response.success) {
-        // Try to parse structured response
-        final parsed = response.jsonContent;
-        if (parsed != null) {
-          final details = parsed['details'];
-          final answer = parsed['answer'] ?? '';
-          if (details is List) {
-            final detailText = details.map((d) => '• $d').join('\n');
-            return '$answer\n\n$detailText';
-          }
-          return answer.toString().isNotEmpty
-              ? answer.toString()
-              : response.content;
-        }
-        return response.content;
-      }
-
-      return 'I apologize — I could not process your request right now. Please try again or rephrase your question.';
-    } catch (e) {
-      return 'Something went wrong. Please check your connection and try again.';
+    if (!result.failed && result.text.trim().isNotEmpty) {
+      return result.text.trim();
     }
+
+    return switch (result.error) {
+      AiErrorKind.offline =>
+        'No internet connection. Please reconnect and try again.',
+      AiErrorKind.auth =>
+        'Your sign-in session needs to be refreshed. Please sign in again.',
+      AiErrorKind.timeout =>
+        'The AI service took too long to respond. Please try again.',
+      AiErrorKind.rateLimited =>
+        'The AI service is busy right now. Please try again in a moment.',
+      AiErrorKind.busy =>
+        'The AI service is temporarily unavailable. Please try again shortly.',
+      _ =>
+        'The AI service could not complete this request. Please try again.',
+    };
   }
 
   /// Returns the raw AIResponse for advanced UI rendering.
@@ -475,13 +466,22 @@ class VidhAIChatService {
     Map<String, dynamic>? userProfile,
     List<Map<String, dynamic>>? farms,
   }) async {
-    final context = <String, dynamic>{
-      if (userProfile != null) 'userProfile': userProfile,
-      if (farms != null && farms.isNotEmpty) 'farms': farms,
-      'timestamp': DateTime.now().toIso8601String(),
-      'app': 'VidhAI',
-    };
-
-    return await _ai.chat(message, language: language, context: context);
+    final result = await _orchestrator.process(
+      input: message,
+      language: language,
+      userProfile: userProfile,
+      farms: farms,
+    );
+    if (!result.failed && result.text.trim().isNotEmpty) {
+      return AIResponse.ok(
+        result.text.trim(),
+        provider: 'render-router',
+        metadata: const {'path': 'AiOrchestrator'},
+      );
+    }
+    return AIResponse.fail(
+      result.error?.name ?? 'AI request failed',
+      provider: 'render-router',
+    );
   }
 }
