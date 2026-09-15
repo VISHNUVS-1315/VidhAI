@@ -5,13 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vidhai/services/ai/ai_orchestrator.dart';
 import 'package:vidhai/services/ai/voice_conversation_controller.dart';
 import 'package:vidhai/services/ai/voice_output_service.dart';
-import 'package:vidhai/services/ai/whisper_service.dart';
+import 'package:vidhai/services/ai/device_speech_service.dart';
 
 class FakeCapturer implements VoiceCapturer {
   final StreamController<double> _amp = StreamController<double>.broadcast();
+  final StreamController<String> _text = StreamController<String>.broadcast();
   bool permission = true;
   bool startOk = true;
-  WhisperResult nextResult = const WhisperResult();
+  VoiceCaptureResult nextResult = const WhisperResult();
   int startCount = 0;
   int transcribedCount = 0;
   int cancelCount = 0;
@@ -21,13 +22,17 @@ class FakeCapturer implements VoiceCapturer {
   Stream<double> get onAmplitude => _amp.stream;
 
   @override
+  Stream<String> get onTranscript => _text.stream;
+
+  @override
   Future<bool> get isRecording async => false;
 
   @override
   Future<bool> hasPermission() async => permission;
 
   @override
-  Future<bool> startRecording() async {
+  Future<bool> startRecording({String? language}) async {
+    languageUsed = language;
     startCount++;
     return startOk;
   }
@@ -46,14 +51,17 @@ class FakeCapturer implements VoiceCapturer {
 
   void emit(double db) => _amp.add(db);
 
-  Future<void> dispose() async => _amp.close();
+  Future<void> dispose() async {
+    await _amp.close();
+    await _text.close();
+  }
 }
 
 class FakeSynth implements VoiceSynthesizer {
   final StreamController<bool> _events = StreamController<bool>.broadcast();
   final List<String> spoken = [];
   @override
-  String activeBackend = 'onDeviceTts';
+  String activeBackend = 'deviceTts';
   bool accept = true;
   int stopCount = 0;
   String? languageUsed;
@@ -116,7 +124,7 @@ void main() {
   }) {
     final capturer = FakeCapturer()
       ..nextResult = const WhisperResult(
-          success: true, text: 'good morning', provider: 'backend');
+          success: true, text: 'good morning', provider: 'device-speech');
     final synth = FakeSynth();
     final controller = VoiceConversationController(
       capturer: capturer,
@@ -231,17 +239,17 @@ void main() {
     test('records turn history with STT + TTS provider routing', () async {
       final t = build();
       t.capturer.nextResult = const WhisperResult(
-          success: true, text: 'tomato price', provider: 'deepgram');
+          success: true, text: 'tomato price', provider: 'device-speech');
       await t.controller.start();
       await completeOneTurn(t.capturer, t.synth);
 
-      expect(t.controller.lastSttProvider, 'deepgram');
-      expect(t.controller.lastTtsBackend, 'onDeviceTts');
+      expect(t.controller.lastSttProvider, 'device-speech');
+      expect(t.controller.lastTtsBackend, 'deviceTts');
       final turn = t.controller.turns.single;
       expect(turn.userText, 'tomato price');
       expect(turn.reply, 'Great, I can help with that!');
-      expect(turn.sttProvider, 'deepgram');
-      expect(turn.ttsBackend, 'onDeviceTts');
+      expect(turn.sttProvider, 'device-speech');
+      expect(turn.ttsBackend, 'deviceTts');
 
       await t.controller.stop();
       await t.capturer.dispose();
