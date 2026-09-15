@@ -119,7 +119,7 @@ class GroqService {
       if (classify) 'classify': true,
       if (complexity != null) 'complexity': complexity,
       if (intent != null) 'intent': intent,
-    });
+    }, debugTag: 'AiChat');
 
     if (json['success'] != true) {
       return GroqChatResult(
