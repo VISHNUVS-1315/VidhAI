@@ -28,12 +28,15 @@ class SecureApiClient {
   static const _baseUrl = AppConfig.aiBackendUrl;
   static const _timeout = Duration(seconds: 150);
 
-  Future<Map<String, String>> _authHeaders() async {
+  Future<Map<String, String>> _authHeaders({bool forceRefresh = false}) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw const SecureApiException('Not signed in.');
     }
-    final token = await user.getIdToken();
+    final token = await user.getIdToken(forceRefresh);
+    if (token == null || token.isEmpty) {
+      throw const SecureApiException('Could not obtain Firebase ID token.');
+    }
     return {'Authorization': 'Bearer $token'};
   }
 
@@ -42,21 +45,33 @@ class SecureApiClient {
     Map<String, dynamic> body, {
     String? debugTag,
   }) async {
-    final headers = await _authHeaders();
     final uri = Uri.parse('$_baseUrl$path');
     if (debugTag != null) {
       debugPrint('[SecureApiClient:$debugTag] POST ${uri.toString()}');
     }
-    final response = await http
-        .post(
-          uri,
-          headers: {
-            ...headers,
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(body),
-        )
-        .timeout(_timeout);
+
+    Future<http.Response> send({bool forceRefresh = false}) async {
+      final headers = await _authHeaders(forceRefresh: forceRefresh);
+      return http
+          .post(
+            uri,
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
+    }
+
+    var response = await send();
+    if (response.statusCode == 401) {
+      if (debugTag != null) {
+        debugPrint(
+            '[SecureApiClient:$debugTag] 401 received; forcing Firebase token refresh and retrying once.');
+      }
+      response = await send(forceRefresh: true);
+    }
 
     if (debugTag != null) {
       debugPrint('[SecureApiClient:$debugTag] HTTP ${response.statusCode}');
@@ -82,9 +97,17 @@ class SecureApiClient {
   }
 
   Future<Map<String, dynamic>> get(String path) async {
-    final headers = await _authHeaders();
     final uri = Uri.parse('$_baseUrl$path');
-    final response = await http.get(uri, headers: headers).timeout(_timeout);
+
+    Future<http.Response> send({bool forceRefresh = false}) async {
+      final headers = await _authHeaders(forceRefresh: forceRefresh);
+      return http.get(uri, headers: headers).timeout(_timeout);
+    }
+
+    var response = await send();
+    if (response.statusCode == 401) {
+      response = await send(forceRefresh: true);
+    }
 
     final decoded = _decode(response);
     if (response.statusCode != 200) {
