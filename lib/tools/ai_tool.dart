@@ -16,8 +16,8 @@ abstract class VidhAITool {
     GlobalKey<NavigatorState>? navigatorKey,
   });
 
-  /// Groq/OpenAI function-calling wire format.
-  Map<String, dynamic> toGroqSpec() {
+  /// OpenAI-compatible function-calling wire format used by NVIDIA NIM.
+  Map<String, dynamic> toFunctionSpec() {
     return {
       'type': 'function',
       'function': {
@@ -49,8 +49,8 @@ class VidhAIToolRegistry {
 
   List<VidhAITool> get all => _tools.values.toList();
 
-  List<Map<String, dynamic>> groqSpecs() =>
-      _tools.values.map((t) => t.toGroqSpec()).toList();
+  List<Map<String, dynamic>> aiSpecs() =>
+      _tools.values.map((t) => t.toFunctionSpec()).toList();
 }
 
 /// Convenience JSON-schema builders.
