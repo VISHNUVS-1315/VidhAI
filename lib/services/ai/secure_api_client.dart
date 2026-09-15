@@ -128,17 +128,43 @@ class SecureApiClient {
     required String contentType,
     required List<int> bytes,
     Map<String, String>? fields,
+    String? debugTag,
   }) async {
-    final headers = await _authHeaders();
     final uri = Uri.parse('$_baseUrl$path');
-    final request = http.MultipartRequest('POST', uri)..headers.addAll(headers);
-    if (fields != null) request.fields.addAll(fields);
-    request.files.add(
-      http.MultipartFile.fromBytes(field, bytes, filename: filename),
-    );
 
-    final streamed = await request.send().timeout(_timeout);
-    final response = await http.Response.fromStream(streamed);
+    Future<http.Response> send({bool forceRefresh = false}) async {
+      final headers = await _authHeaders(forceRefresh: forceRefresh);
+      final request = http.MultipartRequest('POST', uri)
+        ..headers.addAll(headers);
+      if (fields != null) request.fields.addAll(fields);
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          field,
+          bytes,
+          filename: filename,
+        ),
+      );
+      final streamed = await request.send().timeout(_timeout);
+      return http.Response.fromStream(streamed);
+    }
+
+    if (debugTag != null) {
+      debugPrint('[SecureApiClient:$debugTag] POST ${uri.toString()}');
+    }
+
+    var response = await send();
+    if (response.statusCode == 401) {
+      if (debugTag != null) {
+        debugPrint(
+            '[SecureApiClient:$debugTag] 401 received; forcing Firebase token refresh and retrying upload once.');
+      }
+      response = await send(forceRefresh: true);
+    }
+
+    if (debugTag != null) {
+      debugPrint('[SecureApiClient:$debugTag] HTTP ${response.statusCode}');
+    }
+
     final decoded = _decode(response);
     if (response.statusCode != 200) {
       throw SecureApiException(
