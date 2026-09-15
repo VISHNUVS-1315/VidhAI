@@ -28,12 +28,21 @@ class TtsService with ChangeNotifier {
     String text, {
     String? language,
     String? engine,
-  }) {
-    return _router.speakWithEngine(
+  }) async {
+    final started = await _router.speakWithEngine(
       text,
       language: language,
       engine: engine,
     );
+    if (!started) return false;
+
+    // TtsService is used by chat/assistant flows that expect await speak() to
+    // mean "speech finished". Live Voice talks to VoiceOutputService directly
+    // and therefore still gets non-blocking start + speakingChanges for barge-in.
+    if (_router.speaking) {
+      await _router.speakingChanges.firstWhere((speaking) => !speaking);
+    }
+    return true;
   }
 
   /// Stop the exact backend that is currently speaking.
