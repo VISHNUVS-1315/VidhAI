@@ -14,6 +14,9 @@ import * as admin from 'firebase-admin';
 
 let done = false;
 
+const FIREBASE_PROJECT_ID =
+  (process.env.FIREBASE_PROJECT_ID ?? process.env.GOOGLE_CLOUD_PROJECT ?? 'vidhai-app').trim();
+
 export function ensureFirebaseAdmin(): typeof admin {
   if (done) return admin;
   if (admin.apps.length > 0) {
@@ -24,18 +27,27 @@ export function ensureFirebaseAdmin(): typeof admin {
   if (saJson) {
     try {
       const creds = JSON.parse(saJson) as admin.ServiceAccount;
-      admin.initializeApp({ credential: admin.credential.cert(creds) });
+      admin.initializeApp({
+        credential: admin.credential.cert(creds),
+        projectId: FIREBASE_PROJECT_ID || undefined,
+      });
     } catch (e) {
-      // Malformed service account: keep the process usable but never crash
-      // server startup silently; fall back to default credentials if present.
+      // Keep token verification usable even if a malformed credential was
+      // supplied: Firebase Auth verification needs the project id to validate
+      // aud/iss and fetches Google's public signing certificates.
       console.error(
         '[firebase] Could not parse FIREBASE_SERVICE_ACCOUNT_JSON; ' +
-          `falling back to default credentials. ${e instanceof Error ? e.message : String(e)}`,
+          `initializing with projectId only. ${e instanceof Error ? e.message : String(e)}`,
       );
-      admin.initializeApp();
+      admin.initializeApp({ projectId: FIREBASE_PROJECT_ID || undefined });
     }
   } else {
-    admin.initializeApp();
+    // Render is not a Google-managed runtime and therefore does not receive
+    // GOOGLE_CLOUD_PROJECT automatically. Supplying projectId explicitly lets
+    // verifyIdToken() validate Firebase client tokens even when Admin service
+    // credentials are temporarily unavailable. Firestore Admin operations may
+    // still require a service account; callers already degrade gracefully.
+    admin.initializeApp({ projectId: FIREBASE_PROJECT_ID || undefined });
   }
   done = true;
   return admin;
