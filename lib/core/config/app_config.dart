@@ -13,7 +13,7 @@ class AppConfig {
   /// Override at build time: --dart-define=AI_BACKEND_URL=https://...
   static const String aiBackendUrl = String.fromEnvironment(
     'AI_BACKEND_URL',
-    defaultValue: 'https://us-central1-vidhai-app.cloudfunctions.net/api',
+    defaultValue: 'https://vidhai-pp7n.onrender.com',
   );
 
   /// Direct Groq API key (set at build time: --dart-define=GROQ_API_KEY=...).
