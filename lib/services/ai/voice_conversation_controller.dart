@@ -6,7 +6,7 @@ import '../../core/connectivity/connectivity_service.dart';
 import '../data_service.dart';
 import 'ai_orchestrator.dart';
 import 'voice_output_service.dart';
-import 'whisper_service.dart';
+import 'device_speech_service.dart';
 
 enum VoiceConversationPhase { idle, listening, thinking, speaking, error }
 
@@ -17,12 +17,10 @@ class VoiceTurn {
   final String userText;
   final String reply;
 
-  /// Which STT engine produced the transcript ('deepgram', 'groq-whisper',
-  /// 'backend', or null when recognition failed).
+  /// Speech input source for diagnostics ('device-speech').
   final String? sttProvider;
 
-  /// Which TTS backend read the reply aloud ('onDeviceTts', 'backendGoogle',
-  /// 'geminiLive', or 'none' when nothing could play).
+  /// TTS backend that read the reply aloud ('deviceTts' or 'none').
   final String ttsBackend;
 
   const VoiceTurn({
@@ -46,9 +44,8 @@ typedef VoiceAsk = Future<AiOrchestratorReply> Function({
 /// auto-continue. The user can interrupt the assistant mid-speech (barge-in)
 /// and simply start talking again.
 ///
-/// Everything is injectable so the engine is fully unit-testable with fakes;
-/// the production defaults use the real Whisper backend and the provider-routed
-/// TTS ([VoiceOutputService]).
+/// Everything is injectable so the engine is unit-testable with fakes. The
+/// production defaults use on-device speech recognition and on-device TTS.
 class VoiceConversationController extends ChangeNotifier {
   VoiceConversationController({
     VoiceCapturer? capturer,
@@ -64,7 +61,7 @@ class VoiceConversationController extends ChangeNotifier {
     this.bargeInDb = -28,
     this.bargeInHold = const Duration(milliseconds: 450),
     this.bargeInIgnoreWindow = const Duration(milliseconds: 500),
-  })  : _capturer = capturer ?? WhisperService.instance,
+  })  : _capturer = capturer ?? DeviceSpeechService.instance,
         _synthesizer = synthesizer ?? VoiceOutputService.instance,
         _getLanguage = getLanguage ?? _defaultGetLanguage,
         _ask = ask ?? _defaultAsk,
@@ -247,7 +244,7 @@ class VoiceConversationController extends ChangeNotifier {
       _poseError(VoiceConversationError.inputUnavailable);
       return false;
     }
-    if (!await _capturer.startRecording()) {
+    if (!await _capturer.startRecording(language: language)) {
       _poseError(VoiceConversationError.inputUnavailable);
       return false;
     }
