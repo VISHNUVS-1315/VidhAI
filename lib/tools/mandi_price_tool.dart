@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 
-import '../services/mandi_service.dart';
+import '../services/market_price_service.dart';
 import '../tools/ai_tool.dart';
 
-/// Returns real mandi market prices from the existing mandi-api service.
+/// Gives the NVIDIA assistant real AGMARKNET prices through the secure backend.
 class MandiPriceTool extends VidhAITool {
-  MandiPriceTool();
-  final MandiService _mandi = MandiService();
+  final MarketPriceService _market = MarketPriceService.instance;
 
   @override
   String get name => 'GET_MANDI_PRICES';
 
   @override
   String get description =>
-      'Get real wholesale market (mandi) prices for crops from the government '
-      'mandi API. Returns crop, market, state, minimum/maximum/modal price in '
-      'Rs per quintal and the price date. Optionally filter by commodity '
-      '(e.g. "Tomato") or state (e.g. "Maharashtra"). Returns a clear message '
-      'when no data is available.';
+      'Get real AGMARKNET/data.gov.in market prices. Optionally filter by '
+      'commodity, state, or district. Returns only reported market data with '
+      'source/date and ₹ per kg when the unit conversion is reliable.';
 
   @override
   Map<String, dynamic> get parameters => withRequired(
@@ -25,7 +22,7 @@ class MandiPriceTool extends VidhAITool {
         {
           'commodity': stringParam(),
           'state': stringParam(),
-          'market': stringParam(),
+          'district': stringParam(),
         },
       );
 
@@ -35,47 +32,47 @@ class MandiPriceTool extends VidhAITool {
     GlobalKey<NavigatorState>? navigatorKey,
   }) async {
     final state = (arguments['state'] ?? '').toString().trim();
+    final district = (arguments['district'] ?? '').toString().trim();
     final commodity = (arguments['commodity'] ?? '').toString().trim();
 
     try {
-      final prices = await _mandi.fetchPrices(
-        state: state.isEmpty ? null : state.toLowerCase(),
-        commodity: _normalize(commodity),
+      final payload = await _market.fetchPrices(
+        state: state.isEmpty ? null : state,
+        district: district.isEmpty ? null : district,
+        commodity: commodity.isEmpty ? null : commodity,
       );
-      if (prices.isEmpty) {
+
+      if (payload.prices.isEmpty) {
         return {
           'prices': <Object>[],
-          'note': 'No mandi prices found for the given filters right now.',
+          'source': 'AGMARKNET (data.gov.in)',
+          'note': 'No reported market prices were found for those filters.',
         };
       }
+
       return {
-        'prices': prices.take(10).map((p) {
+        'prices': payload.prices.take(10).map((price) {
           return {
-            'commodity': p.commodity,
-            'variety': p.variety,
-            'market': p.market,
-            'state': p.state,
-            'minPricePerQuintal': p.minPrice,
-            'maxPricePerQuintal': p.maxPrice,
-            'modalPricePerQuintal': p.modalPrice,
-            'unit': p.unit,
-            'date': p.date,
-            'trend': p.trend,
+            'commodity': price.commodity,
+            'variety': price.variety,
+            'market': price.market,
+            'district': price.district,
+            'state': price.state,
+            'modalPricePerKg': price.normalizedPricePerKg,
+            'reportedModalPrice': price.modalPrice,
+            'reportedUnit': price.unitLabel,
+            'date': price.date,
+            'source': price.source,
           };
         }).toList(),
-        'count': prices.length,
+        'count': payload.prices.length,
+        'source': payload.source,
+        'stale': payload.stale,
       };
     } catch (_) {
       return {
-        'error':
-            'Mandi prices are temporarily unavailable. Please try again later.',
+        'error': 'Market prices are temporarily unavailable. Please try again.',
       };
     }
-  }
-
-  /// Mandi API expects lowercase commodity names (e.g. "tomato").
-  String _normalize(String commodity) {
-    if (commodity.isEmpty) return commodity;
-    return commodity.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
   }
 }
