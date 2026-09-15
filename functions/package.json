@@ -1,8 +1,8 @@
 {
-  "name": "vidhai-ai-functions",
+  "name": "vidhai-backend",
   "version": "1.0.0",
-  "description": "Secure VidhAI AI proxy (Groq GPT-OSS + Whisper, Google Cloud TTS, Gemini Vision)",
-  "main": "lib/index.js",
+  "description": "VidhAI secure backend: NVIDIA AI, Firebase Auth/Firestore, and AGMARKNET market data",
+  "main": "lib/server.js",
   "private": true,
   "engines": {
     "node": "22"
@@ -11,25 +11,18 @@
     "build": "tsc",
     "start": "node lib/server.js",
     "start:local": "npm run build && node lib/server.js",
-    "serve": "npm run build && firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@google-cloud/text-to-speech": "^5.8.0",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "express": "^4.21.2",
-    "firebase-admin": "^13.1.0",
-    "firebase-functions": "^6.3.0",
-    "multer": "^1.4.5-lts.1"
+    "firebase-admin": "^13.1.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
-    "@types/multer": "^1.4.12",
     "@types/node": "^22.10.0",
-    "firebase-functions-test": "^3.4.0",
     "typescript": "^5.7.3"
   }
 }
