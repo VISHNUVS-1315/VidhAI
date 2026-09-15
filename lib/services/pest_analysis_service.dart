@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vidhai/data/models/pest_analysis.dart';
 import 'package:vidhai/data/models/pest_photo_input.dart';
-import 'package:vidhai/services/ai/gemini_vision_service.dart';
+import 'package:vidhai/services/ai/nvidia_vision_service.dart';
 
 /// Analyzer signature used by the Pest & Diseases module.
 typedef PestDiseaseAnalyzer = Future<PestAnalysisRecord> Function({
@@ -27,7 +27,7 @@ typedef MultiPestAnalyzer = Future<PestAnalysisRecord> Function({
   String farmName,
 });
 
-/// Persistence + default Gemini-based analyzer for pest analyses.
+/// Persistence + NVIDIA vision analyzer for pest analyses.
 ///
 /// Records are stored under `users/{uid}/pest_analyses/{id}` with a
 /// `SharedPreferences` fallback cache per farm (`pest_analyses_<farmId>`).
@@ -169,8 +169,8 @@ exact schema:
 ''';
   }
 
-  /// Default analyzer backed by [GeminiVisionService].
-  Future<PestAnalysisRecord> analyzeWithGemini({
+  /// Default analyzer backed by [NvidiaVisionService].
+  Future<PestAnalysisRecord> analyzeWithNvidia({
     required List<Uint8ListLike> images,
     required String crop,
     required String farmingMethod,
@@ -178,7 +178,7 @@ exact schema:
     String farmId = '',
     String farmName = '',
   }) async {
-    final va = await GeminiVisionService.instance.analyze(
+    final va = await NvidiaVisionService.instance.analyze(
       images: images,
       prompt: buildPrompt(crop: crop, farmingMethod: farmingMethod),
       language: language,
@@ -198,7 +198,7 @@ exact schema:
     return record;
   }
 
-  /// Default multi-photo analyzer backed by [GeminiVisionService].
+  /// Default multi-photo analyzer backed by [NvidiaVisionService].
   ///
   /// Sends every photo together with its plant part context in one request;
   /// it does NOT create a second pest-detection pipeline.
@@ -218,7 +218,7 @@ exact schema:
         if (p.hasImage)
           Uint8ListLike(bytes: p.imageBytes, mimeType: p.mimeType),
     ];
-    final va = await GeminiVisionService.instance.analyze(
+    final va = await NvidiaVisionService.instance.analyze(
       images: images,
       prompt: buildMultiPhotoPrompt(
         crop: crop,
