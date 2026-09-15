@@ -1,59 +1,36 @@
-import '../../core/config/app_config.dart';
 import '../../models/ai/ai_message.dart';
-import 'gemini_service.dart';
-import 'groq_service.dart';
+import 'nvidia_service.dart';
 
-export 'groq_service.dart' show GroqChatResult, GroqToolCall;
+export 'nvidia_service.dart' show NvidiaChatResult, NvidiaToolCall;
 
-/// The VidhAI central brain gateway.
+/// Single VidhAI AI brain.
 ///
-/// Selects the orchestrator/assistant's AI brain:
-///   * Gemini (central brain, spec): when AI_CHAT_PROVIDER=gemini is set at
-///     build time or a real GEMINI_API_KEY was compiled in. Falls back to Groq
-///     automatically whenever Gemini fails so the farmer always gets an answer.
-///   * Groq (existing verified path): otherwise.
-///
-/// Both services speak the same [GroqChatResult] wire model, with tools in the
-/// same Groq/OpenAI function-calling format.
+/// All production chat requests go through the secure Render backend and are
+/// served only by NVIDIA models. No provider switching or client-side AI keys.
 class AiChatBrain {
   AiChatBrain._();
 
-  /// Which provider the brain prefers for the current build.
-  static String get activeProvider =>
-      AppConfig.preferGeminiBrain ? 'gemini' : 'groq';
+  static String get activeProvider => 'nvidia';
 
-  static Future<GroqChatResult> chat({
+  static Future<NvidiaChatResult> chat({
     required List<AIMessage> messages,
     required String language,
     Map<String, dynamic>? context,
     List<Map<String, dynamic>>? tools,
     void Function(String delta)? onDelta,
     Duration? timeout,
-    String? provider,
     String? tier,
     bool classify = false,
     String? complexity,
     String? intent,
-  }) async {
-    if (AppConfig.preferGeminiBrain && provider == null) {
-      final gemini = await GeminiService.instance.chat(
-        messages: messages,
-        language: language,
-        context: context,
-        tools: tools,
-        onDelta: onDelta,
-        timeout: timeout,
-      );
-      if (gemini.success) return gemini;
-    }
-    return GroqService.instance.chat(
+  }) {
+    return NvidiaService.instance.chat(
       messages: messages,
       language: language,
       context: context,
       tools: tools,
       onDelta: onDelta,
       timeout: timeout,
-      provider: provider,
       tier: tier,
       classify: classify,
       complexity: complexity,
