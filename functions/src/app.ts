@@ -89,7 +89,12 @@ function requireAuth(req: AuthedRequest, res: express.Response, next: express.Ne
       req.firebaseUid = decoded.uid;
       next();
     })
-    .catch(() => {
+    .catch((e: unknown) => {
+      const err = e as { code?: string; message?: string };
+      logger.error('auth verifyIdToken rejected', {
+        code: err?.code ?? 'unknown',
+        message: err?.message ?? String(e),
+      });
       res.status(401).json({ success: false, error: 'Invalid or expired token.' });
     });
 }
