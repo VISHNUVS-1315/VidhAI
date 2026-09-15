@@ -97,8 +97,8 @@ Future<void> main() async {
   await NotificationService().initialize();
   _registerAiTools();
 
-  // All AI intelligence (Groq brain, Whisper, TTS, Gemini vision) runs through
-  // the secure Cloud Functions backend. The app never holds AI keys.
+  // All AI intelligence runs through the secure NVIDIA backend. Voice input
+  // and voice output stay on-device; the app never holds AI provider keys.
   AiService.instance.configure(const AIConfig(
     provider: AIProvider.backend,
   ));
