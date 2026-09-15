@@ -59,7 +59,7 @@ class CropBackendService {
     }
   }
 
-  // ── AI recommendation (Groq, structured output) ────────────────────────────
+  // ── AI recommendation (NVIDIA, structured output) ─────────────────────────
 
   /// Structured AI top-10 via the secure backend `/crop/ai-recommend`.
   ///
@@ -84,7 +84,7 @@ class CropBackendService {
       final raw = (body['recommendations'] as List? ?? const []);
       final modelLabel = (body['model'] as String?)?.isNotEmpty == true
           ? '${body['model']} via secure backend'
-          : 'Groq GPT-OSS-20B via secure backend';
+          : 'NVIDIA Nemotron via secure backend';
       final mapped = mapAIRecommendations(raw, dataSourceLabel: modelLabel);
       debugPrint('[CropBackendService] /crop/ai-recommend returned '
           '${mapped.length} crops (model ${body['model'] ?? '?'})');
@@ -101,7 +101,7 @@ class CropBackendService {
   /// [CropRecommendationResult] shape used by the recommendation flow.
   static List<CropRecommendationResult> mapAIRecommendations(
       List<dynamic> raw,
-      {String dataSourceLabel = 'Groq GPT-OSS-20B via secure backend'}) {
+      {String dataSourceLabel = 'NVIDIA Nemotron via secure backend'}) {
     final results = <CropRecommendationResult>[];
     for (final item in raw) {
       if (item is! Map) continue;
