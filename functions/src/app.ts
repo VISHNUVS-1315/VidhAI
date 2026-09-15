@@ -11,33 +11,24 @@
 
 import express from 'express';
 import cors from 'cors';
-import multer from 'multer';
 
 import { corsOrigins, appVersion, serviceName } from './config/env';
 import { logger } from './config/logger';
 import { ensureFirebaseAdmin } from './config/firebase';
-import { groqChat, GroqChatMessage, ToolSpec } from './groq';
-import { geminiChat, VisionImage } from './gemini';
+import { NvidiaChatMessage, ToolSpec } from './nvidia';
 import {
   AiGatewayError,
   chatWithRouter,
   classifyIntent,
   httpStatusFor,
   moderateText,
-  sttGateway,
-  ttsGateway,
   visionAnalyze,
+  VisionImage,
 } from './aiGateway';
-import {
-  createDeepgramRealtimeSession,
-  LANGUAGE_WHITELIST,
-  UNSUPPORTED_REALTIME_LANGUAGES,
-} from './deepgram_realtime';
 import {
   checkCrop,
   recommend,
   resolvePool,
-  seedCropKnowledge,
   selectCandidatePool,
   FarmContext,
   RecommendationInput,
@@ -54,7 +45,6 @@ const app = express();
 app.disable('x-powered-by');
 app.use(cors({ origin: corsOrigins() }));
 app.use(express.json({ limit: '30mb' }));
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
 
 /**
  * GET /health
@@ -103,50 +93,27 @@ const APP_TIERS = new Set(['main', 'general', 'fast', 'creative']);
 
 /**
  * POST /ai/chat
- * body: { messages, language?, context?, tools?, provider? }
- * provider: 'groq' | 'gemini' (legacy) | 'router'|'nvidia'|undefined (default).
- * The router picks a model tier by intent classification with fallbacks.
+ * body: { messages, language?, context?, tools?, tier?, classify? }
+ *
+ * All AI requests are served only through NVIDIA NIM. The router selects the
+ * NVIDIA model tier and uses NVIDIA-only fallbacks.
  */
 app.post('/ai/chat', requireAuth, async (req, res) => {
   try {
     const body = req.body ?? {};
-    const messages = Array.isArray(body.messages) ? (body.messages as GroqChatMessage[]) : [];
+    const messages = Array.isArray(body.messages)
+      ? (body.messages as NvidiaChatMessage[])
+      : [];
     if (messages.length === 0) {
       res.status(400).json({ success: false, error: 'messages is required.' });
       return;
     }
-    const provider = String(body.provider ?? 'router');
-    if (provider === 'gemini') {
-      const result = await geminiChat(messages, {
-        language: body.language,
-        tools: body.tools as ToolSpec[] | undefined,
-      });
-      res.json({
-        success: true,
-        content: result.content,
-        toolCalls: result.toolCalls,
-        metadata: { provider: 'gemini', model: result.model, usage: result.usage },
-      });
-      return;
-    }
-    if (provider === 'groq') {
-      const result = await groqChat(messages, {
-        language: body.language,
-        context: body.context,
-        tools: body.tools as ToolSpec[] | undefined,
-      });
-      res.json({
-        success: true,
-        content: result.content,
-        toolCalls: result.toolCalls,
-        metadata: { provider: 'groq', model: result.model, usage: result.usage },
-      });
-      return;
-    }
+
     const tier =
       typeof body.tier === 'string' && APP_TIERS.has(body.tier)
         ? (body.tier as 'main' | 'general' | 'fast' | 'creative')
         : undefined;
+
     const result = await chatWithRouter({
       messages,
       language: body.language,
@@ -158,12 +125,13 @@ app.post('/ai/chat', requireAuth, async (req, res) => {
       intent: body.intent,
       label: body.label,
     });
+
     res.json({
       success: true,
       content: result.content,
       toolCalls: result.toolCalls,
       metadata: {
-        provider: 'nvidia-router',
+        provider: 'nvidia',
         model: result.model,
         tier: result.tier,
         triedTiers: result.triedTiers,
@@ -215,9 +183,9 @@ app.post('/ai/classify', requireAuth, async (req, res) => {
 app.post('/ai/moderate', requireAuth, async (req, res) => {
   try {
     const body = req.body ?? {};
-    const result = await moderateText(typeof body.text === 'string' ? body.text : '', {
-      language: body.language,
-    });
+    const result = await moderateText(
+      typeof body.text === 'string' ? body.text : '',
+    );
     res.json({ success: true, ...result });
   } catch (e) {
     const status = e instanceof AiGatewayError ? httpStatusFor(e) : 500;
@@ -228,118 +196,9 @@ app.post('/ai/moderate', requireAuth, async (req, res) => {
 });
 
 /**
- * POST /ai/stt  (multipart: audio file + language [+ provider: 'deepgram'|'groq'|'nvidia'])
- * 'nvidia'* requests resolve to the best configured engine (Whisper via Groq,
- * else Deepgram Nova-3) because NVIDIA has no hosted STT endpoint yet; the
- * actual engine is reported back in `engine`/`provider`.
- */
-app.post('/ai/stt', requireAuth, upload.single('audio'), async (req, res) => {
-  try {
-    const file = req.file;
-    if (!file) {
-      res.status(400).json({ success: false, error: 'audio file is required.' });
-      return;
-    }
-    const language = typeof req.body.language === 'string' ? req.body.language : undefined;
-    const result = await sttGateway(file.buffer, {
-      language,
-      mime: typeof file.mimetype === 'string' ? file.mimetype : undefined,
-      filename: file.originalname,
-      provider: req.body.provider,
-    });
-    res.json({
-      success: true,
-      text: result.text,
-      language: result.language,
-      duration: result.duration,
-      provider: result.model,
-      engine: result.engine,
-    });
-  } catch (e) {
-    const status = e instanceof AiGatewayError ? httpStatusFor(e) : 500;
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('stt failed', e);
-    res.status(status).json({ success: false, error: message });
-  }
-});
-
-/**
- * POST /ai/deepgram/session
- * body: { language? }
- *
- * Mints a short-lived Deepgram access token (JWT, ~180 s) via `/v1/auth/grant`
- * and returns it together with the fully-qualified realtime `/v1/listen`
- * WebSocket URL (Nova-3, linear16 16 kHz, interim results). The mobile client
- * streams PCM16 audio directly to Deepgram with `Authorization: Bearer <jwt>`.
- * The permanent DEEPGRAM_API_KEY never leaves this server. Malayalam and Odia
- * are not supported by any Deepgram streaming model and are rejected clearly.
- */
-app.post('/ai/deepgram/session', requireAuth, async (req: AuthedRequest, res) => {
-  try {
-    const body = req.body ?? {};
-    const language = typeof body.language === 'string' ? body.language.toLowerCase() : 'en';
-    if (!LANGUAGE_WHITELIST.has(language)) {
-      res.status(400).json({ success: false, error: `Unsupported language '${language}'.` });
-      return;
-    }
-    if (UNSUPPORTED_REALTIME_LANGUAGES.has(language)) {
-      res.status(400).json({
-        success: false,
-        error: 'LANGUAGE_UNSUPPORTED',
-        message: 'Realtime transcription is not yet available in this language.',
-      });
-      return;
-    }
-
-    const session = await createDeepgramRealtimeSession({ languageCode: language });
-    logger.info('deepgram realtime session granted', {
-      uid: req.firebaseUid,
-      model: session.model,
-      language: session.language,
-    });
-    res.json({
-      success: true,
-      accessToken: session.accessToken,
-      expiresIn: session.expiresIn,
-      model: session.model,
-      language: session.language,
-      sampleRate: session.sampleRate,
-      encoding: session.encoding,
-      wsUrl: session.wsUrl,
-    });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('deepgram realtime session failed', e);
-    res.status(500).json({ success: false, error: message });
-  }
-});
-
-/**
- * POST /ai/tts
- * body: { text, language?, speakingRate?, engine? ('google'|'deepgram') }
- */
-app.post('/ai/tts', requireAuth, async (req, res) => {
-  try {
-    const body = req.body ?? {};
-    const result = await ttsGateway({
-      text: body.text ?? '',
-      language: body.language,
-      speakingRate: Number(body.speakingRate ?? 1.0),
-      engine: body.engine,
-    });
-    res.json({ success: true, ...result });
-  } catch (e) {
-    const status = e instanceof AiGatewayError ? httpStatusFor(e) : 500;
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('tts failed', e);
-    res.status(status).json({ success: false, error: message });
-  }
-});
-
-/**
  * POST /ai/image
- * body: { prompt, language?, images: [{ base64, mimeType }], provider?: 'nvidia'|'gemini' }
- * Defaults to NVIDIA Nano-Omni vision with automatic Gemini fallback.
+ * body: { prompt, language?, images: [{ base64, mimeType }] }
+ * Image analysis is served only by the NVIDIA vision tier.
  */
 app.post('/ai/image', requireAuth, async (req, res) => {
   try {
@@ -350,12 +209,10 @@ app.post('/ai/image', requireAuth, async (req, res) => {
       res.status(400).json({ success: false, error: 'At least one image is required.' });
       return;
     }
-    const provider = body.provider === 'gemini' ? 'gemini' : 'nvidia';
     const result = await visionAnalyze({
       prompt,
       images,
       language: body.language,
-      provider,
     });
     res.json({
       success: true,
@@ -437,9 +294,8 @@ app.post('/crop/recommend', requireAuth, async (req, res) => {
 /**
  * POST /crop/ai-recommend
  *
- * GPU AI first: `openai/gpt-oss-20b` on Groq (GROQ_API_KEY) with an automatic
- * NVIDIA fallback (NVIDIA_API_KEY) reasons over ALL supplied farm context at
- * once (location, soil, water, irrigation, crop history, season, weather from
+ * NVIDIA AI reasons over ALL supplied farm context at once: location, soil,
+ * water, irrigation, crop history, season, weather from
  * Open-Meteo, market prices from AGMARKNET and the farmer's ~6 manual inputs)
  * and returns a STRUCTURED top-10. Prices/weather are never invented: the
  * model is instructed to state when market or weather data was not provided,
@@ -523,28 +379,6 @@ app.post('/crop/search', requireAuth, async (req, res) => {
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     logger.error('crop search failed', e);
-    res.status(500).json({ success: false, error: message });
-  }
-});
-
-/**
- * POST /crop/seed  (guarded; admin/ops only)
- * Requires header `x-crop-seed-key` to match `process.env.CROP_SEED_TOKEN`
- * (set in the emulator `.secret.local` or as a Render env var). Idempotent.
- */
-app.post('/crop/seed', requireAuth, async (req, res) => {
-  try {
-    const expected = process.env.CROP_SEED_TOKEN;
-    const provided = String(req.headers['x-crop-seed-key'] ?? '');
-    if (!expected || provided !== expected) {
-      res.status(403).json({ success: false, error: 'Seeding is not enabled.' });
-      return;
-    }
-    const result = await seedCropKnowledge();
-    res.json({ success: true, ...result });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('crop seed failed', e);
     res.status(500).json({ success: false, error: message });
   }
 });
