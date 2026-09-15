@@ -10,7 +10,7 @@ import 'package:vidhai/data/models/pest_analysis.dart';
 import 'package:vidhai/data/models/workspace_note.dart';
 import 'package:vidhai/features/tools/screens/fertilizer_guide_screen.dart';
 import 'package:vidhai/locale/locale.dart';
-import 'package:vidhai/services/ai/gemini_vision_service.dart';
+import 'package:vidhai/services/ai/nvidia_vision_service.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/services/pest_analysis_service.dart';
 import 'package:vidhai/services/task_service.dart';
@@ -207,7 +207,7 @@ class _PestDiseaseScreenState extends State<PestDiseaseScreen> {
       }
 
       final farm = _selectedFarm.isSelected ? _selectedFarm.farm : null;
-      final analyzer = widget.analyzeOverride ?? _pestService.analyzeWithGemini;
+      final analyzer = widget.analyzeOverride ?? _pestService.analyzeWithNvidia;
       final record = await analyzer(
         images: images,
         crop: crop,
