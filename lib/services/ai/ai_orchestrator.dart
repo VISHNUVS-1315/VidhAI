@@ -30,7 +30,7 @@ class _OrchestratorError implements Exception {
   _OrchestratorError(this.failure);
 }
 
-/// Drives the chat: builds a windowed conversation, calls the Groq brain,
+/// Drives chat through the NVIDIA brain, executes real app tools,
 /// executes any requested tools against the real app, and keeps looping up to
 /// [maxToolRounds] until the assistant produces a final answer.
 class AiOrchestrator {
@@ -78,7 +78,7 @@ class AiOrchestrator {
     ];
 
     final contextJson = _context.toBackendContext(contextExtras);
-    final toolSpecs = VidhAIToolRegistry.instance.groqSpecs();
+    final toolSpecs = VidhAIToolRegistry.instance.aiSpecs();
 
     try {
       for (var round = 0; round < maxToolRounds; round++) {
@@ -148,7 +148,7 @@ class AiOrchestrator {
   /// Runs one chat attempt, retrying classified retryable failures (timeout,
   /// rate-limit, 5xx) with backoff. Returns a successful result or throws
   /// [_OrchestratorError] carrying the final classified failure.
-  Future<GroqChatResult> _chatWithRetries({
+  Future<NvidiaChatResult> _chatWithRetries({
     required List<AIMessage> messages,
     required String language,
     required Map<String, dynamic> context,
