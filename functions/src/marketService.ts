@@ -1,10 +1,10 @@
 ﻿/**
  * VidhAI market-price service.
  *
- * Backend adapter layer for market prices. The UI/engine never talks to a
- * third-party API directly and never reads random scraped sites. Prices come
- * from the AGMARKNET data.gov.in aggregator via the MarketPriceProvider
- * abstraction, are normalised to reliable â‚¹/kg values, and are cached in
+ * Backend adapter layer for market prices. The UI never talks to a third-party
+ * market API directly. Prices come only from the official AGMARKNET data.gov.in
+ * resource via the MarketPriceProvider abstraction, are normalised to reliable
+ * ₹/kg values, and are cached in
  * Firestore so every user shares a recent snapshot.
  *
  * If the aggregator is unreachable the service degrades to the last cached
@@ -37,7 +37,7 @@ export interface MarketPriceRecord {
   originalUnit: string;
   unitLabel: string;
   conversionFactor: number | null; // kg per original unit, null when unknown
-  normalizedPricePerKg: number | null; // modal price converted to â‚¹/kg
+  normalizedPricePerKg: number | null; // modal price converted to ₹/kg
   arrival: string | null;
   date: string;
   source: string;
@@ -65,7 +65,7 @@ export interface PriceHistoryPoint {
   maxPriceReported: number;
   dataPoints: number;
   conversionFactor: number; // kg per reported unit (quintal -> 100)
-  normalizedPricePerKg: number; // modal price converted to â‚¹/kg
+  normalizedPricePerKg: number; // modal price converted to ₹/kg
 }
 
 /** Adapter contract so another approved data source can be connected later. */
@@ -77,18 +77,8 @@ export interface MarketPriceProvider {
   getHistoricalPrices(query: PriceHistoryQuery): Promise<PriceHistoryPoint[]>;
 }
 
-// â”€â”€ Provider: AGMARKNET/data.gov.in aggregator (mandi-api) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const MANDI_API_BASE = process.env.MANDI_API_BASE_URL ?? 'https://mandi-api.onrender.com/v1';
-// Optional key: sent as `x-api-key` when the aggregator requires one. Kept
-// server-side only; the client never ships a market-data key. `DATA_GOV_API_KEY`
-// (data.gov.in) is the canonical name; `MANDI_API_KEY` is kept as a fallback
-// alias so existing deployments keep working without a redeploy.
-const MANDI_API_KEY = (process.env.DATA_GOV_API_KEY?.trim() || process.env.MANDI_API_KEY?.trim()) || undefined;
+// Official AGMARKNET provider: data.gov.in only.
 const PROVIDER_TIMEOUT_MS = 20_000;
-
-/** States the AGMARKNET aggregator actually serves. Other states 404 (fetch omitted). */
-const PROVIDER_STATES = ['Maharashtra', 'Uttar Pradesh', 'Punjab', 'Madhya Pradesh', 'Karnataka'] as const;
 
 const DATA_GOV_RESOURCE_ID =
   process.env.DATA_GOV_RESOURCE_ID ?? '35985678-0d79-46b4-9ed6-6f13308a1d24';
@@ -284,225 +274,14 @@ function parseNum(v: unknown): number | null {
   if (v === null || v === undefined || v === '') return null;
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
   if (typeof v === 'string') {
-    const n = parseFloat(v.replace(/[â‚¹,]/g, ''));
+    const n = parseFloat(v.replace(/[₹,]/g, ''));
     return Number.isFinite(n) ? n : null;
   }
   return null;
 }
 
-export class MandiApiPriceProvider implements MarketPriceProvider {
-  readonly id = 'mandi-api';
-  readonly name = 'Mandi API (AGMARKNET via data.gov.in)';
-
-  private async get<T>(path: string, params: Record<string, string>): Promise<T> {
-    const res = await axios.get<T>(`${MANDI_API_BASE}${path}`, {
-      params,
-      timeout: PROVIDER_TIMEOUT_MS,
-      headers: MANDI_API_KEY
-        ? { Accept: 'application/json', 'x-api-key': MANDI_API_KEY }
-        : { Accept: 'application/json' },
-    });
-    return res.data;
-  }
-
-  private async fetchRows(
-    path: string,
-    params: Record<string, string>,
-  ): Promise<unknown[]> {
-    const payload = await this.get<unknown>(path, params);
-    return this.extractRows(payload);
-  }
-
-  private extractRows(payload: unknown): unknown[] {
-    if (Array.isArray(payload)) return payload;
-    if (payload && typeof payload === 'object') {
-      const obj = payload as Record<string, unknown>;
-      for (const key of ['data', 'prices', 'records', 'response', 'results']) {
-        const v = obj[key];
-        if (Array.isArray(v)) return v;
-      }
-    }
-    return [];
-  }
-
-  async getLatestPrices(query: PriceQuery): Promise<MarketPriceRecord[]> {
-    const state = (query.state ?? '').trim();
-    const commodity = (query.commodity ?? '').trim();
-    const limit = Math.max(1, Math.min(1000, query.limit ?? 500));
-    const stateSupported = PROVIDER_STATES.some(
-      (s) => s.toLowerCase() === state.toLowerCase(),
-    );
-
-    // The aggregator 404s on states it does not publish. Return no records so
-    // the client shows "no prices available in this region" instead of an error.
-    if (state && !stateSupported) return [];
-
-    const cap = String(Math.min(limit * 2, 1000));
-    let rows: unknown[];
-    if (state) {
-      rows = await this.fetchRows('/prices', {
-        state,
-        ...(commodity ? { commodity } : {}),
-        limit: cap,
-      });
-    } else if (commodity) {
-      rows = await this.fetchRows('/prices', { commodity, limit: cap });
-    } else {
-      // India overview: the aggregator rejects calls without state/commodity,
-      // so fetch each supported state in parallel and merge server-side.
-      const perState = Math.max(1, Math.ceil(limit / PROVIDER_STATES.length));
-      const settled = await Promise.all(
-        PROVIDER_STATES.map((s) =>
-          this.fetchRows('/prices', { state: s, limit: String(perState) }).catch(
-            () => [] as unknown[],
-          ),
-        ),
-      );
-      rows = settled.flat();
-    }
-
-    const records = rows
-      .map((row) => mapApiRecord(row))
-      .filter((p): p is MarketPriceRecord => p !== null);
-    records.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
-    return records.slice(0, limit);
-  }
-
-  async getCommodities(state?: string): Promise<string[]> {
-    try {
-      const params: Record<string, string> = {};
-      if (state) params['state'] = state;
-      const payload = await this.get<unknown>('/commodities', params);
-      const rows = this.extractRows(payload);
-      const out = rows
-        .map((r) => {
-          if (typeof r === 'string') return r;
-          if (r && typeof r === 'object') {
-            const obj = r as Record<string, unknown>;
-            return (obj['commodity'] ?? obj['name'] ?? obj['commodity_name']) as string;
-          }
-          return '';
-        })
-        .map((s) => String(s).trim())
-        .filter((s, i, a) => s && a.indexOf(s) === i);
-      // The aggregator's /commodities endpoint can be page-capped; merge its
-      // result with the authoritative reference list so the picker is always
-      // usable and expandable.
-      const union = [...new Set([...out, ...REFERENCE_COMMODITIES])];
-      return union.length ? union : REFERENCE_COMMODITIES.slice();
-    } catch {
-      return REFERENCE_COMMODITIES.slice();
-    }
-  }
-
-  async getHistoricalPrices(query: PriceHistoryQuery): Promise<PriceHistoryPoint[]> {
-    const commodity = (query.commodity ?? '').trim();
-    if (!commodity) return [];
-    const state = (query.state ?? '').trim();
-    const days = Math.max(1, Math.min(90, query.days ?? 30));
-    const stateSupported = PROVIDER_STATES.some((s) => s.toLowerCase() === state.toLowerCase());
-
-    // The aggregator publishes history per supported state; unsupported states
-    // or a missing state have no server-side series (out of coverage).
-    if (!state || !stateSupported) return [];
-
-    const from = new Date(Date.now() - days * 24 * 3600 * 1000);
-    const fromDate = from.toISOString().slice(0, 10);
-    let rows: unknown[];
-    try {
-      const payload = await this.get<unknown>('/prices/history', {
-        state,
-        commodity,
-        from: fromDate,
-      });
-      rows = this.extractRows(payload);
-    } catch {
-      // 404/other -> no usable series
-      return [];
-    }
-
-    const factor = 100; // AGMARKNET daily averages are reported per quintal
-    const points = rows
-      .map((r) => {
-        if (!r || typeof r !== 'object') return null;
-        const row = r as Record<string, unknown>;
-        const date = String(row['arrival_date'] ?? row['price_date'] ?? '').trim();
-        if (!date) return null;
-        const modal = parseNum(row['avg_modal_price'] ?? row['modal_price']);
-        if (modal === null || modal <= 0) return null;
-        return {
-          date,
-          modalPriceReported: modal,
-          minPriceReported: parseNum(row['avg_min_price'] ?? row['min_price']) ?? 0,
-          maxPriceReported: parseNum(row['avg_max_price'] ?? row['max_price']) ?? 0,
-          dataPoints: Number(row['data_points'] ?? 0) || 0,
-          conversionFactor: factor,
-          normalizedPricePerKg: round2(modal / factor),
-        } satisfies PriceHistoryPoint;
-      })
-      .filter((p): p is PriceHistoryPoint => p !== null)
-      .sort((a, b) => a.date.localeCompare(b.date));
-    return points.slice(-days);
-  }
-}
-
-export function mapApiRecord(raw: unknown): MarketPriceRecord | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const row = raw as Record<string, unknown>;
-  const commodity = String(row['commodity'] ?? row['commodity_name'] ?? row['name'] ?? '').trim();
-  if (!commodity) return null;
-  const modalPrice = parseNum(row['modal_price']) ?? parseNum(row['model_price']);
-  const minPrice = parseNum(row['min_price']);
-  const maxPrice = parseNum(row['max_price']);
-  const originalUnit = String(row['unit'] ?? row['price_unit'] ?? 'Rs/Quintal').trim();
-  const conversionFactor = unitConversionFactor(originalUnit);
-  const normalizedPricePerKg =
-    conversionFactor && modalPrice !== null ? round2(modalPrice / conversionFactor) : null;
-  return {
-    commodity,
-    variety: row['variety'] ? String(row['variety']) : row['grade'] ? String(row['grade']) : null,
-    state: String(row['state'] ?? '').trim(),
-    district: districtOf(String(row['state'] ?? ''), String(row['market'] ?? row['mandi'] ?? '')),
-    market: String(row['market'] ?? row['mandi'] ?? '').trim(),
-    minPrice,
-    modalPrice,
-    maxPrice,
-    originalUnit,
-    unitLabel: unitLabel(originalUnit),
-    conversionFactor,
-    normalizedPricePerKg,
-    arrival: row['arrival'] ? String(row['arrival']) : row['arrival_date'] ? null : null,
-    date: String(row['date'] ?? row['arrival_date'] ?? row['price_date'] ?? '').trim(),
-    source: 'AGMARKNET (data.gov.in)',
-    lastUpdated: new Date().toISOString(),
-  };
-}
-
 export function round2(v: number): number {
   return Math.round(v * 100) / 100;
-}
-
-/** Best-effort market name -> district mapping using the authoritative dataset. */
-export function districtOf(stateName: string, marketName: string): string {
-  const state = findState(stateName);
-  if (!state || !marketName) return '';
-  let market = marketName.toLowerCase().trim();
-  market = market
-    .replace(/\b(apmc|mandi|market|yard|bazaar|agricultural|produce|regulate\d*|committee)\b/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const marketTokens = market.split(' ').filter(Boolean);
-  let best = '';
-  for (const d of state.districts) {
-    const dl = d.toLowerCase().replace(/\s+/g, ' ');
-    const matches =
-      market === dl ||
-      market.startsWith(dl + ' ') ||
-      dl.startsWith(market + ' ') ||
-      (marketTokens.length === 1 && dl.split(' ').includes(marketTokens[0]));
-    if (matches && dl.length > best.length) best = d;
-  }
-  return best;
 }
 
 export function findState(stateName: string): IndiaStateInfo | undefined {
@@ -539,12 +318,7 @@ function cacheKey(query: PriceQuery): string {
 }
 
 export class MarketService {
-  constructor(
-    readonly provider: MarketPriceProvider =
-      (process.env.DATA_GOV_API_KEY ?? '').trim()
-        ? new DataGovPriceProvider()
-        : new MandiApiPriceProvider(),
-  ) {}
+  constructor(readonly provider: MarketPriceProvider = new DataGovPriceProvider()) {}
 
   // â”€â”€ Hierarchy (deterministic, no external calls) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
