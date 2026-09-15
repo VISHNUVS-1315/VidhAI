@@ -69,7 +69,7 @@ class FallbackTtsVoiceOutput implements VoiceOutputBackend {
     await _tts.setSpeechRate(0.5);
     await _tts.setPitch(1.0);
     await _tts.setVolume(1.0);
-    await _tts.awaitSpeakCompletion(true);
+    await _tts.awaitSpeakCompletion(false);
     _tts.setStartHandler(() => _setSpeaking(true));
     _tts.setCompletionHandler(_markDone);
     _tts.setCancelHandler(_markDone);
@@ -108,16 +108,14 @@ class FallbackTtsVoiceOutput implements VoiceOutputBackend {
       final result = await _tts.speak(text);
       if (result != 1) {
         onError?.call('Speak failed (engine returned $result)');
+        _markDone();
         return false;
       }
       return true;
     } catch (e) {
       onError?.call(e.toString());
-      return false;
-    } finally {
-      // If awaiting completion is disabled somewhere or the engine never fires
-      // the completion handler, make sure "speaking" is not left stuck on.
       _markDone();
+      return false;
     }
   }
 
