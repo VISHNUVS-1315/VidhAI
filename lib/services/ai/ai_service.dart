@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'ai_config.dart';
+import 'secure_api_client.dart';
 
 // ─── Request Models ──────────────────────────────────────────────────────────
 
@@ -361,41 +363,47 @@ class AiService {
 
   Future<AIResponse> _proxyChat(String message,
       {String? language, Map<String, dynamic>? context}) async {
-    return _proxyPost('/ai/chat', {
-      'message': message,
-      if (language != null) 'language': language,
-      if (context != null) 'context': context,
-    });
+    return _proxyPost(
+      '/ai/chat',
+      {
+        'messages': [
+          {'role': 'user', 'content': message}
+        ],
+        if (language != null) 'language': language,
+        if (context != null) 'context': context,
+      },
+      debugTag: 'AiChat',
+    );
   }
 
-  Future<AIResponse> _proxyPost(String path, Map<String, dynamic> body) async {
+  Future<AIResponse> _proxyPost(
+    String path,
+    Map<String, dynamic> body, {
+    String? debugTag,
+  }) async {
     try {
-      final url = Uri.parse('${_config.backendUrl}$path');
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          if (_config.apiKey != null)
-            'Authorization': 'Bearer ${_config.apiKey}',
-        },
-        body: jsonEncode(body),
+      final data = await SecureApiClient.instance.post(
+        path,
+        body,
+        debugTag: debugTag,
       );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return AIResponse(
-          success: data['success'] ?? true,
-          content: data['content'] ?? data['response'] ?? '',
-          provider: _config.provider.name,
-          metadata: data['metadata'],
-        );
-      } else {
-        return AIResponse.fail(
-          'Backend returned ${response.statusCode}',
-          provider: _config.provider.name,
-        );
-      }
+      return AIResponse(
+        success: data['success'] ?? true,
+        content: data['content'] ?? data['response'] ?? '',
+        provider: _config.provider.name,
+        metadata: data['metadata'] is Map<String, dynamic>
+            ? data['metadata'] as Map<String, dynamic>
+            : null,
+        error: data['error'] as String?,
+      );
+    } on SecureApiException catch (e) {
+      debugPrint('[AiService:backend] $path error: ${e.message}');
+      return AIResponse.fail(
+        e.message,
+        provider: _config.provider.name,
+      );
     } catch (e) {
+      debugPrint('[AiService:backend] $path unexpected error: $e');
       return AIResponse.fail(
         'Network error: ${e.toString()}',
         provider: _config.provider.name,
