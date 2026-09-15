@@ -10,14 +10,9 @@ import '../../locale/locale.dart';
 import '../../services/ai/realtime_transcription_service.dart';
 import 'field_extractor.dart';
 
-/// Online-only real-time speech-to-text UI ("AI Live").
-///
-/// Streams the microphone straight into a Deepgram realtime `/v1/listen`
-/// session (Bearer JWT minted by the VidhAI backend) and shows live interim +
-/// final transcripts. For the Personal Details flow, recognised
-/// name / age / gender / address are suggested and must be reviewed (editable)
-/// before poping back with the values. There is deliberately NO fallback to the
-/// on-device SpeechRecognizer: this screen is online-only and surfaces errors.
+/// Real-time speech-to-text UI ("AI Live") using the phone's on-device/platform
+/// speech recognizer. Recognised name / age / gender / address values are
+/// suggested and must be reviewed before they are applied.
 class AiLiveScreen extends StatefulWidget {
   const AiLiveScreen({super.key, this.languageCode});
 
