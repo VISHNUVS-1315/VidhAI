@@ -507,18 +507,15 @@ class MarketPriceService {
 
   Future<List<MarketStateInfo>> fetchStates() async {
     try {
-      final payload = await _getJson('/states');
-      final rows = _rows(payload);
-      final names = rows
-          .map((r) => r is String
-              ? r.trim()
-              : (r is Map ? '${r['state'] ?? r['name'] ?? ''}' : ''))
-          .where((s) => s.isNotEmpty)
-          .toSet()
+      final body = await SecureApiClient.instance.post('/market/states', {});
+      final raw = body['states'] as List? ?? const [];
+      final states = raw
+          .whereType<Map>()
+          .map((e) => MarketStateInfo.fromJson(
+              Map<String, dynamic>.from(e.cast<String, dynamic>())))
+          .where((s) => s.name.isNotEmpty)
           .toList();
-      if (names.isEmpty) throw const SecureApiException('No states.');
-      final states =
-          names.map((n) => MarketStateInfo(id: n, name: n, ut: false)).toList();
+      if (states.isEmpty) throw const SecureApiException('No states.');
       _lastOnline = true;
       await _writeCache('states', {
         'states': states.map((s) => s.toJson()).toList(),
@@ -534,28 +531,21 @@ class MarketPriceService {
                 Map<String, dynamic>.from((e as Map).cast<String, dynamic>())))
             .toList();
       }
-      // Not a supported provider state -> caller shows "no prices" honestly.
-      return providerStates
-          .map((n) => MarketStateInfo(id: n, name: n, ut: false))
-          .toList();
+      return const [];
     }
   }
 
   Future<List<String>> fetchDistricts(String state) async {
-    if (state.isEmpty ||
-        !providerStates.any((s) => s.toLowerCase() == state.toLowerCase())) {
-      return const [];
-    }
+    if (state.trim().isEmpty) return const [];
     final key = 'districts_$state';
     try {
-      final payload = await _getJson('/markets', params: {'state': state});
-      final districts = _rows(payload)
-          .map((r) {
-            if (r is Map) return '${r['district'] ?? r['district_name'] ?? ''}';
-            return '';
-          })
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
+      final body = await SecureApiClient.instance.post(
+        '/market/districts',
+        {'state': state},
+      );
+      final districts = (body['districts'] as List? ?? const [])
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
           .toSet()
           .toList()
         ..sort();
@@ -574,22 +564,13 @@ class MarketPriceService {
   Future<List<String>> fetchCommodities({String? state}) async {
     final key =
         state == null || state.isEmpty ? 'commodities' : 'commodities_$state';
-    List<String> fromApi = [];
     try {
-      final payload = await _getJson('/commodities', params: {
+      final body = await SecureApiClient.instance.post('/market/commodities', {
         if (state != null && state.isNotEmpty) 'state': state,
       });
-      fromApi = _rows(payload)
-          .map((r) {
-            if (r is String) return r.trim();
-            if (r is Map) {
-              return '${r['commodity'] ?? r['name'] ?? r['commodity_name'] ?? ''}';
-            }
-            return '';
-          })
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toSet()
+      final fromApi = (body['commodities'] as List? ?? const [])
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
           .toList();
       _lastOnline = true;
       final merged = {
@@ -600,7 +581,6 @@ class MarketPriceService {
       return merged;
     } catch (e) {
       _lastOnline = false;
-      if (fromApi.isNotEmpty) return _mergeCommodities(fromApi);
       debugPrint(
           '[MarketPriceService] commodities failed (offline fallback): $e');
       final cached = await _readCache(key);
@@ -623,13 +603,24 @@ class MarketPriceService {
     final key =
         queryKey(state: state, district: district, commodity: commodity);
     try {
-      final records = await _fetchRecords(
-        state: state,
-        district: district,
-        commodity: commodity,
-      );
+      final body = await SecureApiClient.instance.post('/market/prices', {
+        if (state != null && state.isNotEmpty) 'state': state,
+        if (district != null && district.isNotEmpty) 'district': district,
+        if (commodity != null && commodity.isNotEmpty) 'commodity': commodity,
+        'limit': 500,
+        'refresh': refresh,
+      });
+      final records = (body['prices'] as List? ?? const [])
+          .whereType<Map>()
+          .map((e) => MarketPriceRecord.fromJson(
+              Map<String, dynamic>.from(e.cast<String, dynamic>())))
+          .toList();
       _lastOnline = true;
-      final payload = _buildPayload(records);
+      final payload = _buildPayload(records).copyWith(
+        fromCache: body['fromCache'] == true,
+        stale: body['stale'] == true,
+        fetchedAt: body['fetchedAt']?.toString(),
+      );
       await _writeCache(key, payload.toJson());
       return payload;
     } catch (e) {
@@ -652,10 +643,22 @@ class MarketPriceService {
   }) async {
     final key = 'summary_${state ?? 'in'}_${commodity ?? 'all'}';
     try {
-      final records =
-          await _fetchSummaryRecords(state: state, commodity: commodity);
+      final body = await SecureApiClient.instance.post('/market/prices', {
+        if (state != null && state.isNotEmpty) 'state': state,
+        if (commodity != null && commodity.isNotEmpty) 'commodity': commodity,
+        'limit': 500,
+      });
+      final records = (body['prices'] as List? ?? const [])
+          .whereType<Map>()
+          .map((e) => MarketPriceRecord.fromJson(
+              Map<String, dynamic>.from(e.cast<String, dynamic>())))
+          .toList();
       _lastOnline = true;
-      final payload = _buildPayload(records);
+      final payload = _buildPayload(records).copyWith(
+        fromCache: body['fromCache'] == true,
+        stale: body['stale'] == true,
+        fetchedAt: body['fetchedAt']?.toString(),
+      );
       await _writeCache(key, payload.toJson());
       return payload;
     } catch (e) {
@@ -785,54 +788,24 @@ class MarketPriceService {
     int days = 30,
   }) async {
     final key = 'history_${state}_$commodity';
-    if (!providerStates.any((s) => s.toLowerCase() == state.toLowerCase())) {
-      return const [];
-    }
     try {
-      final from = DateTime.now().subtract(Duration(days: days));
-      final payload = await _getJson(
-        '/prices/history',
-        params: {
-          'state': state,
-          'commodity': commodity,
-          'from': from.toIso8601String().substring(0, 10),
-        },
-      );
+      final body = await SecureApiClient.instance.post('/market/history', {
+        'state': state,
+        'commodity': commodity,
+        'days': days,
+      });
       _lastOnline = true;
-      final factor = 100.0; // AGMARKNET daily averages are per quintal
-      final points = _rows(payload)
+      final points = (body['history'] as List? ?? const [])
           .whereType<Map>()
-          .map((r) => Map<String, dynamic>.from(r))
-          .where((row) {
-        final date =
-            (row['arrival_date'] ?? row['price_date'] ?? '').toString().trim();
-        final modal = _parseNum(row['avg_modal_price'] ?? row['modal_price']);
-        return date.isNotEmpty && modal != null && modal > 0;
-      }).map((row) {
-        final date =
-            (row['arrival_date'] ?? row['price_date'] ?? '').toString().trim();
-        final modal =
-            _parseNum(row['avg_modal_price'] ?? row['modal_price']) ?? 0;
-        return PriceHistoryPoint(
-          date: date,
-          modalPriceReported: modal,
-          minPriceReported:
-              _parseNum(row['avg_min_price'] ?? row['min_price']) ?? 0,
-          maxPriceReported:
-              _parseNum(row['avg_max_price'] ?? row['max_price']) ?? 0,
-          dataPoints: (row['data_points'] as num?)?.toInt() ?? 0,
-          conversionFactor: factor,
-          normalizedPricePerKg: _round2(modal / factor),
-        );
-      }).toList()
+          .map((e) => PriceHistoryPoint.fromJson(
+              Map<String, dynamic>.from(e.cast<String, dynamic>())))
+          .toList()
         ..sort((a, b) => a.date.compareTo(b.date));
-      final sliced =
-          points.length > days ? points.sublist(points.length - days) : points;
-      if (sliced.isNotEmpty) {
+      if (points.isNotEmpty) {
         await _writeCache(
-            key, {'history': sliced.map((p) => p.toJson()).toList()});
+            key, {'history': points.map((p) => p.toJson()).toList()});
       }
-      return sliced;
+      return points;
     } catch (e) {
       _lastOnline = false;
       debugPrint('[MarketPriceService] history failed (offline fallback): $e');
