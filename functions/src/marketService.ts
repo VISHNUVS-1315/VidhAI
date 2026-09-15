@@ -90,6 +90,196 @@ const PROVIDER_TIMEOUT_MS = 20_000;
 /** States the AGMARKNET aggregator actually serves. Other states 404 (fetch omitted). */
 const PROVIDER_STATES = ['Maharashtra', 'Uttar Pradesh', 'Punjab', 'Madhya Pradesh', 'Karnataka'] as const;
 
+const DATA_GOV_RESOURCE_ID =
+  process.env.DATA_GOV_RESOURCE_ID ?? '35985678-0d79-46b4-9ed6-6f13308a1d24';
+const DATA_GOV_API_BASE =
+  process.env.DATA_GOV_API_BASE_URL ??
+  `https://api.data.gov.in/resource/${DATA_GOV_RESOURCE_ID}`;
+
+function rowValue(row: Record<string, unknown>, ...keys: string[]): unknown {
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
+  }
+  return undefined;
+}
+
+function parseDataGovDate(raw: unknown): string {
+  const value = String(raw ?? '').trim();
+  if (!value) return '';
+  const dmy = /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(value);
+  if (dmy) {
+    const [, dd, mm, yyyy] = dmy;
+    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString().slice(0, 10);
+}
+
+/**
+ * Official data.gov.in AGMARKNET provider.
+ *
+ * Unlike the legacy mandi-api mirror, this provider is not restricted to five
+ * states. It queries the Government of India resource directly using the
+ * server-side DATA_GOV_API_KEY and supports State/District/Commodity filters.
+ */
+export class DataGovPriceProvider implements MarketPriceProvider {
+  readonly id = 'data-gov-agmarknet';
+  readonly name = 'AGMARKNET (data.gov.in)';
+
+  private get apiKey(): string {
+    return (process.env.DATA_GOV_API_KEY ?? '').trim();
+  }
+
+  private async fetchRows(
+    filters: Record<string, string>,
+    limit = 1000,
+    offset = 0,
+  ): Promise<Record<string, unknown>[]> {
+    if (!this.apiKey) {
+      throw new Error('DATA_GOV_API_KEY is not configured.');
+    }
+    const params: Record<string, string | number> = {
+      'api-key': this.apiKey,
+      format: 'json',
+      limit: Math.max(1, Math.min(1000, limit)),
+      offset: Math.max(0, offset),
+    };
+    for (const [key, value] of Object.entries(filters)) {
+      if (value.trim()) params[`filters[${key}]`] = value.trim();
+    }
+    const res = await axios.get<Record<string, unknown>>(DATA_GOV_API_BASE, {
+      params,
+      timeout: PROVIDER_TIMEOUT_MS,
+      headers: { Accept: 'application/json' },
+    });
+    const records = Array.isArray(res.data?.records) ? res.data.records : [];
+    return records
+      .filter((r): r is Record<string, unknown> => Boolean(r) && typeof r === 'object')
+      .map((r) => ({ ...r }));
+  }
+
+  private mapRow(row: Record<string, unknown>): MarketPriceRecord | null {
+    const commodity = String(
+      rowValue(row, 'Commodity', 'commodity', 'commodity_name', 'Name', 'name') ?? '',
+    ).trim();
+    if (!commodity) return null;
+
+    const state = String(rowValue(row, 'State', 'state') ?? '').trim();
+    const district = String(rowValue(row, 'District', 'district') ?? '').trim();
+    const market = String(rowValue(row, 'Market', 'market', 'mandi') ?? '').trim();
+    const varietyRaw = rowValue(row, 'Variety', 'variety', 'Grade', 'grade');
+    const minPrice = parseNum(rowValue(row, 'Min_Price', 'min_price'));
+    const maxPrice = parseNum(rowValue(row, 'Max_Price', 'max_price'));
+    const modalPrice = parseNum(
+      rowValue(row, 'Modal_Price', 'modal_price', 'Model_Price', 'model_price'),
+    );
+    const originalUnit = String(
+      rowValue(row, 'Unit', 'unit', 'Price_Unit', 'price_unit') ?? 'Rs/Quintal',
+    ).trim();
+    const conversionFactor = unitConversionFactor(originalUnit) ?? 100;
+    const normalizedPricePerKg =
+      modalPrice !== null ? round2(modalPrice / conversionFactor) : null;
+
+    return {
+      commodity,
+      variety: varietyRaw ? String(varietyRaw) : null,
+      state,
+      district,
+      market,
+      minPrice,
+      modalPrice,
+      maxPrice,
+      originalUnit,
+      unitLabel: unitLabel(originalUnit || 'Rs/Quintal'),
+      conversionFactor,
+      normalizedPricePerKg,
+      arrival: null,
+      date: parseDataGovDate(
+        rowValue(row, 'Arrival_Date', 'arrival_date', 'Price_Date', 'price_date', 'Date', 'date'),
+      ),
+      source: 'AGMARKNET (data.gov.in)',
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+
+  async getLatestPrices(query: PriceQuery): Promise<MarketPriceRecord[]> {
+    const filters: Record<string, string> = {};
+    if (query.state?.trim()) filters.State = query.state.trim();
+    if (query.district?.trim()) filters.District = query.district.trim();
+    if (query.commodity?.trim()) filters.Commodity = query.commodity.trim();
+
+    // The UI normally supplies the farmer's saved state. Avoid an unbounded
+    // all-India scan when no filters are available.
+    if (Object.keys(filters).length === 0) return [];
+
+    const limit = Math.max(1, Math.min(1000, query.limit ?? 300));
+    const rows = await this.fetchRows(filters, Math.min(1000, limit * 2));
+    const records = rows
+      .map((row) => this.mapRow(row))
+      .filter((p): p is MarketPriceRecord => p !== null)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    return records.slice(0, limit);
+  }
+
+  async getCommodities(_state?: string): Promise<string[]> {
+    // A full distinct scan of the national resource is expensive and slow.
+    // Keep the curated picker list; price queries themselves hit live data.gov.in.
+    return REFERENCE_COMMODITIES.slice();
+  }
+
+  async getHistoricalPrices(query: PriceHistoryQuery): Promise<PriceHistoryPoint[]> {
+    const state = (query.state ?? '').trim();
+    const commodity = query.commodity.trim();
+    if (!state || !commodity) return [];
+
+    const days = Math.max(1, Math.min(90, query.days ?? 30));
+    const rows = await this.fetchRows(
+      { State: state, Commodity: commodity },
+      1000,
+    );
+    const cutoff = Date.now() - (days + 2) * 24 * 3600 * 1000;
+    const byDate = new Map<string, { modal: number[]; min: number[]; max: number[] }>();
+
+    for (const row of rows) {
+      const date = parseDataGovDate(
+        rowValue(row, 'Arrival_Date', 'arrival_date', 'Price_Date', 'price_date', 'Date', 'date'),
+      );
+      if (!date) continue;
+      const ts = Date.parse(date);
+      if (Number.isFinite(ts) && ts < cutoff) continue;
+
+      const modal = parseNum(rowValue(row, 'Modal_Price', 'modal_price'));
+      if (modal === null || modal <= 0) continue;
+      const min = parseNum(rowValue(row, 'Min_Price', 'min_price')) ?? modal;
+      const max = parseNum(rowValue(row, 'Max_Price', 'max_price')) ?? modal;
+      const bucket = byDate.get(date) ?? { modal: [], min: [], max: [] };
+      bucket.modal.push(modal);
+      bucket.min.push(min);
+      bucket.max.push(max);
+      byDate.set(date, bucket);
+    }
+
+    const avg = (values: number[]) =>
+      values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+
+    return [...byDate.entries()]
+      .map(([date, values]) => {
+        const modal = avg(values.modal);
+        return {
+          date,
+          modalPriceReported: round2(modal),
+          minPriceReported: round2(avg(values.min)),
+          maxPriceReported: round2(avg(values.max)),
+          dataPoints: values.modal.length,
+          conversionFactor: 100,
+          normalizedPricePerKg: round2(modal / 100),
+        } satisfies PriceHistoryPoint;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-days);
+  }
+}
+
 function parseNum(v: unknown): number | null {
   if (v === null || v === undefined || v === '') return null;
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
@@ -349,7 +539,12 @@ function cacheKey(query: PriceQuery): string {
 }
 
 export class MarketService {
-  constructor(readonly provider: MarketPriceProvider = new MandiApiPriceProvider()) {}
+  constructor(
+    readonly provider: MarketPriceProvider =
+      (process.env.DATA_GOV_API_KEY ?? '').trim()
+        ? new DataGovPriceProvider()
+        : new MandiApiPriceProvider(),
+  ) {}
 
   // â”€â”€ Hierarchy (deterministic, no external calls) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
