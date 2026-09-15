@@ -1,47 +1,36 @@
-import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vidhai/services/ai/ai_service.dart';
 import 'package:vidhai/services/ai/ai_config.dart';
+import 'package:vidhai/services/ai/ai_service.dart';
 
 void main() {
-  final ai = AiService.instance;
-
-  Future<Map<String, dynamic>> ask(String q) async {
-    ai.configure(const AIConfig(provider: AIProvider.mock));
-    final r = await ai.chat(q);
-    return jsonDecode(r.content) as Map<String, dynamic>;
-  }
-
-  test('Tomato price returns tomato price', () async {
-    final p = await ask('Tomato price');
-    expect(p['answer'], 'Indicative market price');
-    expect((p['details'] as List).join(' '), contains('28'));
+  test('AI configuration is backend-only', () {
+    const config = AIConfig();
+    expect(config.provider, AIProvider.backend);
+    expect(config.isBackend, isTrue);
   });
 
-  test('What should I do returns action plan', () async {
-    final p = await ask('What should I do now?');
-    expect(p['answer'], contains('action plan'));
+  test('AIResponse parses structured NVIDIA content', () {
+    final response = AIResponse.ok(
+      '{"answer":"Use groundnut","confidence":88}',
+      provider: 'nvidia',
+    );
+    expect(response.success, isTrue);
+    expect(response.provider, 'nvidia');
+    expect(response.jsonContent?['answer'], 'Use groundnut');
+    expect(response.jsonContent?['confidence'], 88);
   });
 
-  test('Best crop returns recommendations', () async {
-    final p = await ask('Best crop to grow?');
-    expect(p['answer'], contains('Recommended crops'));
+  test('AIResponse strips JSON code fences', () {
+    final response = AIResponse.ok(
+      'NaNjson\n{"ok":true}\nNaN',
+    );
+    expect(response.jsonContent?['ok'], isTrue);
   });
 
-  test('Cultivation of tomato returns crop guide', () async {
-    final p = await ask('how to grow tomato');
-    expect(p['answer'], contains('Tomato'));
-  });
-
-  test('Weather query returns weather advisory', () async {
-    final p = await ask('what is the weather in sangli');
-    expect(p['answer'], contains('Weather'));
-  });
-
-  test('Price word does not confuse rice lookup', () async {
-    final p = await ask('Tomato price');
-    expect((p['details'] as List).join(' '), contains('28'));
-    final r = await ask('rice price');
-    expect((r['details'] as List).join(' '), contains('2,180'));
+  test('AIResponse failure exposes the real error', () {
+    final response = AIResponse.fail('backend unavailable');
+    expect(response.success, isFalse);
+    expect(response.error, 'backend unavailable');
+    expect(response.provider, 'nvidia');
   });
 }
