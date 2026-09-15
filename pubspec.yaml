@@ -20,7 +20,6 @@ dependencies:
 
   # Network
   http: ^1.2.0
-  web_socket_channel: ^3.0.1
 
   # Local Storage
   shared_preferences: ^2.2.2
@@ -41,12 +40,8 @@ dependencies:
   cloud_firestore: ^5.5.0
   firebase_messaging: ^15.1.0
 
-  # Voice Input
+  # On-device voice input
   speech_to_text: ^7.0.0
-
-  # Audio capture (Whisper STT) & playback (Google Cloud TTS)
-  record: ^7.1.1
-  audioplayers: ^6.1.0
 
   # Image Picker (avatar)
   image_picker: ^1.1.2
@@ -67,7 +62,7 @@ dependencies:
   file_picker: 10.0.0
   share_plus: ^10.1.4
 
-  # UI
+  # UI + on-device voice output
   shimmer: ^3.0.0
   flutter_tts: ^4.2.5
 
