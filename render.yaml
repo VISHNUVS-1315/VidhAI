@@ -26,6 +26,8 @@ services:
         value: "22"
       - key: APP_VERSION
         value: "1.0.0"
+      - key: FIREBASE_PROJECT_ID
+        value: "vidhai-app"
 
       # ── REQUIRED secrets (enter values in the Render dashboard) ────────────
       - key: NVIDIA_API_KEY        # primary NVIDIA NIM key (all AI tiers)
