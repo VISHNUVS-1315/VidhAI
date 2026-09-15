@@ -66,7 +66,7 @@
 - Dart 3.3+
 - Android Studio / VS Code
 - Firebase project (for auth, Firestore, Storage)
-- Google AI Studio API key (for Gemini) — optional, works in mock mode
+- NVIDIA API key (server-side on Render; never stored in the Flutter app)\n- data.gov.in API key for AGMARKNET market prices\n- Firebase service-account JSON for the Render backend
 
 ### Installation
 
@@ -93,12 +93,23 @@ flutter run
 ### Build Release APK
 
 ```bash
-# With Gemini API key (for real AI)
-flutter build apk --release --dart-define=GEMINI_API_KEY=YOUR_APIZA_KEY
-
-# Without API key (mock mode - works offline)
+# AI secrets are server-side on Render. No AI API key is compiled into the APK.
 flutter build apk --release
 ```
+
+### Production backend secrets
+
+Configure these only in Render → VidhAI → Environment:
+
+```text
+NVIDIA_API_KEY
+DATA_GOV_API_KEY
+FIREBASE_SERVICE_ACCOUNT_JSON
+```
+
+VidhAI uses NVIDIA NIM as its only AI provider. Market prices come from
+data.gov.in / AGMARKNET, weather from Open-Meteo, and speech input/output use
+the device speech services.
 
 ### Install on Device
 ```bash
