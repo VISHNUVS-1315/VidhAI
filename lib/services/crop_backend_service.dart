@@ -59,6 +59,151 @@ class CropBackendService {
     }
   }
 
+  // ── AI recommendation (Groq, structured output) ────────────────────────────
+
+  /// Structured AI top-10 via the secure backend `/crop/ai-recommend`.
+  ///
+  /// [context] is the full auto-collected bundle (farm profile, soil, water,
+  /// irrigation, crop history, season, weather, market prices) and [input] the
+  /// ~6 manual farmer inputs. Never reaches the client raw — the server
+  /// enforces the JSON Schema and the mapping below guarantees the result
+  /// always adheres to [CropRecommendationResult].
+  Future<List<CropRecommendationResult>?> fetchAIRecommendations({
+    required Map<String, dynamic> context,
+    required Map<String, dynamic> input,
+  }) async {
+    try {
+      final body = await SecureApiClient.instance
+          .post('/crop/ai-recommend', {
+            'context': context,
+            'input': input,
+          }, debugTag: 'crop/ai-recommend')
+          .timeout(_timeout);
+      _lastOnline = true;
+      if (body['success'] != true) return null;
+      final raw = (body['recommendations'] as List? ?? const []);
+      final modelLabel = (body['model'] as String?)?.isNotEmpty == true
+          ? '${body['model']} via secure backend'
+          : 'Groq GPT-OSS-20B via secure backend';
+      final mapped = mapAIRecommendations(raw, dataSourceLabel: modelLabel);
+      debugPrint('[CropBackendService] /crop/ai-recommend returned '
+          '${mapped.length} crops (model ${body['model'] ?? '?'})');
+      return mapped;
+    } catch (e) {
+      _lastOnline = false;
+      debugPrint(
+          '[CropBackendService] ai-recommend failed (offline fallback): $e');
+      return null;
+    }
+  }
+
+  /// Converts the strictly-validated AI JSON payload into the standard
+  /// [CropRecommendationResult] shape used by the recommendation flow.
+  static List<CropRecommendationResult> mapAIRecommendations(
+      List<dynamic> raw,
+      {String dataSourceLabel = 'Groq GPT-OSS-20B via secure backend'}) {
+    final results = <CropRecommendationResult>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final m = item as Map<String, dynamic>;
+      final name = (m['cropName'] as String?)?.trim() ?? '';
+      if (name.isEmpty) continue;
+
+      final dur = (m['estimatedDurationDays'] as num?)?.toInt() ?? 0;
+      final score = (m['suitabilityScore'] as num?)?.toInt() ?? 0;
+
+      List<int> range(String key) {
+        final v = m[key];
+        if (v is! Map) return const [0, 0];
+        final min = (v['min'] as num?)?.toInt() ?? 0;
+        final max = (v['max'] as num?)?.toInt() ?? min;
+        return [
+          min.clamp(0, 10000000),
+          max.clamp(min.clamp(0, 10000000), 10000000)
+        ];
+      }
+
+      final factors = <RecommendationFactor>[];
+      void addFactor(String name, String detail) {
+        if (detail.trim().isEmpty) return;
+        factors.add(RecommendationFactor(
+            name: name, weight: 1, score: 0.8, detail: detail.trim()));
+      }
+
+      addFactor('soil', (m['soilMatch'] as String?) ?? '');
+      addFactor('water', (m['waterMatch'] as String?) ?? '');
+      addFactor('season', (m['seasonMatch'] as String?) ?? '');
+      addFactor('rotation', (m['rotationMatch'] as String?) ?? '');
+
+      final strengths =
+          ((m['whySuitable'] as List?) ?? const []).cast<String>().toList();
+      final risks =
+          ((m['majorRisks'] as List?) ?? const []).cast<String>().toList();
+      final confidence = (m['confidence'] as num?)?.toInt() ?? 0;
+
+      final investment = range('estimatedInvestment');
+      final revenue = range('estimatedRevenue');
+      final profit = range('estimatedProfit');
+
+      final confidenceLabel = score >= 80
+          ? 'High'
+          : score >= 60
+              ? 'Medium'
+              : 'Low';
+
+      final riskLevel = switch (m['riskLevel']) {
+        'Low' => 'Low',
+        'High' => 'High',
+        _ => 'Medium',
+      };
+
+      results.add(CropRecommendationResult(
+        rank: results.length + 1,
+        cropId: '_ai_${(m['cropName'] as String?) ?? ''}',
+        cropName: name,
+        varieties: [(m['localName'] as String?) ?? ''],
+        category: (m['cropName'] as String?) ?? '',
+        season: '',
+        durationMin: dur,
+        durationMax: dur,
+        score: score,
+        confidence: confidenceLabel,
+        budget: CropBudgetEstimate(
+          classification: 'Not Specified',
+          cultivationCostMin: investment[0],
+          cultivationCostMax: investment[1],
+          seedCostMin: 0,
+          seedCostMax: 0,
+        ),
+        money: CropMoneyEstimate(
+          yieldMin: 0,
+          yieldMax: 0,
+          yieldUnit: '',
+          revenueMin: revenue[0],
+          revenueMax: revenue[1],
+          profitMin: profit[0],
+          profitMax: profit[1],
+        ),
+        factors: factors,
+        strengths: [...strengths],
+        concerns: [...risks],
+        waterNotes: (m['waterRequirement'] as String?) ?? '',
+        plantingWindow: (m['sowingWindow'] as String?) ?? '',
+        harvestHint: (m['estimatedHarvestWindow'] as String?) ?? '',
+        risks: [...risks],
+        pests: const [],
+        diseases: const [],
+        marketDemand: (m['marketOutlook'] as String?) ?? '',
+        riskLevel: riskLevel,
+        description: strengths.join(' '),
+        estimatedLabel: true,
+        dataSources: [dataSourceLabel],
+        confidencePct: (confidence > 0 ? confidence : score).toDouble(),
+      ));
+    }
+    return results;
+  }
+
   // ── Manual check ───────────────────────────────────────────────────────────
 
   Future<ManualCropCheck?> checkCrop({

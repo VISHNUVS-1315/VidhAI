@@ -155,6 +155,7 @@ class BackendGoogleTtsVoiceOutput implements VoiceOutputBackend {
         'text': text,
         if (language != null && language.isNotEmpty) 'language': language,
         'speakingRate': 1.0,
+        'engine': 'google',
       });
       final base64Audio = json['base64Audio'] ?? json['audioBase64'];
       if (base64Audio is! String || base64Audio.isEmpty) return false;
@@ -177,6 +178,51 @@ class BackendGoogleTtsVoiceOutput implements VoiceOutputBackend {
 
   void dispose() {
     _player.dispose();
+  }
+}
+
+/// Deepgram Aura network voice through the VidhAI backend (`engine: 'deepgram'`).
+/// Sits behind on-device/Google TTS in the router as a provider-abstraction
+/// tier; the backend falls back to Google if Deepgram TTS is unavailable.
+class BackendDeepgramTtsVoiceOutput implements VoiceOutputBackend {
+  final AudioPlayer _player = AudioPlayer();
+  final SecureApiClient _client = SecureApiClient.instance;
+
+  void Function(bool speaking)? onSpeakingChanged;
+
+  BackendDeepgramTtsVoiceOutput() {
+    _player.onPlayerComplete.listen((_) => onSpeakingChanged?.call(false));
+  }
+
+  @override
+  String get name => 'backendDeepgram';
+
+  @override
+  Future<bool> speak(String text, {String? language}) async {
+    try {
+      final json = await _client.post('/ai/tts', {
+        'text': text,
+        if (language != null && language.isNotEmpty) 'language': language,
+        'speakingRate': 1.0,
+        'engine': 'deepgram',
+      });
+      final base64Audio = json['base64Audio'] ?? json['audioBase64'];
+      if (base64Audio is! String || base64Audio.isEmpty) return false;
+      await _player.play(BytesSource(base64Decode(base64Audio)));
+      onSpeakingChanged?.call(true);
+      return true;
+    } catch (e) {
+      debugPrint('BackendDeepgramTtsVoiceOutput failed: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<void> stop() async {
+    onSpeakingChanged?.call(false);
+    try {
+      await _player.stop();
+    } catch (_) {}
   }
 }
 
@@ -209,6 +255,8 @@ class VoiceOutputService extends ChangeNotifier implements VoiceSynthesizer {
   final FallbackTtsVoiceOutput _onDevice = FallbackTtsVoiceOutput();
   final BackendGoogleTtsVoiceOutput _backendGoogle =
       BackendGoogleTtsVoiceOutput();
+  final BackendDeepgramTtsVoiceOutput _backendDeepgram =
+      BackendDeepgramTtsVoiceOutput();
 
   bool _isSpeaking = false;
   String _activeBackend = 'none';
@@ -240,12 +288,51 @@ class VoiceOutputService extends ChangeNotifier implements VoiceSynthesizer {
   }
 
   List<VoiceOutputBackend> get _priorityOrder =>
-      [_onDevice, _backendGoogle, _geminiLive];
+      [_onDevice, _backendGoogle, _backendDeepgram, _geminiLive];
+
+  /// Reorders [._priorityOrder] so a requested [engine] ('onDevice', 'google',
+  /// 'deepgram') is preferred first; the rest stay as automatic fallbacks.
+  List<VoiceOutputBackend> _orderFor(String? engine) {
+    final order = [..._priorityOrder];
+    if (engine == null) return order;
+    final target = _backendForEngine(engine);
+    if (target == null) return order;
+    order
+      ..remove(target)
+      ..insert(0, target);
+    return order;
+  }
+
+  VoiceOutputBackend? _backendForEngine(String engine) {
+    switch (engine.toLowerCase()) {
+      case 'ondevice':
+      case 'on-device':
+        return _onDevice;
+      case 'google':
+        return _backendGoogle;
+      case 'deepgram':
+        return _backendDeepgram;
+      case 'gemini':
+      case 'geminilive':
+        return _geminiLive;
+      default:
+        return null;
+    }
+  }
 
   @override
-  Future<bool> speak(String text, {String? language}) async {
+  Future<bool> speak(String text, {String? language}) =>
+      speakWithEngine(text, language: language);
+
+  /// Routes through the requested [engine] first, falling back to the chain
+  /// when it cannot produce audio.
+  Future<bool> speakWithEngine(
+    String text, {
+    String? language,
+    String? engine,
+  }) async {
     _lastError = null;
-    for (final backend in _priorityOrder) {
+    for (final backend in _orderFor(engine)) {
       try {
         final ok = await backend.speak(text, language: language);
         if (ok) {

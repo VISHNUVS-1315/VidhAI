@@ -11,8 +11,9 @@ class VisionAnalysis {
   const VisionAnalysis({this.success = false, this.text = '', this.error});
 }
 
-/// Sends crop/leaf images to Gemini (gemini-2.0-flash) via the secure
-/// backend. Images never touch the client's own AI keys.
+/// Sends crop/leaf images to the secure backend vision endpoint (defaults to
+/// NVIDIA Nano Omni, falling back to Gemini on error). Images never touch the
+/// client's own AI keys.
 class GeminiVisionService {
   GeminiVisionService._();
   static final GeminiVisionService instance = GeminiVisionService._();
@@ -23,6 +24,8 @@ class GeminiVisionService {
     required List<Uint8ListLike> images,
     required String prompt,
     String? language,
+    String? provider,
+    String? model,
   }) async {
     if (images.isEmpty) {
       return const VisionAnalysis(error: 'No image provided.');
@@ -31,11 +34,12 @@ class GeminiVisionService {
       final json = await _client.post('/ai/image', {
         'prompt': prompt,
         if (language != null && language.isNotEmpty) 'language': language,
+        if (provider != null) 'provider': provider,
         'images': images
             .map((img) =>
                 {'base64': base64Encode(img.bytes), 'mimeType': img.mimeType})
             .toList(),
-        'model': AppConfig.geminiModel,
+        'model': model ?? AppConfig.geminiModel,
       });
       if (json['success'] != true) {
         return VisionAnalysis(

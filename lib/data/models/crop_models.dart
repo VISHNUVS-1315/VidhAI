@@ -1,4 +1,5 @@
 import 'package:vidhai/data/models/crop_plan_models.dart';
+import 'package:vidhai/locale/locale.dart';
 
 /// A single date-bounded record of a crop grown on the farm.
 class CropRecord {
@@ -128,6 +129,8 @@ class CropSetupQuestionnaire {
   final String waterAvailability;
   final String soilType;
   final String soilCondition;
+  final String soilFertility;
+  final String drainageCondition;
   final String irrigationSystem;
   final String farmLocation;
   final String farmSize;
@@ -135,6 +138,12 @@ class CropSetupQuestionnaire {
   final String cropDurationPreference;
   final String cropCategoryPreference;
   final int? budgetInrPerAcre;
+  final String waterSource;
+  final String previousCropSowingDate;
+  final String previousCropDuration;
+  final String seasonalWaterReliability;
+  final String farmingPriority;
+  final String farmerPreference;
 
   CropSetupQuestionnaire({
     this.lastCrop = '',
@@ -144,6 +153,8 @@ class CropSetupQuestionnaire {
     this.waterAvailability = '',
     this.soilType = '',
     this.soilCondition = '',
+    this.soilFertility = '',
+    this.drainageCondition = '',
     this.irrigationSystem = '',
     this.farmLocation = '',
     this.farmSize = '',
@@ -151,6 +162,12 @@ class CropSetupQuestionnaire {
     this.cropDurationPreference = '',
     this.cropCategoryPreference = '',
     this.budgetInrPerAcre,
+    this.waterSource = '',
+    this.previousCropSowingDate = '',
+    this.previousCropDuration = '',
+    this.seasonalWaterReliability = '',
+    this.farmingPriority = '',
+    this.farmerPreference = '',
   });
 
   Map<String, dynamic> toMap() => {
@@ -161,6 +178,8 @@ class CropSetupQuestionnaire {
         'waterAvailability': waterAvailability,
         'soilType': soilType,
         'soilCondition': soilCondition,
+        'soilFertility': soilFertility,
+        'drainageCondition': drainageCondition,
         'irrigationSystem': irrigationSystem,
         'farmLocation': farmLocation,
         'farmSize': farmSize,
@@ -168,6 +187,12 @@ class CropSetupQuestionnaire {
         'cropDurationPreference': cropDurationPreference,
         'cropCategoryPreference': cropCategoryPreference,
         'budgetInrPerAcre': budgetInrPerAcre,
+        'waterSource': waterSource,
+        'previousCropSowingDate': previousCropSowingDate,
+        'previousCropDuration': previousCropDuration,
+        'seasonalWaterReliability': seasonalWaterReliability,
+        'farmingPriority': farmingPriority,
+        'farmerPreference': farmerPreference,
       };
 
   factory CropSetupQuestionnaire.fromMap(Map<String, dynamic> m) =>
@@ -179,6 +204,8 @@ class CropSetupQuestionnaire {
         waterAvailability: m['waterAvailability'] ?? '',
         soilType: m['soilType'] ?? '',
         soilCondition: m['soilCondition'] ?? '',
+        soilFertility: m['soilFertility'] ?? '',
+        drainageCondition: m['drainageCondition'] ?? '',
         irrigationSystem: m['irrigationSystem'] ?? '',
         farmLocation: m['farmLocation'] ?? '',
         farmSize: m['farmSize'] ?? '',
@@ -186,7 +213,37 @@ class CropSetupQuestionnaire {
         cropDurationPreference: m['cropDurationPreference'] ?? '',
         cropCategoryPreference: m['cropCategoryPreference'] ?? '',
         budgetInrPerAcre: (m['budgetInrPerAcre'] as num?)?.toInt(),
+        waterSource: m['waterSource'] ?? '',
+        previousCropSowingDate: m['previousCropSowingDate'] ?? '',
+        previousCropDuration: m['previousCropDuration'] ?? '',
+        seasonalWaterReliability: m['seasonalWaterReliability'] ?? '',
+        farmingPriority: m['farmingPriority'] ?? '',
+        farmerPreference: m['farmerPreference'] ?? '',
       );
+
+  /// Returns list of missing MANDATORY fields. Only the ~5 fields the farmer
+  /// must enter manually (with the AI recommendation) are mandatory; all other
+  /// context (soil, water source, irrigation, history, season, location, ...)
+  /// is auto-collected from the stored farm profile and documented sources.
+  List<String> getMissingMandatoryFields(AppLocalizations loc) {
+    final missing = <String>[];
+    if (cropCategoryPreference.trim().isEmpty) missing.add(loc.cropCategoryPreference);
+    if (cropDurationPreference.trim().isEmpty) missing.add(loc.cropDurationPreference);
+    if (budgetInrPerAcre == null || budgetInrPerAcre! <= 0) missing.add(loc.cropBudgetPerAcre);
+    if (waterAvailability.trim().isEmpty) missing.add(loc.currentWaterAvailability);
+    if (farmingPriority.trim().isEmpty) missing.add(loc.farmingPriority);
+    return missing;
+  }
+
+  /// Returns true if all MANDATORY fields are complete (see above).
+  bool get isComplete {
+    return cropCategoryPreference.trim().isNotEmpty &&
+        cropDurationPreference.trim().isNotEmpty &&
+        budgetInrPerAcre != null &&
+        budgetInrPerAcre! > 0 &&
+        waterAvailability.trim().isNotEmpty &&
+        farmingPriority.trim().isNotEmpty;
+  }
 }
 
 class CropRecommendation {

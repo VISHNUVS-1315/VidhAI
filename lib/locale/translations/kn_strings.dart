@@ -1160,6 +1160,7 @@ const Map<String, String> knStrings = {
   'mk_no_prices': 'ಈ ಆಯ್ಕೆಗೆ ಇದುವರೆಗೆ ಬೆಲೆಗಳು ವರದಿಯಾಗಿಲ್ಲ.',
   'mk_districts': 'ಜಿಲ್ಲೆಗಳು',
   'mk_states': 'ರಾಜ್ಯಗಳು',
+  'mk_union_territory': 'ಕೇಂದ್ರಾಡಳಿತ ಪ್ರದೇಶ',
   'mk_state': 'ರಾಜ್ಯ',
   'mk_tap_commodity': 'ಮಾರುಕಟ್ಟೆಗಳಲ್ಲಿ ಬೆಲೆಗಳನ್ನು ಹೋಲಿಸಲು ಸರಕನ್ನು ಒತ್ತಿ',
   'mk_back_to_india': 'ಭಾರತ ಅವಲೋಕನಕ್ಕೆ ಹಿಂತಿರುಗಿ',
@@ -1170,4 +1171,15 @@ const Map<String, String> knStrings = {
   'mk_history_none': 'ಈ ಸರಕಿಗೆ ಐತಿಹಾಸಿಕ ಡೇಟಾ ಲಭ್ಯವಿಲ್ಲ.',
   'mk_history_note':
       'ದೈನಂದಿನ ವರದಿಯಾದ ಸರಾಸರಿ (AGMARKNET). ಐತಿಹಾಸಿಕ ಬೆಲೆಗಳು ಸೂಚಕ ಮಾತ್ರ.',
-};
+    "farmingPriority": "ಕೃಷಿ ಆದ್ಯತೆ",
+    "farmingPriorityHint": "ಈಗ ನಿಮಗೆ ಹೆಚ್ಚು ಮುಖ್ಯವಾದುದು ಏನು",
+    "farmingPriorityMaxProfit": "ಗರಿಷ್ಠ ಲಾಭ",
+    "farmingPriorityLowRisk": "ಕಡಿಮೆ ಅಪಾಯ",
+    "farmingPriorityQuickHarvest": "ತ್ವರಿತ ಸುಗ್ಗಿ",
+    "farmingPriorityLowWater": "ಕಡಿಮೆ ನೀರಿನ ಬಳಕೆ",
+    "farmingPriorityBalanced": "ಸಮತೋಲಿತ",
+    "farmerPreference": "ರೈತರ ಆದ್ಯತೆ (ಐಚ್ಛಿಕ)",
+    "farmerPreferenceHint": "ನಾವು ಪರಿಗಣಿಸಬೇಕಾದ ಇನ್ನೇನಾದರೂ ಇದೆಯೇ? (ಐಚ್ಛಿಕ)",
+    "autoCollectedContext": "ನಿಮ್ಮ ಜಮೀನಿನಿಂದ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸೇರಿಸಲಾಗಿದೆ",
+    "ctxWeatherMarket": "ಲೈವ್ ಹವಾಮಾನ ಮತ್ತು ಮಾರುಕಟ್ಟೆ ಮಾಹಿತಿ ಸೇರಿಸಲಾಗಿದೆ",
+  };

@@ -315,6 +315,28 @@ class AppLocalizations {
       _strings['en']!['water_source']!;
   String get soilType =>
       _strings[languageCode]?['soil_type'] ?? _strings['en']!['soil_type']!;
+  String get farmingPriority =>
+      _strings[languageCode]?['farmingPriority'] ?? _strings['en']!['farmingPriority']!;
+  String get farmingPriorityHint =>
+      _strings[languageCode]?['farmingPriorityHint'] ?? _strings['en']!['farmingPriorityHint']!;
+  String get farmingPriorityMaxProfit =>
+      _strings[languageCode]?['farmingPriorityMaxProfit'] ?? _strings['en']!['farmingPriorityMaxProfit']!;
+  String get farmingPriorityLowRisk =>
+      _strings[languageCode]?['farmingPriorityLowRisk'] ?? _strings['en']!['farmingPriorityLowRisk']!;
+  String get farmingPriorityQuickHarvest =>
+      _strings[languageCode]?['farmingPriorityQuickHarvest'] ?? _strings['en']!['farmingPriorityQuickHarvest']!;
+  String get farmingPriorityLowWater =>
+      _strings[languageCode]?['farmingPriorityLowWater'] ?? _strings['en']!['farmingPriorityLowWater']!;
+  String get farmingPriorityBalanced =>
+      _strings[languageCode]?['farmingPriorityBalanced'] ?? _strings['en']!['farmingPriorityBalanced']!;
+  String get farmerPreference =>
+      _strings[languageCode]?['farmerPreference'] ?? _strings['en']!['farmerPreference']!;
+  String get farmerPreferenceHint =>
+      _strings[languageCode]?['farmerPreferenceHint'] ?? _strings['en']!['farmerPreferenceHint']!;
+  String get autoCollectedContext =>
+      _strings[languageCode]?['autoCollectedContext'] ?? _strings['en']!['autoCollectedContext']!;
+  String get ctxWeatherMarket =>
+      _strings[languageCode]?['ctxWeatherMarket'] ?? _strings['en']!['ctxWeatherMarket']!;
   String get aiSoilScan =>
       _strings[languageCode]?['ai_soil_scan'] ??
       _strings['en']!['ai_soil_scan']!;
@@ -797,6 +819,10 @@ class AppLocalizations {
       _strings['en']!['mk_districts']!;
   String get marketStates =>
       _strings[languageCode]?['mk_states'] ?? _strings['en']!['mk_states']!;
+
+  String get unionTerritory =>
+      _strings[languageCode]?['mk_union_territory'] ??
+      _strings['en']!['mk_union_territory']!;
   String get marketState =>
       _strings[languageCode]?['mk_state'] ?? _strings['en']!['mk_state']!;
   String get marketTapCommodity =>

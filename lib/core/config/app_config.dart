@@ -20,9 +20,10 @@ class AppConfig {
   /// When empty, the AI chat falls back to the secure backend proxy.
   static const String groqApiKey = String.fromEnvironment('GROQ_API_KEY');
 
-  /// Groq model used for direct chat requests.
+  /// Groq model used for direct chat requests. Defaults to GPT-OSS-20B; can be
+  /// changed at build time without any UI/code change.
   static const String groqModel =
-      String.fromEnvironment('GROQ_MODEL', defaultValue: 'openai/gpt-oss-120b');
+      String.fromEnvironment('GROQ_MODEL', defaultValue: 'openai/gpt-oss-20b');
 
   /// Direct Deepgram Nova-3 API key (build time: --dart-define=DEEPGRAM_API_KEY=...).
   /// When set, real-time STT goes through Deepgram first; on any failure the

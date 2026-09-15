@@ -1142,6 +1142,7 @@ const Map<String, String> orStrings = {
   'mk_no_prices': 'ଏହି ଚୟନ ପାଇଁ ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଭାଉ ରିପୋର୍ଟ ହୋଇନାହିଁ।',
   'mk_districts': 'ଜିଲ୍ଲାଗୁଡ଼ିକ',
   'mk_states': 'ରାଜ୍ୟଗୁଡ଼ିକ',
+  'mk_union_territory': 'କେନ୍ଦ୍ରଶାସିତ ଅଞ୍ଚଳ',
   'mk_state': 'ରାଜ୍ୟ',
   'mk_tap_commodity': 'ବଜାରଗୁଡ଼ିକରେ ଭାଉ ତୁଳନା ପାଇଁ ଗୋଟିଏ ଦ୍ରବ୍ୟ ଟ୍ୟାପ କରନ୍ତୁ',
   'mk_back_to_india': 'ଭାରତ ସମୀକ୍ଷାକୁ ଫେରନ୍ତୁ',
@@ -1152,4 +1153,15 @@ const Map<String, String> orStrings = {
   'mk_history_none': 'ଏହି ଦ୍ରବ୍ୟ ପାଇଁ କୌଣସି ଐତିହାସିକ ତଥ୍ୟ ଉପଲବ୍ଧ ନାହିଁ।',
   'mk_history_note':
       'ଦୈନିକ ରିପୋର୍ଟ ହୋଇଥିବା ହାରାହାରି (AGMARKNET)। ଐତିହାସିକ ମୂଲ୍ୟ କେବଳ ସୂଚକ।',
-};
+    "farmingPriority": "କୃଷି ପ୍ରାଥମିକତା",
+    "farmingPriorityHint": "ବର୍ତ୍ତମାନ ଆପଣଙ୍କ ପାଇଁ କ'ଣ ସବୁଠାରୁ ଗୁରୁତ୍ୱପୂର୍ଣ୍ଣ",
+    "farmingPriorityMaxProfit": "ସର୍ବାଧିକ ଲାଭ",
+    "farmingPriorityLowRisk": "କମ୍ ବିପଦ",
+    "farmingPriorityQuickHarvest": "ତୁରନ୍ତ ଅମଳ",
+    "farmingPriorityLowWater": "କମ୍ ପାଣି ବ୍ୟବହାର",
+    "farmingPriorityBalanced": "ସନ୍ତୁଳିତ",
+    "farmerPreference": "କୃଷକ ପ୍ରାଥମିକତା (ବୈକଳ୍ପିକ)",
+    "farmerPreferenceHint": "ଆଉ କିଛି ଅଛି କି ଆମେ ବିଚାର କରିବା ଉଚିତ? (ବୈକଳ୍ପିକ)",
+    "autoCollectedContext": "ଆପଣଙ୍କ ଫାର୍ମରୁ ସ୍ୱୟଂଚାଳିତ ଭାବରେ ଅନ୍ତର୍ଭୁକ୍ତ",
+    "ctxWeatherMarket": "ଲାଇଭ ପାଣିପାଗ ଏବଂ ବଜାର ସନ୍ଦର୍ଭ ଅନ୍ତର୍ଭୁକ୍ତ",
+  };

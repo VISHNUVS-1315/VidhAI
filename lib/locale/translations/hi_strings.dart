@@ -1139,6 +1139,7 @@ const Map<String, String> hiStrings = {
   'mk_no_prices': 'इस चयन के लिए अभी तक कोई मूल्य रिपोर्ट नहीं हुआ है।',
   'mk_districts': 'ज़िले',
   'mk_states': 'राज्य',
+  'mk_union_territory': 'केंद्र शासित प्रदेश',
   'mk_state': 'राज्य',
   'mk_tap_commodity': 'मंडियों में मूल्य तुलना के लिए वस्तु पर टैप करें',
   'mk_back_to_india': 'भारत सिंहावलोकन पर वापस',
@@ -1149,4 +1150,15 @@ const Map<String, String> hiStrings = {
   'mk_history_none': 'इस वस्तु के लिए कोई ऐतिहासिक डेटा उपलब्ध नहीं है।',
   'mk_history_note':
       'दैनिक रिपोर्ट किया गया औसत (AGMARKNET)। ऐतिहासिक मूल्य केवल सांकेतिक हैं।',
-};
+    "farmingPriority": "खेती की प्राथमिकता",
+    "farmingPriorityHint": "अभी आपके लिए सबसे महत्वपूर्ण क्या है",
+    "farmingPriorityMaxProfit": "अधिकतम लाभ",
+    "farmingPriorityLowRisk": "कम जोखिम",
+    "farmingPriorityQuickHarvest": "जल्दी फसल",
+    "farmingPriorityLowWater": "कम पानी का उपयोग",
+    "farmingPriorityBalanced": "संतुलित",
+    "farmerPreference": "किसान की प्राथमिकता (वैकल्पिक)",
+    "farmerPreferenceHint": "क्या कुछ और है जिस पर हमें विचार करना चाहिए? (वैकल्पिक)",
+    "autoCollectedContext": "आपके फार्म से स्वतः शामिल",
+    "ctxWeatherMarket": "लाइव मौसम और बाजार संदर्भ शामिल",
+  };

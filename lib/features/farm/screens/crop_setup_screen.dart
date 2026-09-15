@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/crop_models.dart';
+import 'package:vidhai/data/models/farm_profile.dart';
 import 'package:vidhai/services/data_service.dart';
-import 'package:vidhai/services/voice_service.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
+/// Crop recommendation setup.
+///
+/// The AI recommendation needs only ~6 manual inputs from the farmer. All other
+/// context (location, farm size, soil, water source, irrigation, farming type,
+/// previous crops, season, weather and market prices) is collected
+/// automatically from the stored farm profile, crop history and live sources.
 class CropSetupScreen extends StatefulWidget {
   final String farmId;
 
@@ -16,70 +22,19 @@ class CropSetupScreen extends StatefulWidget {
 }
 
 class _CropSetupScreenState extends State<CropSetupScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final VoiceService _voiceService = VoiceService();
-  final TextEditingController _lastCropController = TextEditingController();
-  final TextEditingController _farmLocationController = TextEditingController();
-  final TextEditingController _farmSizeController = TextEditingController();
   final TextEditingController _budgetController = TextEditingController();
+  final TextEditingController _farmerPreferenceController = TextEditingController();
 
-  DateTime? _harvestDate;
-  DateTime? _lastIrrigationDate;
-  String _landIdleDuration = '';
+  FarmProfile? _profile;
+  String _lastCropName = '';
+  String _previousCropSowingDate = '';
+  String _previousCropDuration = '';
+
   String _waterAvailability = '';
-  String _soilType = '';
-  String _soilCondition = '';
-  String _irrigationSystem = '';
-  String _currentSeason = '';
   String _cropDurationPreference = '';
   String _cropCategoryPreference = '';
-  bool _isListeningLastCrop = false;
-
-  static const _landIdleOptions = [
-    '<1 month',
-    '1-3 months',
-    '3-6 months',
-    '6-12 months',
-    '>1 year',
-  ];
-
-  static const _soilTypeOptions = [
-    'Clay',
-    'Sandy',
-    'Loamy',
-    'Silt',
-    'Peat',
-    'Chalk',
-    'Saline',
-    'Black (Regur)',
-    'Red',
-    'Laterite',
-  ];
-
-  static const _soilConditionOptions = [
-    'Good',
-    'Average',
-    'Poor',
-    'Unknown',
-  ];
-
-  static const _irrigationSystemOptions = [
-    'Drip',
-    'Sprinkler',
-    'Flood',
-    'Rainfed',
-    'Manual',
-    'None',
-    'Other',
-  ];
-
-  static const _waterLevels = [
-    'High',
-    'Medium',
-    'Low',
-    'Very Low',
-    'No Water',
-  ];
+  String _farmingPriority = '';
+  String _currentSeason = '';
 
   static const _cropDurationOptions = [
     'Short-term',
@@ -103,20 +58,35 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     'No preference',
   ];
 
+  static const _waterLevels = [
+    'High',
+    'Medium',
+    'Low',
+    'Very Low',
+    'No Water',
+  ];
+
+  /// Fixed English values that are stored in the questionnaire and sent to the
+  /// AI backend. Display labels are localized (see `_farmingPriorityLabels`).
+  static const _farmingPriorityValues = [
+    'Max Profit',
+    'Low Risk',
+    'Quick Harvest',
+    'Low Water',
+    'Balanced',
+  ];
+
   @override
   void initState() {
     super.initState();
     _currentSeason = _detectSeason();
-    _voiceService.initialize();
     _loadFarmData();
   }
 
   @override
   void dispose() {
-    _lastCropController.dispose();
-    _farmLocationController.dispose();
-    _farmSizeController.dispose();
-    _voiceService.stopListening();
+    _budgetController.dispose();
+    _farmerPreferenceController.dispose();
     super.dispose();
   }
 
@@ -127,26 +97,44 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     return 'Zaid';
   }
 
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
   Future<void> _loadFarmData() async {
     try {
       final farms = await DataService().loadFarms();
       final match = farms.where((f) => f.farmId == widget.farmId);
-      if (match.isNotEmpty) {
-        final profile = match.first;
-        setState(() {
-          _farmLocationController.text =
-              profile.farmLocation?.fullAddress ?? '';
-          _farmSizeController.text =
-              '${profile.farmSize.isNotEmpty ? profile.farmSize : '-'} ${profile.farmSizeUnit}';
-          if (profile.soilType.isNotEmpty) _soilType = profile.soilType;
-          if (profile.waterAvailability.isNotEmpty) {
-            _waterAvailability = profile.waterAvailability;
-          }
-          if (profile.irrigationType.isNotEmpty) {
-            _irrigationSystem = profile.irrigationType;
-          }
-        });
+      if (match.isEmpty) return;
+      final profile = match.first;
+      final crops = await DataService().loadCrops(widget.farmId);
+
+      String lastCropName = '';
+      String prevSowing = '';
+      String prevDuration = '';
+      final records = crops.where((c) => c.status != 'active').toList()
+        ..sort((a, b) => b.plantingDate.compareTo(a.plantingDate));
+      if (records.isNotEmpty) {
+        final last = records.first;
+        lastCropName = last.cropName;
+        prevSowing = _formatDate(last.plantingDate);
+        if (last.expectedHarvestDate != null) {
+          prevDuration = last.expectedHarvestDate!
+              .difference(last.plantingDate)
+              .inDays
+              .toString();
+        }
       }
+
+      setState(() {
+        _profile = profile;
+        _lastCropName = lastCropName;
+        _previousCropSowingDate = prevSowing;
+        _previousCropDuration = prevDuration;
+        if (_waterAvailability.isEmpty && profile.waterAvailability.isNotEmpty) {
+          _waterAvailability = profile.waterAvailability;
+        }
+      });
     } catch (_) {}
   }
 
@@ -157,96 +145,66 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     return (value == null || value <= 0) ? null : value;
   }
 
-  Future<void> _startVoiceInput() async {
-    if (_voiceService.isListening) {
-      await _voiceService.stopListening();
-      setState(() => _isListeningLastCrop = false);
-      return;
-    }
-
-    final hasPermission = await _voiceService.initialize();
-    if (!hasPermission) {
-      if (mounted) {
-        final colors = VidhAIColorsX(context);
-        final loc = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.permissionDenied),
-            backgroundColor: colors.danger,
-          ),
-        );
-      }
-      return;
-    }
-
-    setState(() => _isListeningLastCrop = true);
-
-    await _voiceService.startListening(
-      localeId: 'en_US',
-      onResult: (text, confidence) {
-        _lastCropController.text = text.trim();
-      },
-      onListeningComplete: () {
-        if (mounted) setState(() => _isListeningLastCrop = false);
-      },
-    );
-  }
-
-  Future<void> _pickDate({required bool isHarvestDate}) async {
-    final colors = VidhAIColorsX(context);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: colors.brandDeep,
-              onPrimary: Colors.white,
-              surface: colors.surface,
-              onSurface: colors.onBackground,
-            ),
-            dialogTheme: DialogThemeData(backgroundColor: colors.surface),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        if (isHarvestDate) {
-          _harvestDate = picked;
-        } else {
-          _lastIrrigationDate = picked;
-        }
-      });
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  List<({String value, String label})> _farmingPriorityLabels(AppLocalizations loc) {
+    final labels = <String>[
+      loc.farmingPriorityMaxProfit,
+      loc.farmingPriorityLowRisk,
+      loc.farmingPriorityQuickHarvest,
+      loc.farmingPriorityLowWater,
+      loc.farmingPriorityBalanced,
+    ];
+    return [
+      for (var i = 0; i < _farmingPriorityValues.length; i++)
+        (value: _farmingPriorityValues[i], label: labels[i]),
+    ];
   }
 
   void _getRecommendations() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    final profile = _profile;
+
     final questionnaire = CropSetupQuestionnaire(
-      lastCrop: _lastCropController.text.trim(),
-      harvestDate: _harvestDate != null ? _formatDate(_harvestDate!) : '',
-      landIdleDuration: _landIdleDuration,
-      lastIrrigation:
-          _lastIrrigationDate != null ? _formatDate(_lastIrrigationDate!) : '',
-      waterAvailability: _waterAvailability,
-      soilType: _soilType,
-      soilCondition: _soilCondition,
-      irrigationSystem: _irrigationSystem,
-      farmLocation: _farmLocationController.text.trim(),
-      farmSize: _farmSizeController.text.trim(),
-      currentSeason: _currentSeason,
-      cropDurationPreference: _cropDurationPreference,
+      // ── Manual inputs (the only ones the farmer must provide) ──
       cropCategoryPreference: _cropCategoryPreference,
+      cropDurationPreference: _cropDurationPreference,
       budgetInrPerAcre: _parseBudget(),
+      waterAvailability: _waterAvailability,
+      farmingPriority: _farmingPriority,
+      farmerPreference: _farmerPreferenceController.text.trim(),
+      // ── Auto-collected farm context ──
+      lastCrop: _lastCropName,
+      previousCropSowingDate: _previousCropSowingDate,
+      previousCropDuration: _previousCropDuration,
+      soilType: profile?.soilType ?? '',
+      irrigationSystem: profile?.irrigationType ?? '',
+      waterSource: profile?.waterSource ?? '',
+      farmLocation: profile?.farmLocation?.fullAddress ?? '',
+      farmSize: profile?.farmSize.isNotEmpty == true
+          ? '${profile!.farmSize} ${profile.farmSizeUnit}'
+          : '',
+      currentSeason: _currentSeason,
     );
+
+    final missingFields = questionnaire.getMissingMandatoryFields(loc);
+    if (missingFields.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...missingFields.map((f) => Text('• $f',
+                  style: TextStyle(color: colors.onBackground, fontSize: 13))),
+            ],
+          ),
+          backgroundColor: colors.warning,
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     Navigator.pushNamed(
       context,
@@ -282,50 +240,87 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
         ),
         centerTitle: true,
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-          children: [
-            _buildQuestionHeader(loc.cropSetupHelpText),
-            const SizedBox(height: 20),
-            _buildQuestion1(),
-            const SizedBox(height: 16),
-            _buildQuestion2(),
-            const SizedBox(height: 16),
-            _buildQuestion3(),
-            const SizedBox(height: 16),
-            _buildQuestion4(),
-            const SizedBox(height: 16),
-            _buildQuestion5(),
-            const SizedBox(height: 16),
-            _buildQuestion6(),
-            const SizedBox(height: 16),
-            _buildQuestion7(),
-            const SizedBox(height: 16),
-            _buildQuestion8(),
-            const SizedBox(height: 16),
-            _buildQuestion9(),
-            const SizedBox(height: 16),
-            _buildQuestion10(),
-            const SizedBox(height: 16),
-            _buildQuestion11(),
-            const SizedBox(height: 16),
-            _buildQuestion12(),
-            const SizedBox(height: 16),
-            _buildQuestion13(),
-            const SizedBox(height: 16),
-            _buildQuestion14(),
-            const SizedBox(height: 24),
-            _buildGetRecommendationsButton(),
-            const SizedBox(height: 40),
-          ],
-        ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+        children: [
+          _buildInfoHeader(loc.cropSetupHelpText),
+          const SizedBox(height: 20),
+          _buildAutoContextCard(),
+          const SizedBox(height: 24),
+          _buildSectionTitle(loc.cropCategoryPreference, required: true),
+          const SizedBox(height: 8),
+          _buildDropdownField(
+            value: _cropCategoryPreference.isEmpty ? null : _cropCategoryPreference,
+            hint: loc.cropCategoryPreference,
+            icon: Icons.category_outlined,
+            items: _cropCategoryOptions,
+            onChanged: (v) => setState(() => _cropCategoryPreference = v ?? ''),
+          ),
+          const SizedBox(height: 20),
+          _buildSectionTitle(loc.cropDurationPreference, required: true),
+          const SizedBox(height: 8),
+          _buildDropdownField(
+            value: _cropDurationPreference.isEmpty ? null : _cropDurationPreference,
+            hint: loc.cropDurationPreference,
+            icon: Icons.timer_outlined,
+            items: _cropDurationOptions,
+            onChanged: (v) => setState(() => _cropDurationPreference = v ?? ''),
+          ),
+          const SizedBox(height: 20),
+          _buildSectionTitle(loc.cropBudgetPerAcre, required: true),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _budgetController,
+            keyboardType: TextInputType.number,
+            style: TextStyle(color: colors.onBackground, fontSize: 15),
+            decoration: _fieldDecoration(
+              hint: loc.cropBudgetHint,
+              icon: Icons.account_balance_wallet_outlined,
+            ).copyWith(
+              prefixText: '₹ ',
+              prefixStyle:
+                  TextStyle(color: colors.onSurfaceMuted, fontSize: 15),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            loc.cropBudgetHelper,
+            style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
+          ),
+          const SizedBox(height: 20),
+          _buildSectionTitle(loc.currentWaterAvailability, required: true),
+          const SizedBox(height: 8),
+          _buildWaterAvailabilityInput(),
+          const SizedBox(height: 20),
+          _buildSectionTitle(loc.farmingPriority, required: true),
+          const SizedBox(height: 4),
+          Text(
+            loc.farmingPriorityHint,
+            style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          _buildFarmingPriorityInput(),
+          const SizedBox(height: 20),
+          _buildSectionTitle(loc.farmerPreference),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _farmerPreferenceController,
+            maxLines: 2,
+            style: TextStyle(color: colors.onBackground, fontSize: 15),
+            decoration: _fieldDecoration(
+              hint: loc.farmerPreferenceHint,
+              icon: Icons.edit_note_rounded,
+            ),
+          ),
+          const SizedBox(height: 28),
+          _buildGetRecommendationsButton(),
+          const SizedBox(height: 40),
+        ],
       ),
     );
   }
 
-  Widget _buildQuestionHeader(String text) {
+  Widget _buildInfoHeader(String text) {
     final colors = VidhAIColorsX(context);
     return Container(
       padding: const EdgeInsets.all(16),
@@ -352,38 +347,18 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     );
   }
 
-  Widget _buildNumberBadge(int number) {
-    final colors = VidhAIColorsX(context);
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        color: colors.brandDeep.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Center(
-        child: Text(
-          '$number',
-          style: TextStyle(
-            color: colors.brandDeep,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFieldLabel(String label, {bool required = false}) {
+  Widget _buildSectionTitle(String label, {bool required = false}) {
     final colors = VidhAIColorsX(context);
     return Row(
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: colors.onBackground,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: colors.onBackground,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         if (required)
@@ -424,245 +399,6 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     );
   }
 
-  Widget _buildQuestion1() {
-    final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(1),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.lastCropGrown)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _lastCropController,
-                style: TextStyle(color: colors.onBackground, fontSize: 15),
-                decoration: _fieldDecoration(
-                  hint: loc.hintLastCrop,
-                  icon: Icons.grass_rounded,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: _startVoiceInput,
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: _isListeningLastCrop
-                      ? colors.danger.withValues(alpha: 0.2)
-                      : colors.brandDeep.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  _isListeningLastCrop ? Icons.mic : Icons.mic_none_rounded,
-                  color:
-                      _isListeningLastCrop ? colors.danger : colors.brandDeep,
-                  size: 22,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion2() {
-    final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(2),
-            const SizedBox(width: 10),
-            Expanded(
-                child:
-                    _buildFieldLabel(loc.whenWasItHarvested, required: true)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () => _pickDate(isHarvestDate: true),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: colors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colors.borderColor),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today_rounded,
-                    color: colors.onSurfaceMuted, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  _harvestDate != null
-                      ? _formatDate(_harvestDate!)
-                      : loc.selectHarvestDate,
-                  style: TextStyle(
-                    color: _harvestDate != null
-                        ? colors.onBackground
-                        : colors.onSurfaceMuted,
-                    fontSize: 15,
-                  ),
-                ),
-                const Spacer(),
-                if (_harvestDate != null)
-                  GestureDetector(
-                    onTap: () => setState(() => _harvestDate = null),
-                    child: Icon(Icons.close,
-                        color: colors.onSurfaceMuted, size: 18),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion3() {
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(3),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.howLongLandIdle)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _buildDropdownField(
-          value: _landIdleDuration.isEmpty ? null : _landIdleDuration,
-          hint: loc.selectDuration,
-          icon: Icons.timer_outlined,
-          items: _landIdleOptions,
-          onChanged: (v) => setState(() => _landIdleDuration = v ?? ''),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion4() {
-    final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(4),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.whenLastIrrigation)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () => _pickDate(isHarvestDate: false),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: colors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colors.borderColor),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.water_drop_outlined,
-                    color: colors.onSurfaceMuted, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  _lastIrrigationDate != null
-                      ? _formatDate(_lastIrrigationDate!)
-                      : loc.selectLastIrrigationDate,
-                  style: TextStyle(
-                    color: _lastIrrigationDate != null
-                        ? colors.onBackground
-                        : colors.onSurfaceMuted,
-                    fontSize: 15,
-                  ),
-                ),
-                const Spacer(),
-                if (_lastIrrigationDate != null)
-                  GestureDetector(
-                    onTap: () => setState(() => _lastIrrigationDate = null),
-                    child: Icon(Icons.close,
-                        color: colors.onSurfaceMuted, size: 18),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion5() {
-    final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(5),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.currentWaterAvailability)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _waterLevels.map((level) {
-            final isSelected = _waterAvailability == level;
-            final color = _waterLevelColor(level, colors);
-            return GestureDetector(
-              onTap: () => setState(() => _waterAvailability = level),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? color.withValues(alpha: 0.2)
-                      : colors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected ? color : colors.borderColor,
-                    width: isSelected ? 1.5 : 1,
-                  ),
-                ),
-                child: Text(
-                  level,
-                  style: TextStyle(
-                    color: isSelected ? color : colors.onSurfaceMuted,
-                    fontSize: 13,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
   Color _waterLevelColor(String level, VidhAIColorsX colors) {
     switch (level) {
       case 'High':
@@ -680,321 +416,232 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     }
   }
 
-  Widget _buildQuestion6() {
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(6),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.soilType)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _buildDropdownField(
-          value: _soilType.isEmpty ? null : _soilType,
-          hint: loc.selectSoilType,
-          icon: Icons.terrain_rounded,
-          items: _soilTypeOptions,
-          onChanged: (v) => setState(() => _soilType = v ?? ''),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion7() {
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(7),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.soilCondition)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _buildDropdownField(
-          value: _soilCondition.isEmpty ? null : _soilCondition,
-          hint: loc.selectSoilCondition,
-          icon: Icons.eco_rounded,
-          items: _soilConditionOptions,
-          onChanged: (v) => setState(() => _soilCondition = v ?? ''),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion8() {
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(8),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.irrigationSystemAvailable)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _buildDropdownField(
-          value: _irrigationSystem.isEmpty ? null : _irrigationSystem,
-          hint: loc.selectIrrigationSystem,
-          icon: Icons.water_outlined,
-          items: _irrigationSystemOptions,
-          onChanged: (v) => setState(() => _irrigationSystem = v ?? ''),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion9() {
+  Widget _buildWaterAvailabilityInput() {
     final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(9),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.farmLocation)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _farmLocationController,
-          readOnly: true,
-          style: TextStyle(color: colors.onBackground, fontSize: 15),
-          decoration: _fieldDecoration(
-            hint: loc.autoFilledFromFarmData,
-            icon: Icons.location_on_outlined,
-            suffix: _farmLocationController.text.isNotEmpty
-                ? Icon(Icons.verified, color: colors.brandDeep, size: 18)
-                : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion10() {
-    final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(10),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.farmSize)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _farmSizeController,
-          readOnly: true,
-          style: TextStyle(color: colors.onBackground, fontSize: 15),
-          decoration: _fieldDecoration(
-            hint: loc.autoFilledFromFarmData,
-            icon: Icons.straighten_rounded,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion11() {
-    final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(11),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.currentSeason)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: colors.brandDeep.withValues(alpha: 0.3)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.wb_sunny_outlined, color: colors.brandDeep, size: 20),
-              const SizedBox(width: 12),
-              Text(
-                _currentSeason,
-                style: TextStyle(
-                  color: colors.brandDeep,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _waterLevels.map((level) {
+        final isSelected = _waterAvailability == level;
+        final color = _waterLevelColor(level, colors);
+        return GestureDetector(
+          onTap: () => setState(() => _waterAvailability = level),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? color.withValues(alpha: 0.2)
+                  : colors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? color : colors.borderColor,
+                width: isSelected ? 1.5 : 1,
               ),
+            ),
+            child: Text(
+              level,
+              style: TextStyle(
+                color: isSelected ? color : colors.onSurfaceMuted,
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildFarmingPriorityInput() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    final options = _farmingPriorityLabels(loc);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.map((option) {
+        final isSelected = _farmingPriority == option.value;
+        return GestureDetector(
+          onTap: () => setState(() => _farmingPriority = option.value),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? colors.brandDeep.withValues(alpha: 0.2)
+                  : colors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? colors.brandDeep : colors.borderColor,
+                width: isSelected ? 1.5 : 1,
+              ),
+            ),
+            child: Text(
+              option.label,
+              style: TextStyle(
+                color: isSelected ? colors.brandDeep : colors.onSurfaceMuted,
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Read-only card explaining which farm facts are already included.
+  Widget _buildAutoContextCard() {
+    final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    final profile = _profile;
+    final rows = <(IconData, String, String)>[];
+
+    final locationText = profile?.farmLocation?.fullAddress ?? '';
+    if (locationText.trim().isNotEmpty) {
+      rows.add((
+        Icons.place_outlined,
+        loc.farmDetails,
+        locationText,
+      ));
+    }
+    if (profile != null && profile.farmSize.isNotEmpty) {
+      rows.add((
+        Icons.square_foot_rounded,
+        loc.farmSize,
+        '${profile.farmSize} ${profile.farmSizeUnit}',
+      ));
+    }
+    if (profile != null && profile.soilType.isNotEmpty) {
+      rows.add((Icons.terrain_rounded, loc.soilType, profile.soilType));
+    }
+    if (profile != null && profile.waterAvailability.isNotEmpty) {
+      rows.add((
+        Icons.water_drop_outlined,
+        loc.waterAvailability,
+        profile.waterAvailability,
+      ));
+    }
+    if (profile != null && profile.waterSource.isNotEmpty) {
+      rows.add((
+        Icons.water_outlined,
+        loc.waterSource,
+        profile.waterSource,
+      ));
+    }
+    if (profile != null && profile.irrigationType.isNotEmpty) {
+      rows.add((
+        Icons.grain_rounded,
+        loc.irrigationSystemAvailable,
+        profile.irrigationType,
+      ));
+    }
+    if (profile != null && profile.farmingMethod.isNotEmpty) {
+      rows.add((
+        Icons.agriculture_rounded,
+        loc.farmingMethod,
+        profile.farmingMethod,
+      ));
+    }
+    if (_lastCropName.isNotEmpty) {
+      rows.add((
+        Icons.grass_rounded,
+        loc.lastCropGrown,
+        _lastCropName,
+      ));
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded,
+                  color: colors.brandDeep, size: 18),
               const SizedBox(width: 8),
-              Text(
-                loc.autoDetected,
-                style: TextStyle(
-                  color: colors.onSurfaceMuted,
-                  fontSize: 12,
+              Expanded(
+                child: Text(
+                  loc.autoCollectedContext,
+                  style: TextStyle(
+                    color: colors.onBackground,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion12() {
-    final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(12),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.cropDurationPreference)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _cropDurationOptions.map((option) {
-            final isSelected = _cropDurationPreference == option;
-            return GestureDetector(
-              onTap: () => setState(() => _cropDurationPreference = option),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? colors.brandDeep.withValues(alpha: 0.2)
-                      : colors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected ? colors.brandDeep : colors.borderColor,
-                    width: isSelected ? 1.5 : 1,
-                  ),
-                ),
-                child: Text(
-                  option,
-                  style: TextStyle(
-                    color:
-                        isSelected ? colors.brandDeep : colors.onSurfaceMuted,
-                    fontSize: 13,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
-                  ),
+          if (rows.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            for (final (icon, label, value) in rows)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(icon, color: colors.onSurfaceMuted, size: 16),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 110,
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: colors.onSurfaceMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        value,
+                        style: TextStyle(
+                          color: colors.onBackground,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion13() {
-    final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(13),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.cropCategoryPreference)),
           ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _cropCategoryOptions.map((option) {
-            final isSelected = _cropCategoryPreference == option;
-            return GestureDetector(
-              onTap: () => setState(() => _cropCategoryPreference = option),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? colors.brandDeep.withValues(alpha: 0.2)
-                      : colors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected ? colors.brandDeep : colors.borderColor,
-                    width: isSelected ? 1.5 : 1,
+          const SizedBox(height: 4),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: colors.brandDeep.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.cloud_outlined,
+                    color: colors.brandDeep, size: 16),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    loc.ctxWeatherMarket,
+                    style: TextStyle(
+                      color: colors.brandDeep,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                child: Text(
-                  option,
-                  style: TextStyle(
-                    color:
-                        isSelected ? colors.brandDeep : colors.onSurfaceMuted,
-                    fontSize: 13,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestion14() {
-    final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildNumberBadge(14),
-            const SizedBox(width: 10),
-            Expanded(child: _buildFieldLabel(loc.cropBudgetPerAcre)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _budgetController,
-          keyboardType: TextInputType.number,
-          style: TextStyle(color: colors.onBackground, fontSize: 15),
-          decoration: _fieldDecoration(
-            hint: loc.cropBudgetHint,
-            icon: Icons.account_balance_wallet_outlined,
-          ).copyWith(
-            prefixText: '₹ ',
-            prefixStyle: TextStyle(color: colors.onSurfaceMuted, fontSize: 15),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          loc.cropBudgetHelper,
-          style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

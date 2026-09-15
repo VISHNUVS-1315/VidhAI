@@ -59,17 +59,21 @@ class CropRecommendationService {
         'budgetInrPerAcre': q.budgetInrPerAcre,
         'lastCrop': q.lastCrop,
         'landIdleDuration': q.landIdleDuration,
+        'farmingPriority': q.farmingPriority,
+        'farmerPreference': q.farmerPreference,
       };
 
   /// Returns the preferred top-10 crop recommendations for the farm.
   ///
   /// Order of sources:
-  ///   1. Live online `/crop/recommend` (backed by the real context bundle).
-  ///   2. Cached online results — only when the decision context hash is
+  ///   1. Live structured Groq AI via `/crop/ai-recommend` (all farm context +
+  ///      the ~6 manual inputs analysed together; strict JSON Schema output).
+  ///   2. Live online `/crop/recommend` (backed by the real context bundle).
+  ///   3. Cached online results — only when the decision context hash is
   ///      unchanged and within the TTL (never a stale/mismatched fabrication).
-  ///   3. Realtime AI ranking (Groq, when a key is compiled in and online) on
+  ///   4. Realtime AI ranking (Groq, when a key is compiled in and online) on
   ///      top of the engine-verified shortlist — reorders and explains only.
-  ///   4. Deterministic local knowledge-base engine.
+  ///   5. Deterministic local knowledge-base engine.
   Future<List<CropRecommendationResult>> getRecommendations({
     required FarmProfile farm,
     required CropSetupQuestionnaire questionnaire,
@@ -84,6 +88,20 @@ class CropRecommendationService {
 
     final snapshot = await _buildSnapshot(farm);
     final hash = snapshot.contextHash;
+
+    // 1) Structured Groq AI first: the model reasons over the ENTIRE context
+    //    at once. Falls back silently to the engine on any failure/emptiness.
+    final ai = await CropBackendService.instance.fetchAIRecommendations(
+      context: snapshot.toBackendContext(),
+      input: recommendationInput(questionnaire),
+    );
+    if (ai != null && ai.isNotEmpty) {
+      debugPrint('[CropRecommendationService] AI recommend: ${ai.length} crops '
+          '(${ai.map((r) => r.cropName).take(10).join(', ')})');
+      return _dedupeTop10(ai);
+    }
+    debugPrint('[CropRecommendationService] AI recommend unavailable — '
+        'falling through to engine');
 
     final online = await CropBackendService.instance.fetchTop10(
       farm: snapshot.farmMap,

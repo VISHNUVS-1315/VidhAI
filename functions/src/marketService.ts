@@ -1,10 +1,10 @@
-/**
+﻿/**
  * VidhAI market-price service.
  *
  * Backend adapter layer for market prices. The UI/engine never talks to a
  * third-party API directly and never reads random scraped sites. Prices come
  * from the AGMARKNET data.gov.in aggregator via the MarketPriceProvider
- * abstraction, are normalised to reliable ₹/kg values, and are cached in
+ * abstraction, are normalised to reliable â‚¹/kg values, and are cached in
  * Firestore so every user shares a recent snapshot.
  *
  * If the aggregator is unreachable the service degrades to the last cached
@@ -14,7 +14,8 @@
 
 import axios from 'axios';
 import * as admin from 'firebase-admin';
-import * as functions from 'firebase-functions';
+import { logger } from './config/logger';
+import { ensureFirebaseAdmin } from './config/firebase';
 import {
   INDIAN_STATES,
   IndiaStateInfo,
@@ -36,7 +37,7 @@ export interface MarketPriceRecord {
   originalUnit: string;
   unitLabel: string;
   conversionFactor: number | null; // kg per original unit, null when unknown
-  normalizedPricePerKg: number | null; // modal price converted to ₹/kg
+  normalizedPricePerKg: number | null; // modal price converted to â‚¹/kg
   arrival: string | null;
   date: string;
   source: string;
@@ -64,7 +65,7 @@ export interface PriceHistoryPoint {
   maxPriceReported: number;
   dataPoints: number;
   conversionFactor: number; // kg per reported unit (quintal -> 100)
-  normalizedPricePerKg: number; // modal price converted to ₹/kg
+  normalizedPricePerKg: number; // modal price converted to â‚¹/kg
 }
 
 /** Adapter contract so another approved data source can be connected later. */
@@ -76,12 +77,14 @@ export interface MarketPriceProvider {
   getHistoricalPrices(query: PriceHistoryQuery): Promise<PriceHistoryPoint[]>;
 }
 
-// ── Provider: AGMARKNET/data.gov.in aggregator (mandi-api) ──────────────────
+// â”€â”€ Provider: AGMARKNET/data.gov.in aggregator (mandi-api) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MANDI_API_BASE = process.env.MANDI_API_BASE_URL ?? 'https://mandi-api.onrender.com/v1';
 // Optional key: sent as `x-api-key` when the aggregator requires one. Kept
-// server-side only; the client never ships a market-data key.
-const MANDI_API_KEY = process.env.MANDI_API_KEY?.trim() || undefined;
+// server-side only; the client never ships a market-data key. `DATA_GOV_API_KEY`
+// (data.gov.in) is the canonical name; `MANDI_API_KEY` is kept as a fallback
+// alias so existing deployments keep working without a redeploy.
+const MANDI_API_KEY = (process.env.DATA_GOV_API_KEY?.trim() || process.env.MANDI_API_KEY?.trim()) || undefined;
 const PROVIDER_TIMEOUT_MS = 20_000;
 
 /** States the AGMARKNET aggregator actually serves. Other states 404 (fetch omitted). */
@@ -91,7 +94,7 @@ function parseNum(v: unknown): number | null {
   if (v === null || v === undefined || v === '') return null;
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
   if (typeof v === 'string') {
-    const n = parseFloat(v.replace(/[₹,]/g, ''));
+    const n = parseFloat(v.replace(/[â‚¹,]/g, ''));
     return Number.isFinite(n) ? n : null;
   }
   return null;
@@ -327,7 +330,7 @@ export function findState(stateName: string): IndiaStateInfo | undefined {
   );
 }
 
-// ── Service: hierarchy + cached latest prices + deterministic insight ────────
+// â”€â”€ Service: hierarchy + cached latest prices + deterministic insight â”€â”€â”€â”€â”€â”€â”€â”€
 
 const CACHE_COLLECTION = 'marketCache';
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h shared snapshot
@@ -348,7 +351,7 @@ function cacheKey(query: PriceQuery): string {
 export class MarketService {
   constructor(readonly provider: MarketPriceProvider = new MandiApiPriceProvider()) {}
 
-  // ── Hierarchy (deterministic, no external calls) ───────────────────────────
+  // â”€â”€ Hierarchy (deterministic, no external calls) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   getStates(): IndiaStateInfo[] {
     return INDIAN_STATES.slice();
@@ -363,19 +366,19 @@ export class MarketService {
     return state ? state.districts.slice() : [];
   }
 
-  // ── Commodities ────────────────────────────────────────────────────────────
+  // â”€â”€ Commodities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getCommodities(state?: string): Promise<string[]> {
     try {
       const commodities = await this.provider.getCommodities(state);
       if (commodities.length) return commodities;
     } catch (e) {
-      functions.logger.warn('market commodities provider failed', e);
+      logger.warn('market commodities provider failed', e);
     }
     return REFERENCE_COMMODITIES.slice();
   }
 
-  // ── Latest prices with Firestore snapshot cache ────────────────────────────
+  // â”€â”€ Latest prices with Firestore snapshot cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getLatestPrices(
     query: PriceQuery,
@@ -386,7 +389,7 @@ export class MarketService {
     try {
       cached = await this.readCache(key);
     } catch (e) {
-      functions.logger.warn('market cache read failed', e);
+      logger.warn('market cache read failed', e);
     }
 
     const fresh = cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS;
@@ -415,7 +418,7 @@ export class MarketService {
           };
         }
       } catch (e) {
-        functions.logger.warn('market refresh failed, falling back to snapshot', e);
+        logger.warn('market refresh failed, falling back to snapshot', e);
         // fall through to cached
       }
       return {
@@ -441,7 +444,7 @@ export class MarketService {
         };
       }
     } catch (e) {
-      functions.logger.warn('market prices provider failed', e);
+      logger.warn('market prices provider failed', e);
       if (cached && cached.prices.length) {
         return {
           prices: cached.prices,
@@ -459,18 +462,18 @@ export class MarketService {
     return { prices: [], fromCache: false, stale: false, fetchedAt: new Date().toISOString(), source: this.provider.name };
   }
 
-  // ── Historical trend (real reported series only) ───────────────────────────
+  // â”€â”€ Historical trend (real reported series only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getHistoricalPrices(query: PriceHistoryQuery): Promise<PriceHistoryPoint[]> {
     try {
       return await this.provider.getHistoricalPrices(query);
     } catch (e) {
-      functions.logger.warn('market history provider failed', e);
+      logger.warn('market history provider failed', e);
       return [];
     }
   }
 
-  // ── Deterministic analytic insight (numbers only, never fabricated) ────────
+  // â”€â”€ Deterministic analytic insight (numbers only, never fabricated) â”€â”€â”€â”€â”€â”€â”€â”€
 
   buildMarketInsight(prices: MarketPriceRecord[], language = 'en'): string {
     if (!prices.length) return '';
@@ -509,7 +512,7 @@ export class MarketService {
   ): Promise<string> {
     const deterministic = this.buildMarketInsight(prices, opts.language ?? 'en');
     if (!deterministic) return '';
-    if (!process.env.GROQ_API_KEY) return deterministic;
+    if (!process.env.GROQ_API_KEY && !process.env.NVIDIA_API_KEY) return deterministic;
     const system = [
       'You translate a farmer-facing market insight. Follow these hard rules:',
       '1. ONLY reference the exact numbers given. Never invent trends, forecasts, or prices.',
@@ -529,15 +532,15 @@ export class MarketService {
       const content = (result.content ?? '').trim();
       return content.length ? content : deterministic;
     } catch (e) {
-      functions.logger.warn('AI market insight failed, using deterministic', e);
+      logger.warn('AI market insight failed, using deterministic', e);
       return deterministic;
     }
   }
 
-  // ── Firestore cache ────────────────────────────────────────────────────────
+  // â”€â”€ Firestore cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private ensureDb(): admin.firestore.Firestore {
-    if (!admin.apps.length) admin.initializeApp();
+    ensureFirebaseAdmin();
     return admin.firestore();
   }
 
@@ -562,7 +565,7 @@ export class MarketService {
     } satisfies CacheDoc);
   }
 
-  // ── Aggregates for summary/overview ─────────────────────────────────────────
+  // â”€â”€ Aggregates for summary/overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   summarize(prices: MarketPriceRecord[]): {
     totalPriceRecords: number;

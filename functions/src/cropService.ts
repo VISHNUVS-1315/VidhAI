@@ -8,6 +8,7 @@
  */
 
 import * as admin from 'firebase-admin';
+import { ensureFirebaseAdmin } from './config/firebase';
 import { SHIPPED_CROP_KNOWLEDGE, CROP_DATA_VERSION, CropKnowledgeEntry } from './cropData';
 import { INDIAN_STATES } from './marketData';
 
@@ -840,9 +841,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
 let cache: { entries: CropKnowledgeEntry[]; at: number } | null = null;
 
 export function ensureCropData(): void {
-  if (admin.apps.length === 0) {
-    admin.initializeApp();
-  }
+  ensureFirebaseAdmin();
 }
 
 export function cropPool(): CropKnowledgeEntry[] {

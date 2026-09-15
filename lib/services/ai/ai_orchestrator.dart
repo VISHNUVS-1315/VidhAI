@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import '../../core/ai/ai_failure_handler.dart' as fail;
 import '../../core/connectivity/connectivity_service.dart';
 import '../../core/routing/app_navigator.dart';
 import '../../models/ai/ai_message.dart';
@@ -9,7 +11,7 @@ import '../../tools/ai_tool.dart';
 import 'ai_chat_brain.dart';
 import 'secure_api_client.dart';
 
-enum AiErrorKind { offline, auth, generic }
+enum AiErrorKind { offline, auth, timeout, rateLimited, busy, generic }
 
 class AiOrchestratorReply {
   final String text;
@@ -19,6 +21,13 @@ class AiOrchestratorReply {
   const AiOrchestratorReply.error(AiErrorKind this.error) : text = '';
 
   bool get failed => error != null;
+}
+
+/// Raised internally after a retryable AI failure exhausts its allowed retries
+/// (or the first non-retryable failure is hit), carrying the classified cause.
+class _OrchestratorError implements Exception {
+  final fail.AiFailure failure;
+  _OrchestratorError(this.failure);
 }
 
 /// Drives the chat: builds a windowed conversation, calls the Groq brain,
@@ -73,17 +82,13 @@ class AiOrchestrator {
 
     try {
       for (var round = 0; round < maxToolRounds; round++) {
-        final result = await AiChatBrain.chat(
+        final result = await _chatWithRetries(
           messages: messages,
           language: language,
           context: contextJson,
           tools: toolSpecs,
           onDelta: onDelta,
         );
-
-        if (!result.success) {
-          return const AiOrchestratorReply.error(AiErrorKind.generic);
-        }
 
         if (!result.wantsToolCalls) {
           final content = result.content.trim();
@@ -92,7 +97,12 @@ class AiOrchestrator {
                 AIMessage.user(input), AIMessage.assistant(content));
             return AiOrchestratorReply.text(content);
           }
-          return const AiOrchestratorReply.error(AiErrorKind.generic);
+          throw _OrchestratorError(
+            fail.AiFailure(
+              kind: fail.AiErrorKind.generic,
+              message: 'The assistant returned an empty reply.',
+            ),
+          );
         }
 
         messages.add(AIMessage(
@@ -120,14 +130,76 @@ class AiOrchestrator {
           messages.add(AIMessage.fromToolResult(call.id, jsonEncode(output)));
         }
       }
-      return const AiOrchestratorReply.error(AiErrorKind.generic);
+      throw _OrchestratorError(
+        fail.AiFailure(
+          kind: fail.AiErrorKind.generic,
+          message: 'The assistant could not finish its reply.',
+        ),
+      );
+    } on _OrchestratorError catch (e) {
+      return _replyFromFailure(e.failure);
     } on SecureApiException catch (e) {
-      if (e.statusCode == 401 || e.message.contains('Not signed in')) {
-        return const AiOrchestratorReply.error(AiErrorKind.auth);
-      }
-      return const AiOrchestratorReply.error(AiErrorKind.generic);
-    } catch (_) {
-      return const AiOrchestratorReply.error(AiErrorKind.generic);
+      return _replyFromFailure(fail.AiFailureHandler.fromStatus(e.statusCode, e.message));
+    } catch (e) {
+      return _replyFromFailure(fail.AiFailureHandler.fromError(e));
     }
+  }
+
+  /// Runs one chat attempt, retrying classified retryable failures (timeout,
+  /// rate-limit, 5xx) with backoff. Returns a successful result or throws
+  /// [_OrchestratorError] carrying the final classified failure.
+  Future<GroqChatResult> _chatWithRetries({
+    required List<AIMessage> messages,
+    required String language,
+    required Map<String, dynamic> context,
+    required List<Map<String, dynamic>> tools,
+    void Function(String delta)? onDelta,
+  }) async {
+    var retried = 0;
+    while (true) {
+      try {
+        final result = await AiChatBrain.chat(
+          messages: messages,
+          language: language,
+          context: context,
+          tools: tools,
+          onDelta: onDelta,
+        );
+        if (result.success) return result;
+        final failure = fail.AiFailureHandler.fromError(result.error ?? '');
+        if (fail.AiFailureHandler.shouldRetry(failure, retried)) {
+          retried += 1;
+          await Future<void>.delayed(
+            fail.AiFailureHandler.backoffForAttempt(retried - 1),
+          );
+          continue;
+        }
+        throw _OrchestratorError(failure);
+      } on SecureApiException catch (e) {
+        final failure = e.statusCode == null
+            ? fail.AiFailureHandler.fromError(e)
+            : fail.AiFailureHandler.fromStatus(e.statusCode, e.message);
+        if (fail.AiFailureHandler.shouldRetry(failure, retried)) {
+          retried += 1;
+          await Future<void>.delayed(
+            fail.AiFailureHandler.backoffForAttempt(retried - 1),
+          );
+          continue;
+        }
+        throw _OrchestratorError(failure);
+      }
+    }
+  }
+
+  AiOrchestratorReply _replyFromFailure(fail.AiFailure failure) {
+    final kind = switch (failure.kind) {
+      fail.AiErrorKind.offline => AiErrorKind.offline,
+      fail.AiErrorKind.auth => AiErrorKind.auth,
+      fail.AiErrorKind.timeout => AiErrorKind.timeout,
+      fail.AiErrorKind.rateLimited => AiErrorKind.rateLimited,
+      fail.AiErrorKind.busy => AiErrorKind.busy,
+      fail.AiErrorKind.generic => AiErrorKind.generic,
+    };
+    return AiOrchestratorReply.error(kind);
   }
 }

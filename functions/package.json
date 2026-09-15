@@ -9,6 +9,8 @@
   },
   "scripts": {
     "build": "tsc",
+    "start": "node lib/server.js",
+    "start:local": "npm run build && node lib/server.js",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
     "lint": "tsc --noEmit"

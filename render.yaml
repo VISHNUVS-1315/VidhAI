@@ -1,0 +1,68 @@
+# Render Blueprint for the VidhAI backend (free plan, Singapore).
+#
+# Firebase stays on the SPARK (free) plan: this service does NOT use Firebase
+# Cloud Functions or Secret Manager. Firebase Admin (Auth token verification +
+# Firestore) is initialized from FIREBASE_SERVICE_ACCOUNT_JSON.
+#
+# How to deploy:
+#   1. Push this repository to GitHub.
+#   2. Render Dashboard → New → Blueprint → select the repo (Render reads this file).
+#      (Or: New → Web Service, root directory `functions`.)
+#   3. Set the secret env vars below in the Render dashboard (values are NEVER
+#      committed). `sync: false` = value entered manually, not stored in git.
+
+services:
+  - type: web
+    name: vidhai-backend
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: functions
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: APP_VERSION
+        value: "1.0.0"
+
+      # ── REQUIRED secrets (enter values in the Render dashboard) ────────────
+      - key: NVIDIA_API_KEY        # primary NVIDIA NIM key (all AI tiers)
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON  # service-account JSON string
+        sync: false
+      - key: DEEPGRAM_API_KEY      # STT (Nova-3) + TTS (Aura) + realtime
+        sync: false
+
+      # ── OPTIONAL secrets (feature fallbacks) ───────────────────────────────
+      - key: GROQ_API_KEY          # Whisper STT + market insight + legacy chat
+        sync: false
+      - key: GEMINI_API_KEY        # vision fallback + legacy gemini chat
+        sync: false
+      - key: DATA_GOV_API_KEY      # AGMARKNET market prices
+        sync: false
+      - key: GOOGLE_CLOUD_TTS_SA_JSON  # service-account JSON if default ADC lacks TTS
+        sync: false
+      - key: CROP_SEED_TOKEN       # enables POST /crop/seed (ops only)
+        sync: false
+
+      # ── OPTIONAL per-tier NVIDIA keys (fall back to NVIDIA_API_KEY) ────────
+      - key: AI_KEY_MAIN
+        sync: false
+      - key: AI_KEY_GENERAL
+        sync: false
+      - key: AI_KEY_FAST
+        sync: false
+      - key: AI_KEY_VISION
+        sync: false
+      - key: AI_KEY_SAFETY
+        sync: false
+      - key: AI_KEY_CREATIVE
+        sync: false
+
+      # ── Non-secret configuration ───────────────────────────────────────────
+      - key: CORS_ORIGINS
+        value: "*"                 # or a comma-separated list of web origins
+      - key: ENABLE_DEEPSEEK
+        value: "false"             # general tier uses Nemotron Lightning

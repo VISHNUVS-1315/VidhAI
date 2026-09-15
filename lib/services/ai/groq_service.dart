@@ -54,6 +54,10 @@ class GroqService {
 
   /// Sends a chat request. When [onDelta] is provided it fires with each
   /// incremental token of the final assistant reply as it arrives (streaming).
+  ///
+  /// [provider]/[tier]/[classify]/[complexity]/[intent] are forwarded to the
+  /// secure backend router. When unset the backend applies its default router
+  /// (intent classification + fallback chains).
   Future<GroqChatResult> chat({
     required List<AIMessage> messages,
     required String language,
@@ -61,9 +65,14 @@ class GroqService {
     List<Map<String, dynamic>>? tools,
     void Function(String delta)? onDelta,
     Duration? timeout,
+    String? provider,
+    String? tier,
+    bool classify = false,
+    String? complexity,
+    String? intent,
   }) async {
     final apiKey = AppConfig.groqApiKey;
-    if (apiKey.isNotEmpty) {
+    if (apiKey.isNotEmpty && provider == null) {
       return _chatWithGroqDirect(
         messages: messages,
         language: language,
@@ -80,6 +89,11 @@ class GroqService {
       context: context,
       tools: tools,
       onDelta: onDelta,
+      provider: provider,
+      tier: tier,
+      classify: classify,
+      complexity: complexity,
+      intent: intent,
     );
   }
 
@@ -89,12 +103,22 @@ class GroqService {
     Map<String, dynamic>? context,
     List<Map<String, dynamic>>? tools,
     void Function(String delta)? onDelta,
+    String? provider,
+    String? tier,
+    bool classify = false,
+    String? complexity,
+    String? intent,
   }) async {
     final json = await _client.post('/ai/chat', {
       'messages': messages.map((m) => m.toWire()).toList(),
       'language': language,
       if (context != null && context.isNotEmpty) 'context': context,
       if (tools != null && tools.isNotEmpty) 'tools': tools,
+      if (provider != null) 'provider': provider,
+      if (tier != null) 'tier': tier,
+      if (classify) 'classify': true,
+      if (complexity != null) 'complexity': complexity,
+      if (intent != null) 'intent': intent,
     });
 
     if (json['success'] != true) {

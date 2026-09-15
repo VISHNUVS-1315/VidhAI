@@ -1157,6 +1157,7 @@ const Map<String, String> teStrings = {
   'mk_no_prices': 'ఈ ఎంపికకు ఇంకా ధరలు నివేదించబడలేదు.',
   'mk_districts': 'జిల్లాలు',
   'mk_states': 'రాష్ట్రాలు',
+  'mk_union_territory': 'కేంద్రపాలిత ప్రాంతం',
   'mk_state': 'రాష్ట్రం',
   'mk_tap_commodity': 'మార్కెట్లలో ధరలను పోల్చడానికి ఒక వస్తువును నొక్కండి',
   'mk_back_to_india': 'భారత సమీక్షకు తిరిగి వెళ్లండి',
@@ -1167,4 +1168,15 @@ const Map<String, String> teStrings = {
   'mk_history_none': 'ఈ వస్తువుకు చారిత్రక డేటా అందుబాటులో లేదు.',
   'mk_history_note':
       'రోజువారీ నివేదించిన సగటు (AGMARKNET). చారిత్రక ధరలు సూచనాత్మకమే.',
-};
+    "farmingPriority": "వ్యవసాయ ప్రాధాన్యత",
+    "farmingPriorityHint": "ప్రస్తుతం మీకు చాలా ముఖ్యమైనది ఏమిటి",
+    "farmingPriorityMaxProfit": "గరిష్ట లాభం",
+    "farmingPriorityLowRisk": "తక్కువ రిస్క్",
+    "farmingPriorityQuickHarvest": "త్వరిత పంట",
+    "farmingPriorityLowWater": "తక్కువ నీటి వినియోగం",
+    "farmingPriorityBalanced": "సమతుల్యం",
+    "farmerPreference": "రైతు ప్రాధాన్యత (ఐచ్ఛికం)",
+    "farmerPreferenceHint": "మరేదైనా మేము పరిగణించాలా? (ఐచ్ఛికం)",
+    "autoCollectedContext": "మీ వ్యవసాయం నుండి స్వయంచాలకంగా చేర్చబడింది",
+    "ctxWeatherMarket": "ప్రత్యక్ష వాతావరణం మరియు మార్కెట్ సమాచారం చేర్చబడింది",
+  };

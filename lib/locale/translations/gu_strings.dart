@@ -1137,6 +1137,7 @@ const Map<String, String> guStrings = {
   'mk_no_prices': 'આ પસંદગી માટે હજી કોઈ ભાવ નોંધાયા નથી.',
   'mk_districts': 'જિલ્લાઓ',
   'mk_states': 'રાજ્યો',
+  'mk_union_territory': 'કેન્દ્રશાસિત પ્રદેશ',
   'mk_state': 'રાજ્ય',
   'mk_tap_commodity': 'બજારોમાં ભાવ સરખાવવા ચીજવસ્તુ પર ટેપ કરો',
   'mk_back_to_india': 'ભારત ઝાંખી પર પાછા',
@@ -1147,4 +1148,15 @@ const Map<String, String> guStrings = {
   'mk_history_none': 'આ માલ માટે કોઈ ઐતિહાસિક ડેટા ઉપલબ્ધ નથી.',
   'mk_history_note':
       'દૈનિક નોંધાયેલ સરેરાશ (AGMARKNET). ઐતિહાસિક કિંમતો વિચારણા માટે છે.',
+  'farmingPriority': 'ખેતીની પ્રાથમિકતા',
+  'farmingPriorityHint': 'હમણાં તમારા માટે સૌથી મહત્વનું શું છે',
+  'farmingPriorityMaxProfit': 'મહત્તમ નફો',
+  'farmingPriorityLowRisk': 'ઓછું જોખમ',
+  'farmingPriorityQuickHarvest': 'ઝડપી લણણી',
+  'farmingPriorityLowWater': 'ઓછો પાણીનો ઉપયોગ',
+  'farmingPriorityBalanced': 'સંતુલિત',
+  'farmerPreference': 'ખેડૂત પ્રાથમિકતા (વૈકલ્પિક)',
+  'farmerPreferenceHint': 'અમારે બીજું કંઈ ધ્યાનમાં લેવું જોઈએ? (વૈકલ્પિક)',
+  'autoCollectedContext': 'તમારા ફાર્મમાંથી આપમેળે સમાવેલ',
+  'ctxWeatherMarket': 'લાઇવ હવામાન અને બજાર સંદર્ભ સમાવેલ',
 };

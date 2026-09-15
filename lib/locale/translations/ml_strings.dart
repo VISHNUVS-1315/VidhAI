@@ -1167,6 +1167,7 @@ const Map<String, String> mlStrings = {
   'mk_no_prices': 'ഈ തിരഞ്ഞെടുപ്പിന് ഇതുവരെ വിലകൾ റിപ്പോർട്ട് ചെയ്തിട്ടില്ല.',
   'mk_districts': 'ജില്ലകൾ',
   'mk_states': 'സംസ്ഥാനങ്ങൾ',
+  'mk_union_territory': 'കേന്ദ്രഭരണ പ്രദേശം',
   'mk_state': 'സംസ്ഥാനം',
   'mk_tap_commodity':
       'വിപണികളിലെ വിലകൾ താരതമ്യം ചെയ്യാൻ ഒരു ചരക്ക് ടാപ്പ് ചെയ്യുക',
@@ -1178,4 +1179,15 @@ const Map<String, String> mlStrings = {
   'mk_history_none': 'ഈ ചരക്കിന് ചരിത്രപരമായ ഡാറ്റ ലഭ്യമില്ല.',
   'mk_history_note':
       'ദിവസേന റിപ്പോർട്ട് ചെയ്യുന്ന ശരാശരി (AGMARKNET). ചരിത്രപരമായ വിലകൾ സൂചകം മാത്രമാണ്.',
-};
+    "farmingPriority": "കൃഷി മുൻഗണന",
+    "farmingPriorityHint": "ഇപ്പോൾ നിങ്ങൾക്ക് ഏറ്റവും പ്രധാനപ്പെട്ടത് എന്താണ്",
+    "farmingPriorityMaxProfit": "പരമാവധി ലാഭം",
+    "farmingPriorityLowRisk": "കുറഞ്ഞ അപകടസാധ്യത",
+    "farmingPriorityQuickHarvest": "പെട്ടെന്നുള്ള വിളവെടുപ്പ്",
+    "farmingPriorityLowWater": "കുറഞ്ഞ ജല ഉപയോഗം",
+    "farmingPriorityBalanced": "സന്തുലിതം",
+    "farmerPreference": "കർഷക മുൻഗണന (ഓപ്ഷണൽ)",
+    "farmerPreferenceHint": "ഞങ്ങൾ പരിഗണിക്കേണ്ട മറ്റെന്തെങ്കിലും ഉണ്ടോ? (ഓപ്ഷണൽ)",
+    "autoCollectedContext": "നിങ്ങളുടെ ഫാമിൽ നിന്ന് യാന്ത്രികമായി ഉൾപ്പെടുത്തിയത്",
+    "ctxWeatherMarket": "തത്സമയ കാലാവസ്ഥയും വിപണി വിവരവും ഉൾപ്പെടുത്തിയിരിക്കുന്നു",
+  };

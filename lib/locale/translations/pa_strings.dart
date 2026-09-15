@@ -1132,6 +1132,7 @@ const Map<String, String> paStrings = {
   'mk_no_prices': 'ਇਸ ਚੋਣ ਲਈ ਅਜੇ ਕੋਈ ਭਾਅ ਦਰਜ ਨਹੀਂ।',
   'mk_districts': 'ਜ਼ਿਲ੍ਹੇ',
   'mk_states': 'ਰਾਜ',
+  'mk_union_territory': 'ਕੇਂਦਰ ਸ਼ਾਸਿਤ ਪ੍ਰਦੇਸ਼',
   'mk_state': 'ਰਾਜ',
   'mk_tap_commodity': 'ਬਾਜ਼ਾਰਾਂ ਵਿੱਚ ਭਾਅ ਤੁਲਨਾ ਲਈ ਵਸਤ ਉੱਤੇ ਟੈਪ ਕਰੋ',
   'mk_back_to_india': 'ਭਾਰਤ ਸੰਖੇਪ ਤੇ ਵਾਪਸ',
@@ -1142,4 +1143,15 @@ const Map<String, String> paStrings = {
   'mk_history_none': 'ਇਸ ਵਸਤੂ ਲਈ ਕੋਈ ਇਤਿਹਾਸਕ ਡੇਟਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।',
   'mk_history_note':
       'ਰੋਜ਼ਾਨਾ ਰਿਪੋਰਟ ਔਸਤ (AGMARKNET)। ਇਤਿਹਾਸਕ ਕੀਮਤਾਂ ਸੰਕੇਤਕ ਹਨ।',
-};
+    "farmingPriority": "ਖੇਤੀ ਦੀ ਤਰਜੀਹ",
+    "farmingPriorityHint": "ਹੁਣ ਤੁਹਾਡੇ ਲਈ ਸਭ ਤੋਂ ਮਹੱਤਵਪੂਰਨ ਕੀ ਹੈ",
+    "farmingPriorityMaxProfit": "ਅਧਿਕਤਮ ਲਾਭ",
+    "farmingPriorityLowRisk": "ਘੱਟ ਜੋਖਮ",
+    "farmingPriorityQuickHarvest": "ਤੇਜ਼ ਵਾਢੀ",
+    "farmingPriorityLowWater": "ਘੱਟ ਪਾਣੀ ਦੀ ਵਰਤੋਂ",
+    "farmingPriorityBalanced": "ਸੰਤੁਲਿਤ",
+    "farmerPreference": "ਕਿਸਾਨ ਦੀ ਤਰਜੀਹ (ਵਿਕਲਪਿਕ)",
+    "farmerPreferenceHint": "ਕੀ ਕੁਝ ਹੋਰ ਹੈ ਜਿਸ ਬਾਰੇ ਸਾਨੂੰ ਸੋਚਣਾ ਚਾਹੀਦਾ ਹੈ? (ਵਿਕਲਪਿਕ)",
+    "autoCollectedContext": "ਤੁਹਾਡੇ ਫਾਰਮ ਤੋਂ ਆਪਣੇ ਆਪ ਸ਼ਾਮਲ",
+    "ctxWeatherMarket": "ਲਾਈਵ ਮੌਸਮ ਅਤੇ ਬਾਜ਼ਾਰ ਸੰਦਰਭ ਸ਼ਾਮਲ",
+  };

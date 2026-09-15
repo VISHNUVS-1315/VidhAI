@@ -1145,6 +1145,7 @@ const Map<String, String> urStrings = {
   'mk_no_prices': 'اس انتخاب کے لیے ابھی کوئی نرخ رپورٹ نہیں ہوا۔',
   'mk_districts': 'اضلاع',
   'mk_states': 'ریاستیں',
+  'mk_union_territory': 'یونین علاقہ',
   'mk_state': 'ریاست',
   'mk_tap_commodity': 'منڈیوں میں نرخ موازنہ کے لیے کسی جنس پر ٹیپ کریں',
   'mk_back_to_india': 'بھارت جائزے پر واپس',
@@ -1155,4 +1156,15 @@ const Map<String, String> urStrings = {
   'mk_history_none': 'اس جنس کے لیے کوئی تاریخی ڈیٹا دستیاب نہیں۔',
   'mk_history_note':
       'روزانہ رپورٹ شدہ اوسط (AGMARKNET)۔ تاریخی قیمتیں صرف اشاراتی ہیں۔',
-};
+    "farmingPriority": "کاشتکاری کی ترجیح",
+    "farmingPriorityHint": "اس وقت آپ کے لیے سب سے اہم کیا ہے",
+    "farmingPriorityMaxProfit": "زیادہ سے زیادہ منافع",
+    "farmingPriorityLowRisk": "کم خطرہ",
+    "farmingPriorityQuickHarvest": "جلد فصل",
+    "farmingPriorityLowWater": "کم پانی کا استعمال",
+    "farmingPriorityBalanced": "متوازن",
+    "farmerPreference": "کسان کی ترجیح (اختیاری)",
+    "farmerPreferenceHint": "کیا کوئی اور چیز ہے جس پر ہمیں غور کرنا چاہیے؟ (اختیاری)",
+    "autoCollectedContext": "آپ کے فارم سے خود بخود شامل",
+    "ctxWeatherMarket": "لائیو موسم اور بازار کا سیاق شامل",
+  };

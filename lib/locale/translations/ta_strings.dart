@@ -1176,6 +1176,7 @@ const Map<String, String> taStrings = {
   'mk_no_prices': 'இந்தத் தேர்வுக்கு இன்னும் விலைகள் தெரிவிக்கப்படவில்லை.',
   'mk_districts': 'மாவட்டங்கள்',
   'mk_states': 'மாநிலங்கள்',
+  'mk_union_territory': 'ஒன்றியப் பிரதேசம்',
   'mk_state': 'மாநிலம்',
   'mk_tap_commodity': 'பல சந்தைகளில் விலைகளை ஒப்பிட ஒரு பண்டத்தைத் தட்டவும்',
   'mk_back_to_india': 'இந்திய மேலோட்டத்திற்குத் திரும்பு',
@@ -1186,4 +1187,15 @@ const Map<String, String> taStrings = {
   'mk_history_none': 'இந்தப் பண்டத்திற்கு வரலாற்றுத் தரவு இல்லை.',
   'mk_history_note':
       'தினசரி அறிக்கை சராசரி (AGMARKNET). வரலாற்று விலைகள் சுட்டிக்காட்டும் தன்மை கொண்டவை.',
-};
+    "farmingPriority": "விவசாய முன்னுரிமை",
+    "farmingPriorityHint": "இப்போது உங்களுக்கு மிக முக்கியமானது என்ன",
+    "farmingPriorityMaxProfit": "அதிக லாபம்",
+    "farmingPriorityLowRisk": "குறைந்த ஆபத்து",
+    "farmingPriorityQuickHarvest": "விரைவான அறுவடை",
+    "farmingPriorityLowWater": "குறைந்த நீர் பயன்பாடு",
+    "farmingPriorityBalanced": "சமநிலை",
+    "farmerPreference": "விவசாயியின் விருப்பம் (விருப்பமானது)",
+    "farmerPreferenceHint": "வேறு ஏதேனும் எங்களுக்குச் சிந்திக்க வேண்டுமா? (விருப்பமானது)",
+    "autoCollectedContext": "உங்கள் பண்ணையிலிருந்து தானாக சேர்க்கப்பட்டது",
+    "ctxWeatherMarket": "நேரடி வானிலை மற்றும் சந்தை தகவல்கள் சேர்க்கப்பட்டுள்ளன",
+  };

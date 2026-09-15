@@ -6,6 +6,7 @@ import '../../../core/widgets/vidhai_widgets.dart';
 import '../../../data/models/market_price_models.dart';
 import '../../../locale/locale.dart';
 import '../../../services/market_price_service.dart';
+import '../../../services/data_service.dart';
 import '../../assistant/assistant_button.dart';
 import 'market_price_detail_screen.dart';
 
@@ -38,6 +39,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
   final MarketPriceService _service = MarketPriceService.instance;
 
   List<String> _knownStates = [];
+  final Map<String, bool> _isUtByState = {};
   String? _state;
   String? _district;
   String? _commodity;
@@ -57,13 +59,42 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
     _state = widget.initialState;
     _district = widget.initialDistrict;
     _commodity = widget.initialCommodity;
-    _loadInitial();
+    _prepare();
+  }
+
+  bool get _isStateUt => _state != null && _isUtByState[_state] == true;
+
+  /// When the screen is opened without a farm suggestion (e.g. from the tools
+  /// grid), default the view to the farmer's own State → District.
+  Future<void> _prepare() async {
+    try {
+      if (_state == null || _state!.isEmpty) {
+        final farms = await DataService().loadFarms();
+        if (mounted && farms.isNotEmpty) {
+          final location = farms.first.farmLocation;
+          final st = location?.state ?? '';
+          if (st.isNotEmpty) {
+            setState(() {
+              _state = st;
+              final d = location?.district ?? '';
+              _district = d.isEmpty ? null : d;
+            });
+          }
+        }
+      }
+    } catch (_) {
+      // Farm reads must never block the market dashboard.
+    }
+    if (mounted) await _loadInitial();
   }
 
   Future<void> _loadInitial() async {
     final states = await _service.fetchStates();
     _knownStates = states.map((s) => s.name).where((n) => n.isNotEmpty).toList()
       ..sort();
+    _isUtByState
+      ..clear()
+      ..addEntries(states.map((s) => MapEntry(s.name, s.ut)));
     if (mounted) await _load();
   }
 
@@ -366,6 +397,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
         searchQuery: _searchQuery,
         onSelectState: _selectState,
         onSelectCommodity: _selectCommodity,
+        onRefresh: () => _load(refresh: true),
       );
     }
     if (_commodity != null) {
@@ -373,6 +405,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
         records: records,
         payload: _payload,
         state: _state,
+        stateIsUt: _isStateUt,
         district: _district,
         onSelectState: _selectState,
         onSelectDistrict: _selectDistrict,
@@ -384,6 +417,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
         records: records,
         district: _district!,
         state: _state!,
+        stateIsUt: _isStateUt,
         payload: _payload,
         onSelectCommodity: _selectCommodity,
         onOpenDetail: _openDetail,
@@ -393,11 +427,13 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
       records: records,
       payload: _payload,
       state: _state!,
+      stateIsUt: _isStateUt,
       districts: _districts,
       selectedDistrict: _district,
       onSelectDistrict: _selectDistrict,
       onSelectCommodity: _selectCommodity,
       onOpenDetail: _openDetail,
+      onRefresh: () => _load(refresh: true),
     );
   }
 
@@ -654,12 +690,14 @@ class _IndiaOverview extends StatelessWidget {
   final String searchQuery;
   final ValueChanged<String> onSelectState;
   final ValueChanged<String> onSelectCommodity;
+  final Future<void> Function() onRefresh;
   const _IndiaOverview({
     required this.payload,
     required this.knownStates,
     required this.searchQuery,
     required this.onSelectState,
     required this.onSelectCommodity,
+    required this.onRefresh,
   });
 
   @override
@@ -679,7 +717,7 @@ class _IndiaOverview extends StatelessWidget {
     }).toList();
 
     return RefreshIndicator(
-      onRefresh: () async {},
+      onRefresh: onRefresh,
       color: colors.brandDeep,
       backgroundColor: colors.surface,
       child: ListView(
@@ -870,20 +908,24 @@ class _StateDashboard extends StatelessWidget {
   final List<MarketPriceRecord> records;
   final MarketPricePayload payload;
   final String state;
+  final bool stateIsUt;
   final List<String> districts;
   final String? selectedDistrict;
   final ValueChanged<String> onSelectDistrict;
   final ValueChanged<String> onSelectCommodity;
   final ValueChanged<MarketPriceRecord> onOpenDetail;
+  final Future<void> Function() onRefresh;
   const _StateDashboard({
     required this.records,
     required this.payload,
     required this.state,
+    required this.stateIsUt,
     required this.districts,
     required this.selectedDistrict,
     required this.onSelectDistrict,
     required this.onSelectCommodity,
     required this.onOpenDetail,
+    required this.onRefresh,
   });
 
   @override
@@ -891,6 +933,8 @@ class _StateDashboard extends StatelessWidget {
     final colors = VidhAIColorsX(context);
     final loc = AppLocalizations.of(context);
     final groups = _groupByCommodity(records);
+    final stateLabel =
+        stateIsUt ? '$state (${loc.unionTerritory})' : state;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -903,7 +947,7 @@ class _StateDashboard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${loc.marketStateDashboard}: $state',
+                  '${loc.marketStateDashboard}: $stateLabel',
                   style: TextStyle(
                       color: colors.onBackground,
                       fontSize: 15,
@@ -917,7 +961,7 @@ class _StateDashboard extends StatelessWidget {
         ),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () async {},
+            onRefresh: onRefresh,
             color: colors.brandDeep,
             backgroundColor: colors.surface,
             child: ListView(
@@ -1174,6 +1218,7 @@ class _DistrictView extends StatelessWidget {
   final List<MarketPriceRecord> records;
   final String district;
   final String state;
+  final bool stateIsUt;
   final MarketPricePayload payload;
   final ValueChanged<String> onSelectCommodity;
   final ValueChanged<MarketPriceRecord> onOpenDetail;
@@ -1181,6 +1226,7 @@ class _DistrictView extends StatelessWidget {
     required this.records,
     required this.district,
     required this.state,
+    required this.stateIsUt,
     required this.payload,
     required this.onSelectCommodity,
     required this.onOpenDetail,
@@ -1254,6 +1300,7 @@ class _CommodityView extends StatelessWidget {
   final List<MarketPriceRecord> records;
   final MarketPricePayload payload;
   final String? state;
+  final bool stateIsUt;
   final String? district;
   final ValueChanged<String> onSelectState;
   final ValueChanged<String> onSelectDistrict;
@@ -1262,6 +1309,7 @@ class _CommodityView extends StatelessWidget {
     required this.records,
     required this.payload,
     required this.state,
+    required this.stateIsUt,
     required this.district,
     required this.onSelectState,
     required this.onSelectDistrict,
@@ -1272,11 +1320,12 @@ class _CommodityView extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = VidhAIColorsX(context);
     final loc = AppLocalizations.of(context);
+    final stateLabel = stateIsUt && state != null && state!.isNotEmpty
+        ? '${state!} (${loc.unionTerritory})'
+        : state;
     final header = district != null && district!.isNotEmpty
-        ? '$district · ${state ?? ''}'
-        : state != null && state!.isNotEmpty
-            ? state!
-            : loc.marketAllIndiaDetail;
+        ? '$district · ${stateLabel ?? ''}'
+        : stateLabel ?? loc.marketAllIndiaDetail;
 
     final byRegion = <String, List<MarketPriceRecord>>{};
     for (final r in records) {

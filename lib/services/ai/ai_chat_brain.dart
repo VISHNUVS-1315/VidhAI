@@ -29,8 +29,13 @@ class AiChatBrain {
     List<Map<String, dynamic>>? tools,
     void Function(String delta)? onDelta,
     Duration? timeout,
+    String? provider,
+    String? tier,
+    bool classify = false,
+    String? complexity,
+    String? intent,
   }) async {
-    if (AppConfig.preferGeminiBrain) {
+    if (AppConfig.preferGeminiBrain && provider == null) {
       final gemini = await GeminiService.instance.chat(
         messages: messages,
         language: language,
@@ -48,6 +53,11 @@ class AiChatBrain {
       tools: tools,
       onDelta: onDelta,
       timeout: timeout,
+      provider: provider,
+      tier: tier,
+      classify: classify,
+      complexity: complexity,
+      intent: intent,
     );
   }
 }

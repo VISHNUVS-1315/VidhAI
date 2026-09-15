@@ -1137,6 +1137,7 @@ const Map<String, String> asStrings = {
   'mk_no_prices': 'এই নিৰ্বাচনৰ বাবে এতিয়াও কোনো মূল্য জানোৱা হোৱা নাই।',
   'mk_districts': 'জিলাসমূহ',
   'mk_states': 'ৰাজ্যসমূহ',
+  'mk_union_territory': 'কেন্দ্ৰীয় শাসিত অঞ্চল',
   'mk_state': 'ৰাজ্য',
   'mk_tap_commodity': 'বজাৰসমূহত মূল্য তুলনা কৰিবলৈ এটা দ্রব্যত টেপ কৰক',
   'mk_back_to_india': 'ভাৰত সামগ্ৰিক দৃষ্টিভংগীলৈ উভতি যাওক',
@@ -1147,4 +1148,15 @@ const Map<String, String> asStrings = {
   'mk_history_none': 'এই দ্রব্যটিৰ বাবে কোনো ঐতিহাসিক তথ্য উপলব্ধ নহয়।',
   'mk_history_note':
       'দৈনিক ৰিপোর্টত পোৱা গড় (AGMARKNET)। ঐতিহাসিক দাম কেৱল সূচক।',
-};
+    "farmingPriority": "খেতিৰ প্ৰাধান্যতা",
+    "farmingPriorityHint": "এতিয়া আপোনাৰ বাবে সৰ্বাধিক গুৰুত্বপূৰ্ণ কি",
+    "farmingPriorityMaxProfit": "সৰ্বাধিক লাভ",
+    "farmingPriorityLowRisk": "কম বিপদ",
+    "farmingPriorityQuickHarvest": "দ্ৰুত শস্য চপা",
+    "farmingPriorityLowWater": "কম পানী ব্যৱহাৰ",
+    "farmingPriorityBalanced": "সন্তুলিত",
+    "farmerPreference": "খেতিয়কৰ পছন্দ (ঐচ্ছিক)",
+    "farmerPreferenceHint": "আন কিবা আছে নেকি আমি বিবেচনা কৰা উচিত? (ঐচ্ছিক)",
+    "autoCollectedContext": "আপোনাৰ ফাৰ্মৰ পৰা স্বয়ংক্ৰিয়ভাৱে অন্তৰ্ভুক্ত",
+    "ctxWeatherMarket": "লাইভ বতৰ আৰু ਬজাৰ প্ৰসংগ অন্তৰ্ভুক্ত",
+  };
