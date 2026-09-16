@@ -425,7 +425,7 @@ class VidhAIChatService {
   final AiOrchestrator _orchestrator = AiOrchestrator.instance;
 
   /// Single production chat path:
-  /// AiOrchestrator -> AiChatBrain -> SecureApiClient -> Render.
+  /// AiOrchestrator -> AiChatBrain -> SecureApiClient -> Render -> Groq.
   Future<String> chat(
     String message, {
     String language = 'en',
@@ -477,13 +477,13 @@ class VidhAIChatService {
     if (!result.failed && result.text.trim().isNotEmpty) {
       return AIResponse.ok(
         result.text.trim(),
-        provider: 'render-router',
+        provider: 'groq-render-router',
         metadata: const {'path': 'AiOrchestrator'},
       );
     }
     return AIResponse.fail(
       result.error?.name ?? 'AI request failed',
-      provider: 'render-router',
+      provider: 'groq-render-router',
     );
   }
 }
