@@ -13,12 +13,21 @@ class CommunityService {
   CollectionReference get _postsRef => _firestore.collection('community_posts');
   CollectionReference get _commentsRef =>
       _firestore.collection('community_comments');
+  CollectionReference get _interestsRef =>
+      _firestore.collection('community_interests');
 
   Future<CommunityPost?> createPost({
     required String content,
     String category = 'general',
     String district = '',
     String state = '',
+    String crop = '',
+    String cropStage = '',
+    double? quantityKg,
+    double? expectedPricePerKg,
+    DateTime? expectedHarvestDate,
+    DateTime? requiredByDate,
+    String buyerType = '',
     List<String> imageUrls = const [],
     bool isAIAssisted = false,
   }) async {
@@ -28,8 +37,12 @@ class CommunityService {
     try {
       final userDoc = await _firestore.collection('users').doc(uid).get();
       final userData = userDoc.data();
-      final authorName = userData?['displayName'] ?? 'Anonymous Farmer';
-      final authorAvatar = userData?['avatarUrl'] ?? '';
+      final authorName = userData?['displayName'] ??
+          _auth.currentUser?.displayName ??
+          'Anonymous Farmer';
+      final authorAvatar = userData?['avatarUrl'] ??
+          _auth.currentUser?.photoURL ??
+          '';
 
       final postId = _uuid.v4();
       final post = CommunityPost(
@@ -42,6 +55,13 @@ class CommunityService {
         category: category,
         district: district,
         state: state,
+        crop: crop,
+        cropStage: cropStage,
+        quantityKg: quantityKg,
+        expectedPricePerKg: expectedPricePerKg,
+        expectedHarvestDate: expectedHarvestDate,
+        requiredByDate: requiredByDate,
+        buyerType: buyerType,
         createdAt: DateTime.now(),
         isAIAssisted: isAIAssisted,
       );
@@ -61,6 +81,11 @@ class CommunityService {
       for (final doc in comments.docs) {
         await doc.reference.delete();
       }
+      final interests =
+          await _interestsRef.where('postId', isEqualTo: postId).get();
+      for (final doc in interests.docs) {
+        await doc.reference.delete();
+      }
     } catch (_) {}
   }
 
@@ -68,7 +93,7 @@ class CommunityService {
     String? category,
     String? district,
     String? state,
-    int limit = 20,
+    int limit = 30,
   }) {
     Query query = _postsRef.orderBy('createdAt', descending: true);
 
@@ -110,6 +135,45 @@ class CommunityService {
     } catch (_) {}
   }
 
+  Future<bool> expressInterest({
+    required CommunityPost post,
+    double? quantityKg,
+    String message = '',
+  }) async {
+    final uid = _currentUserId;
+    if (uid == null) return false;
+
+    try {
+      final id = '${post.postId}_$uid';
+      final ref = _interestsRef.doc(id);
+      final existing = await ref.get();
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      final userData = userDoc.data();
+
+      await ref.set({
+        'interestId': id,
+        'postId': post.postId,
+        'postAuthorId': post.authorId,
+        'userId': uid,
+        'userName': userData?['displayName'] ??
+            _auth.currentUser?.displayName ??
+            'Interested buyer',
+        'quantityKg': quantityKg,
+        'message': message,
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (!existing.exists) {
+        await _postsRef.doc(post.postId).update({
+          'interestedCount': FieldValue.increment(1),
+        });
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<CommunityComment?> addComment({
     required String postId,
     required String content,
@@ -120,7 +184,9 @@ class CommunityService {
     try {
       final userDoc = await _firestore.collection('users').doc(uid).get();
       final userData = userDoc.data();
-      final authorName = userData?['displayName'] ?? 'Anonymous Farmer';
+      final authorName = userData?['displayName'] ??
+          _auth.currentUser?.displayName ??
+          'Anonymous Farmer';
 
       final commentId = _uuid.v4();
       final comment = CommunityComment(
