@@ -76,10 +76,9 @@ void main() {
       }
     });
 
-    test('general tier is served by Lightning while DeepSeek is disabled', () {
-      expect(AiModelRouter.tierModels[AiTier.general],
-          'nvidia/nemotron-3.5-lightning-30b-a3b');
-      expect(AiModelRouter.tierNames[AiTier.general], 'Nemotron Lightning 30B');
+    test('general tier is served by Groq GPT-OSS while NVIDIA serves vision/safety', () {
+      expect(AiModelRouter.tierModels[AiTier.general], 'openai/gpt-oss-20b');
+      expect(AiModelRouter.tierNames[AiTier.general], 'Groq GPT-OSS 20B');
       expect(AiModelRouter.tierModels[AiTier.general],
           AiModelRouter.tierModels[AiTier.fast]);
     });
