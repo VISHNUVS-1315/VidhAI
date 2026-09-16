@@ -636,12 +636,12 @@ export async function chatWithRouter(
     content: string;
     toolCalls: NvidiaChatMessage['tool_calls'] | null;
   }>(tier, async (candidateTier) => {
-    const provider = chatProvider();
+const provider = chatProvider();
     const body: Record<string, unknown> = {
       model: provider.model,
       messages,
       temperature: 0.4,
-max_completion_tokens: chatMaxTokens(candidateTier, userText),
+      max_completion_tokens: chatMaxTokens(candidateTier, userText),
       reasoning_effort: AI_CHAT_REASONING_EFFORT,
     };
     if (opts.tools?.length) body.tools = opts.tools;
