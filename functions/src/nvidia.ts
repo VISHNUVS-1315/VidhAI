@@ -4,8 +4,11 @@ import { Readable } from 'stream';
 export const NVIDIA_BASE =
   process.env.NVIDIA_BASE_URL ?? 'https://integrate.api.nvidia.com/v1';
 
+export const GROQ_BASE =
+  process.env.GROQ_BASE_URL ?? 'https://api.groq.com/openai/v1';
+
 export interface NvidiaProvider {
-  name: 'nvidia';
+  name: 'nvidia' | 'groq';
   base: string;
   key: string;
   model: string;
@@ -63,6 +66,22 @@ export function nvidiaProvider(model: string): NvidiaProvider {
   };
 }
 
+/** OpenAI-compatible Groq provider used by the low-latency app AI Chat path. */
+export function groqProvider(
+  model = process.env.AI_CHAT_MODEL ?? 'openai/gpt-oss-20b',
+): NvidiaProvider {
+  const key = (process.env.GROQ_API_KEY ?? '').trim();
+  if (!key) {
+    throw new Error('GROQ_API_KEY is not configured on the server.');
+  }
+  return {
+    name: 'groq',
+    base: GROQ_BASE,
+    key,
+    model,
+  };
+}
+
 const LLM_TIMEOUT_MS = 240_000;
 
 export async function llmPost<T>(
@@ -91,7 +110,7 @@ export async function llmPost<T>(
 
   if (res.status !== 200) {
     const err = new Error(
-      `NVIDIA (${provider.model}) returned HTTP ${res.status}`,
+      `${provider.name.toUpperCase()} (${provider.model}) returned HTTP ${res.status}`,
     ) as Error & { raw?: unknown };
     err.raw = res.data;
     throw err;
@@ -137,7 +156,7 @@ export async function llmPostStream(
   if (response.status !== 200) {
     response.data.resume();
     const err = new Error(
-      `NVIDIA (${provider.model}) returned HTTP ${response.status}`,
+      `${provider.name.toUpperCase()} (${provider.model}) returned HTTP ${response.status}`,
     ) as Error & { raw?: unknown };
     throw err;
   }
