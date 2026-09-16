@@ -183,6 +183,11 @@ class DataService {
     await saveFarms(farms);
   }
 
+  /// Returns the locally cached farms immediately without waiting on Firestore.
+  /// Used by latency-sensitive UI paths such as AI Chat; [loadFarms] continues
+  /// to refresh the cache from Firestore in the background elsewhere.
+  Future<List<FarmProfile>> loadCachedFarms() => _loadCachedFarms();
+
   Future<List<FarmProfile>> _loadCachedFarms() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString('cached_farms');
