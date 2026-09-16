@@ -96,8 +96,8 @@ const APP_TIERS = new Set(['main', 'general', 'fast', 'creative']);
  * POST /ai/chat
  * body: { messages, language?, context?, tools?, tier?, classify? }
  *
- * All AI requests are served only through NVIDIA NIM. The router selects the
- * NVIDIA model tier and uses NVIDIA-only fallbacks.
+ * App text chat is served by Groq GPT-OSS 20B for low-latency streaming.
+ * Crop AI, vision and safety routes remain on NVIDIA.
  */
 app.post('/ai/chat', requireAuth, async (req, res) => {
   try {
@@ -132,7 +132,7 @@ app.post('/ai/chat', requireAuth, async (req, res) => {
       content: result.content,
       toolCalls: result.toolCalls,
       metadata: {
-        provider: 'nvidia',
+        provider: 'groq',
         model: result.model,
         tier: result.tier,
         triedTiers: result.triedTiers,
@@ -152,7 +152,7 @@ app.post('/ai/chat', requireAuth, async (req, res) => {
  * POST /ai/chat/stream
  * body: { messages, language?, context?, tools?, tier?, classify? }
  *
- * Same routing as /ai/chat but streams NVIDIA text deltas as Server-Sent
+ * Same routing as /ai/chat but streams Groq text deltas as Server-Sent
  * Events (data: {delta} ... data: {done|error}). The client falls back to the
  * non-streaming /ai/chat when this endpoint is unavailable.
  */
@@ -203,7 +203,7 @@ app.post('/ai/chat/stream', requireAuth, async (req, res) => {
       content: result.content,
       toolCalls: result.toolCalls,
       metadata: {
-        provider: 'nvidia',
+        provider: 'groq',
         model: result.model,
         tier: result.tier,
         triedTiers: result.triedTiers,
