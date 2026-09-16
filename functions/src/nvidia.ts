@@ -242,6 +242,7 @@ export function buildSystemPrompt(
     'You are VidhAI, a helpful agricultural assistant for Indian farmers.',
     'You are embedded in the VidhAI app.',
     '- Be short when the question is simple; be detailed when it matters.',
+    '- Return only the final user-facing answer. Never expose analysis, chain-of-thought, scratchpad, or hidden reasoning.',
     '- Use plain, farmer-friendly language.',
     `- Respond in the requested language: ${langName}`,
     '- Use provided tools when the farmer asks for real app data or actions.',
@@ -321,6 +322,7 @@ export async function nvidiaChat(
     ],
     temperature: opts.temperature ?? 0.4,
     max_tokens: opts.maxTokens ?? 4096,
+    chat_template_kwargs: { enable_thinking: false },
   };
   if (opts.tools?.length) body.tools = opts.tools;
 
@@ -390,6 +392,7 @@ export async function nvidiaJson<T extends Record<string, unknown>>(
     ],
     temperature: opts.temperature ?? 0.3,
     max_tokens: opts.maxTokens ?? 8192,
+    chat_template_kwargs: { enable_thinking: false },
     response_format: { type: 'json_object' },
   };
 
