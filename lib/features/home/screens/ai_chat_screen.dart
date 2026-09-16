@@ -138,8 +138,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
     String input, {
     void Function(String delta)? onDelta,
   }) async {
+    // Never block an AI request on a Firestore round-trip. The screen already
+    // refreshes farms in the background; until that completes, use the local
+    // offline-first cache so the NVIDIA request can start immediately.
     final profile = await _dataService.loadCachedProfile();
-    final farms = _farms.isNotEmpty ? _farms : await _dataService.loadFarms();
+    final farms =
+        _farms.isNotEmpty ? _farms : await _dataService.loadCachedFarms();
     final selId = _selectedFarmId;
     final farmMaps = selId != null
         ? farms
