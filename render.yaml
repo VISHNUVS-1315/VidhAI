@@ -1,6 +1,6 @@
 # Render Blueprint for the VidhAI backend.
 #
-# VidhAI uses one AI provider only: NVIDIA NIM.
+# VidhAI app text chat uses Groq; crop AI, vision and safety use NVIDIA NIM.
 # Live market prices come from data.gov.in / AGMARKNET.
 # Firebase remains on the Spark plan for Auth/Firestore; Render verifies
 # Firebase ID tokens with FIREBASE_SERVICE_ACCOUNT_JSON.
@@ -24,6 +24,8 @@ services:
         value: "vidhai-app"
 
       # Required secrets — enter values only in Render Environment.
+      - key: GROQ_API_KEY
+        sync: false
       - key: NVIDIA_API_KEY
         sync: false
       - key: DATA_GOV_API_KEY
