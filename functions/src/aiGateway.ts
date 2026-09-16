@@ -697,6 +697,10 @@ export async function chatWithRouterStream(
       messages,
       temperature: 0.4,
       max_tokens: TIER_MAX_TOKENS[candidateTier],
+      // NVIDIA's OpenAI-compatible endpoint only emits SSE token deltas when
+      // the request body explicitly sets stream=true. Accept headers alone are
+      // not sufficient and otherwise the backend waits for a full JSON reply.
+      stream: true,
     };
     if (opts.tools?.length) body.tools = opts.tools;
 
