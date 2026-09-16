@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vidhai/services/data_service.dart';
-import 'package:vidhai/services/mandi_service.dart';
+import 'package:vidhai/services/market_price_service.dart';
+import 'package:vidhai/data/models/market_price_models.dart';
 import 'package:vidhai/features/schemes/screens/government_schemes_screen.dart';
 import 'package:vidhai/features/tools/screens/crop_search_screen.dart';
 import 'package:vidhai/features/tools/screens/market_prices_screen.dart';
@@ -18,7 +19,7 @@ class ConsumerHomeScreen extends StatefulWidget {
 
 class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
   String _userName = '';
-  List<MandiPrice> _topPrices = [];
+  List<MarketPriceRecord> _topPrices = [];
   bool _isLoadingPrices = true;
 
   @override
@@ -36,10 +37,10 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
     } catch (_) {}
 
     try {
-      final prices = await MandiService().fetchPrices();
+      final payload = await MarketPriceService.instance.fetchPrices();
       if (mounted) {
         setState(() {
-          _topPrices = prices.take(5).toList();
+          _topPrices = payload.prices.take(5).toList();
           _isLoadingPrices = false;
         });
       }
@@ -291,7 +292,7 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
                       ),
                     ),
                     Text(
-                      '₹${p.modalPrice > 0 ? p.modalPrice.toStringAsFixed(0) : '--'}',
+                      '₹${(p.modalPrice ?? 0) > 0 ? (p.modalPrice ?? 0).toStringAsFixed(0) : '--'}',
                       style: TextStyle(
                           color: colors.brandDeep,
                           fontSize: 15,

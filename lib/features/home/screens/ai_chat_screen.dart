@@ -13,13 +13,14 @@ import 'package:vidhai/features/home/screens/live_voice_screen.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/services/ai/ai_chat_service.dart';
 import 'package:vidhai/services/ai/domain_services.dart';
+import 'package:vidhai/services/ai/nvidia_service.dart';
 import 'package:vidhai/services/ai/nvidia_vision_service.dart';
 import 'package:vidhai/services/ai/tts_service.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class _ChatMessage {
-  final String text;
+  String text;
   final bool isUser;
   final DateTime timestamp;
   bool isNewlyAdded;
@@ -74,6 +75,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
   double _waveAmp = 0;
   int _speakingIndex = -1;
   StreamSubscription<double>? _ampSub;
+
+  /// True while an assistant reply is being streamed token-by-token.
+  bool _streamActive = false;
 
   @override
   void initState() {
@@ -130,7 +134,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   Future<String> _getLanguage() => _dataService.getSelectedLanguage();
 
-  Future<String> _getResponse(String input) async {
+  Future<String> _getResponse(
+    String input, {
+    void Function(String delta)? onDelta,
+  }) async {
     final profile = await _dataService.loadCachedProfile();
     final farms = _farms.isNotEmpty ? _farms : await _dataService.loadFarms();
     final selId = _selectedFarmId;
@@ -148,6 +155,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       language: lang,
       userProfile: profileMap,
       farms: farmMaps.isNotEmpty ? farmMaps : null,
+      onDelta: onDelta,
     );
   }
 
@@ -185,6 +193,22 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
   }
 
+  /// Keeps the view pinned to the newest token while streaming, but only when
+  /// the user is already near the bottom (avoids fighting manual scrolling).
+  void _autoScrollOnDelta() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      final position = _scrollController.position;
+      if (position.maxScrollExtent - position.pixels < 260) {
+        position.animateTo(
+          position.maxScrollExtent,
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   // ── Sending ────────────────────────────────────────────────────────────
 
   Future<void> _sendMessage(String text, {bool voiceInitiated = false}) async {
@@ -212,6 +236,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     String? fileName,
     bool voiceInitiated = false,
   }) async {
+    if (_isTyping || _streamActive) return;
     final loc = AppLocalizations.of(context);
     final userMsg = _ChatMessage(
       text: text,
@@ -226,39 +251,72 @@ class _AiChatScreenState extends State<AiChatScreen> {
     setState(() {
       _messages.add(userMsg);
       _isTyping = true;
+      _streamActive = false;
     });
     _controller.clear();
     _scrollToBottom();
 
-    try {
-      final response = await _getResponse(text);
+    var streamed = '';
+    _ChatMessage? assistantMsg;
+
+    void onDelta(String delta) {
       if (!mounted) return;
-      final reply = _polishResponse(response);
-      final aiMsg = _ChatMessage(
-        text: reply,
-        isUser: false,
-        timestamp: DateTime.now(),
-        isNewlyAdded: true,
-      );
+      streamed += delta;
+      if (assistantMsg == null) {
+        assistantMsg = _ChatMessage(
+          text: streamed,
+          isUser: false,
+          timestamp: DateTime.now(),
+        );
+        setState(() {
+          _isTyping = false;
+          _streamActive = true;
+          _messages.add(assistantMsg!);
+        });
+      } else {
+        setState(() {
+          assistantMsg!.text = streamed;
+        });
+      }
+      _autoScrollOnDelta();
+    }
+
+    try {
+      final response = await _getResponse(text, onDelta: onDelta);
+      if (!mounted) return;
+      final finalText = streamed.isNotEmpty ? streamed : response;
+      final reply = _polishResponse(finalText);
+      assistantMsg?.text = reply;
       session.messages.add(ChatMessage.assistant(reply));
       session.updatedAt = DateTime.now();
       setState(() {
         _isTyping = false;
-        _messages.add(aiMsg);
+        _streamActive = false;
+        if (assistantMsg == null) {
+          _messages.add(_ChatMessage(
+            text: reply,
+            isUser: false,
+            timestamp: DateTime.now(),
+          ));
+        }
       });
       _scrollToBottom();
       if (voiceInitiated) _speak(reply);
     } catch (_) {
       if (!mounted) return;
-      final aiMsg = _ChatMessage(
-        text: loc.aiGenericError,
-        isUser: false,
-        timestamp: DateTime.now(),
-        isNewlyAdded: true,
-      );
+      final reply = loc.aiGenericError;
+      assistantMsg?.text = reply;
       setState(() {
         _isTyping = false;
-        _messages.add(aiMsg);
+        _streamActive = false;
+        if (assistantMsg == null) {
+          _messages.add(_ChatMessage(
+            text: reply,
+            isUser: false,
+            timestamp: DateTime.now(),
+            isNewlyAdded: true,
+          ));
+        }
       });
       _scrollToBottom();
     }
@@ -268,6 +326,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     String text, {
     bool voiceInitiated = false,
   }) async {
+    if (_isTyping || _streamActive) return;
     final loc = AppLocalizations.of(context);
     final images = List<XFile>.from(_pendingImages);
     setState(() => _pendingImages.clear());
@@ -1264,13 +1323,19 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 ),
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) _sendMessage(value);
+                  if (value.trim().isNotEmpty &&
+                      !_isTyping &&
+                      !_streamActive) {
+                    _sendMessage(value);
+                  }
                 },
               ),
             ),
           ),
           const SizedBox(width: 2),
-          if (hasText)
+          if (_isTyping || _streamActive)
+            _buildStopButton(x)
+          else if (hasText)
             _buildSendButton(x)
           else
             IconButton(
@@ -1304,6 +1369,27 @@ class _AiChatScreenState extends State<AiChatScreen> {
           color: Colors.white,
           size: 24,
         ),
+      ),
+    );
+  }
+
+  /// Stops the in-flight stream while keeping whatever text already arrived.
+  void _stopStream() {
+    NvidiaService.instance.cancelCurrentStream();
+  }
+
+  Widget _buildStopButton(FreshLeafColorsX x) {
+    return InkWell(
+      onTap: _stopStream,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: x.error.withValues(alpha: 0.12),
+        ),
+        child: Icon(Icons.stop_rounded, color: x.error, size: 26),
       ),
     );
   }

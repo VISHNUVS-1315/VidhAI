@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -27,6 +28,9 @@ class SecureApiClient {
 
   static const _baseUrl = AppConfig.aiBackendUrl;
   static const _timeout = Duration(seconds: 150);
+
+  /// Client backing an in-flight SSE stream, so Stop/Cancel can abort it.
+  http.Client? _streamClient;
 
   Future<Map<String, String>> _authHeaders({bool forceRefresh = false}) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -94,6 +98,124 @@ class SecureApiClient {
       );
     }
     return decoded ?? {};
+  }
+
+  /// POSTs JSON and yields each parsed SSE `data:` event as it arrives.
+  ///
+  /// Used for the streaming AI chat path. A 401 triggers one Firebase token
+  /// refresh + retry; any other non-200 throws [SecureApiException] before the
+  /// stream starts. Cancelling the subscription (or [cancelActiveStream])
+  /// aborts the underlying request.
+  Stream<Map<String, dynamic>> postStream(
+    String path,
+    Map<String, dynamic> body, {
+    String? debugTag,
+    Duration? timeout,
+  }) async* {
+    final uri = Uri.parse('$_baseUrl$path');
+    if (debugTag != null) {
+      debugPrint('[SecureApiClient:$debugTag] POST stream ${uri.toString()}');
+    }
+
+    var forceRefresh = false;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final client = http.Client();
+      _streamClient = client;
+
+      http.StreamedResponse? response;
+      try {
+        final headers = await _authHeaders(forceRefresh: forceRefresh);
+        final request = http.Request('POST', uri)
+          ..headers.addAll({
+            ...headers,
+            'Content-Type': 'application/json',
+          })
+          ..body = jsonEncode(body);
+        response =
+            await client.send(request).timeout(timeout ?? _timeout);
+      } catch (e) {
+        _streamClient = null;
+        client.close();
+        if (e is SecureApiException) rethrow;
+        throw SecureApiException(
+          'Network error (${e.runtimeType}).',
+          statusCode: null,
+        );
+      }
+
+      if (response.statusCode == 401 && attempt == 0) {
+        if (debugTag != null) {
+          debugPrint(
+              '[SecureApiClient:$debugTag] 401 on stream; refreshing token and retrying once.');
+        }
+        client.close();
+        _streamClient = null;
+        forceRefresh = true;
+        continue;
+      }
+
+      if (response.statusCode != 200) {
+        String message = 'Request failed (${response.statusCode}).';
+        try {
+          final decoded = jsonDecode(
+            utf8.decode(await response.stream.toBytes()),
+          );
+          if (decoded is Map && decoded['error'] is String) {
+            message = decoded['error'] as String;
+          }
+        } catch (_) {}
+        client.close();
+        _streamClient = null;
+        throw SecureApiException(
+          message,
+          statusCode: response.statusCode,
+        );
+      }
+
+      try {
+        yield* SecureApiClient.decodeSse(response.stream);
+      } finally {
+        client.close();
+        _streamClient = null;
+      }
+      return;
+    }
+    throw const SecureApiException(
+      'Authorization failed (401).',
+      statusCode: 401,
+    );
+  }
+
+  /// Aborts any in-flight SSE stream opened by [postStream].
+  void cancelActiveStream() {
+    final client = _streamClient;
+    _streamClient = null;
+    client?.close();
+  }
+
+  /// Parses an SSE byte stream into individual `data:` JSON events.
+  /// Malformed frames and the terminating `[DONE]` marker are skipped.
+  static Stream<Map<String, dynamic>> decodeSse(
+    Stream<List<int>> bytes,
+  ) async* {
+    final lines =
+        bytes.transform(utf8.decoder).transform(const LineSplitter());
+    await for (final line in lines) {
+      if (line.isEmpty) continue;
+      if (!line.startsWith('data:')) continue;
+      final data = line.substring('data:'.length).trimLeft();
+      if (data.isEmpty || data == '[DONE]') continue;
+      try {
+        final decoded = jsonDecode(data);
+        if (decoded is Map<String, dynamic>) {
+          yield decoded;
+        } else if (decoded is Map) {
+          yield Map<String, dynamic>.from(decoded);
+        }
+      } catch (_) {
+        // Keep the stream alive across a malformed frame.
+      }
+    }
   }
 
   Future<Map<String, dynamic>> get(String path) async {

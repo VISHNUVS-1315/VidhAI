@@ -12,7 +12,7 @@ class FakeCapturer implements VoiceCapturer {
   final StreamController<String> _text = StreamController<String>.broadcast();
   bool permission = true;
   bool startOk = true;
-  VoiceCaptureResult nextResult = const WhisperResult();
+  VoiceCaptureResult nextResult = const VoiceCaptureResult();
   int startCount = 0;
   int transcribedCount = 0;
   int cancelCount = 0;
@@ -38,7 +38,7 @@ class FakeCapturer implements VoiceCapturer {
   }
 
   @override
-  Future<WhisperResult> stopAndTranscribe({String? language}) async {
+  Future<VoiceCaptureResult> stopAndTranscribe({String? language}) async {
     transcribedCount++;
     languageUsed = language;
     return nextResult;
@@ -123,7 +123,7 @@ void main() {
     Future<bool> Function()? hasConnection,
   }) {
     final capturer = FakeCapturer()
-      ..nextResult = const WhisperResult(
+      ..nextResult = const VoiceCaptureResult(
           success: true, text: 'good morning', provider: 'device-speech');
     final synth = FakeSynth();
     final controller = VoiceConversationController(
@@ -189,7 +189,7 @@ void main() {
     test('caps a silent recording at maxClip and surfaces an error', () async {
       final t = build();
       t.capturer.nextResult =
-          const WhisperResult(error: 'Could not understand the audio.');
+          const VoiceCaptureResult(error: 'Could not understand the audio.');
       await t.controller.start();
       await wait(60); // listener subscribed, no speech emitted
 
@@ -238,7 +238,7 @@ void main() {
   group('answering', () {
     test('records turn history with STT + TTS provider routing', () async {
       final t = build();
-      t.capturer.nextResult = const WhisperResult(
+      t.capturer.nextResult = const VoiceCaptureResult(
           success: true, text: 'tomato price', provider: 'device-speech');
       await t.controller.start();
       await completeOneTurn(t.capturer, t.synth);
@@ -293,7 +293,7 @@ void main() {
     test('surfaces the brain generic error on an empty transcript', () async {
       final t = build();
       t.capturer.nextResult =
-          const WhisperResult(error: 'Recording was empty.');
+          const VoiceCaptureResult(error: 'Recording was empty.');
       await t.controller.start();
       await speakThenPause(t.capturer);
       expect(t.controller.error, VoiceConversationError.generic);

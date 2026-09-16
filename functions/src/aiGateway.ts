@@ -4,6 +4,7 @@ import {
   ToolSpec,
   buildSystemPrompt,
   llmPost,
+  llmPostStream,
   nvidiaProvider,
 } from './nvidia';
 
@@ -74,6 +75,22 @@ const TIER_MAX_RETRIES: Record<AiTier, number> = {
   safety: 1,
   creative: 1,
 };
+
+// Per-tier output cap. Fast/simple requests never need more than ~512 tokens;
+// general answers top out at ~1024; only main/creative (long analysis) allow
+// the full budget. This bounds prompt latency for the common fast path.
+const TIER_MAX_TOKENS: Record<AiTier, number> = {
+  main: 4096,
+  general: 1024,
+  fast: 512,
+  vision: 4096,
+  safety: 60,
+  creative: 4096,
+};
+
+// Keep only the last N non-system messages so prompt size (and therefore
+// NVIDIA latency) stays bounded across long conversations.
+const MAX_HISTORY_MESSAGES = 8;
 
 const FALLBACK_CHAINS: Record<AiTier, AiTier[]> = {
   main: ['main', 'general'],
@@ -231,6 +248,58 @@ function extractChoice(data: Record<string, unknown>) {
     toolCalls:
       (message?.tool_calls as NvidiaChatMessage['tool_calls']) ?? null,
   };
+}
+
+/**
+ * Bounded conversation window. Keeps the last `keep` non-system messages but
+ * never splits an in-flight tool exchange (assistant tool_calls → tool results),
+ * so the multi-round tool loop stays coherent across the trim boundary.
+ */
+function trimHistory(
+  messages: NvidiaChatMessage[],
+  keep: number,
+): NvidiaChatMessage[] {
+  const nonSystem = messages.filter((m) => m.role !== 'system');
+
+  let lastAssistantCall = -1;
+  let lastTool = -1;
+  for (let i = nonSystem.length - 1; i >= 0; i -= 1) {
+    if (
+      lastAssistantCall < 0 &&
+      nonSystem[i].role === 'assistant' &&
+      (nonSystem[i].tool_calls?.length ?? 0) > 0
+    ) {
+      lastAssistantCall = i;
+    }
+    if (lastTool < 0 && nonSystem[i].role === 'tool') lastTool = i;
+    if (lastAssistantCall >= 0 && lastTool >= 0) break;
+  }
+
+  let start = Math.max(0, nonSystem.length - keep);
+  const exchangeStart =
+    lastAssistantCall >= 0 ? lastAssistantCall : lastTool >= 0 ? lastTool : -1;
+  if (exchangeStart >= 0 && exchangeStart < start) {
+    start = exchangeStart;
+  }
+
+  return nonSystem.slice(start);
+}
+
+/** Extra system instruction for the fast tier: brevity without losing intent. */
+const FAST_BRIEF_PROMPT =
+  '\nKeep answers brief: for simple questions respond concisely in 1-4 short, ' +
+  'practical sentences, and go into more detail only when the farmer explicitly asks for it.';
+
+function buildChatMessages(
+  opts: ChatRouterOptions,
+  tier: ChatTier,
+): NvidiaChatMessage[] {
+  const system = buildSystemPrompt(opts.language, opts.context);
+  const content = tier === 'fast' ? `${system}${FAST_BRIEF_PROMPT}` : system;
+  return [
+    { role: 'system', content },
+    ...trimHistory(opts.messages, MAX_HISTORY_MESSAGES),
+  ];
 }
 
 function extractJsonObjectWithKey<T extends Record<string, unknown>>(
@@ -469,44 +538,46 @@ export interface ChatRouterResult {
   };
 }
 
+async function classifyRequest(
+  opts: ChatRouterOptions,
+  userText: string,
+): Promise<IntentClassification> {
+  if (opts.tier) {
+    return {
+      intent: opts.intent ?? 'explicit',
+      complexity: opts.complexity ?? 'medium',
+      tier: opts.tier,
+      classifiedBy: 'rules',
+    };
+  }
+  if (opts.classify) {
+    return classifyIntent({
+      text: userText,
+      language: opts.language,
+      useModel: true,
+      label: opts.label,
+    });
+  }
+  if (opts.complexity === 'high' || opts.intent === 'complex_query') {
+    return {
+      intent: opts.intent ?? 'complex_query',
+      complexity: 'high',
+      tier: 'main',
+      classifiedBy: 'rules',
+    };
+  }
+  return ruleClassify(userText);
+}
+
 export async function chatWithRouter(
   opts: ChatRouterOptions,
 ): Promise<ChatRouterResult> {
   const lastUser = [...opts.messages].reverse().find((m) => m.role === 'user');
   const userText = lastUser?.content ?? '';
 
-  let classification: IntentClassification;
-  if (opts.tier) {
-    classification = {
-      intent: opts.intent ?? 'explicit',
-      complexity: opts.complexity ?? 'medium',
-      tier: opts.tier,
-      classifiedBy: 'rules',
-    };
-  } else if (opts.classify) {
-    classification = await classifyIntent({
-      text: userText,
-      language: opts.language,
-      useModel: true,
-      label: opts.label,
-    });
-  } else if (opts.complexity === 'high' || opts.intent === 'complex_query') {
-    classification = {
-      intent: opts.intent ?? 'complex_query',
-      complexity: 'high',
-      tier: 'main',
-      classifiedBy: 'rules',
-    };
-  } else {
-    classification = ruleClassify(userText);
-  }
-
+  const classification = await classifyRequest(opts, userText);
   const tier = classification.tier;
-  const system = buildSystemPrompt(opts.language, opts.context);
-  const messages: NvidiaChatMessage[] = [
-    { role: 'system', content: system },
-    ...opts.messages.filter((m) => m.role !== 'system'),
-  ];
+  const messages = buildChatMessages(opts, tier);
 
   const startedAt = Date.now();
   const outcome = await runWithFallback<{
@@ -518,8 +589,7 @@ export async function chatWithRouter(
       model: provider.model,
       messages,
       temperature: 0.4,
-      max_tokens:
-        candidateTier === 'main' || candidateTier === 'creative' ? 4096 : 2048,
+      max_tokens: TIER_MAX_TOKENS[candidateTier],
     };
     if (opts.tools?.length) body.tools = opts.tools;
 
@@ -551,6 +621,11 @@ export async function chatWithRouter(
     triedTiers: outcome.triedTiers,
     retries: outcome.retries,
     model: outcome.model,
+    msgCount: messages.length,
+    promptChars: messages.reduce(
+      (sum, m) => sum + (typeof m.content === 'string' ? m.content.length : 0),
+      0,
+    ),
     latencyMs: Date.now() - startedAt,
     intent: classification.intent,
     complexity: classification.complexity,
@@ -564,6 +639,132 @@ export async function chatWithRouter(
     tier: outcome.triedTiers[outcome.triedTiers.length - 1],
     triedTiers: outcome.triedTiers,
     retries: outcome.retries,
+    classification: {
+      intent: classification.intent,
+      complexity: classification.complexity,
+      tier: classification.tier,
+      classifiedBy: classification.classifiedBy,
+    },
+  };
+}
+
+export interface ChatRouterStreamResult {
+  content: string;
+  toolCalls: NvidiaChatMessage['tool_calls'] | null;
+  model: string;
+  tier: AiTier;
+  triedTiers: AiTier[];
+  retries: number;
+  ttfMs: number;
+  classification: {
+    intent: string;
+    complexity: string;
+    tier: AiTier;
+    classifiedBy: string;
+  };
+}
+
+/**
+ * Streaming chat route: identical routing/prompt policy to [chatWithRouter],
+ * but forwards NVIDIA text deltas through [onDelta] and returns the final
+ * content/tool calls from the stream.
+ *
+ * Retries and tier fallback only happen for failures BEFORE the first token is
+ * emitted. Once the client has seen a delta, a mid-stream failure aborts with
+ * an error instead of duplicating output.
+ */
+export async function chatWithRouterStream(
+  opts: ChatRouterOptions,
+  onDelta: (content: string) => void,
+): Promise<ChatRouterStreamResult> {
+  const lastUser = [...opts.messages].reverse().find((m) => m.role === 'user');
+  const userText = lastUser?.content ?? '';
+
+  const classification = await classifyRequest(opts, userText);
+  const tier = classification.tier;
+  const messages = buildChatMessages(opts, tier);
+
+  const startedAt = Date.now();
+  let ttfMs = 0;
+
+  const outcome = await runWithFallback<{
+    content: string;
+    toolCalls: NvidiaChatMessage['tool_calls'] | null;
+  }>(tier, async (candidateTier) => {
+    const provider = providerFor(candidateTier);
+    const body: Record<string, unknown> = {
+      model: provider.model,
+      messages,
+      temperature: 0.4,
+      max_tokens: TIER_MAX_TOKENS[candidateTier],
+    };
+    if (opts.tools?.length) body.tools = opts.tools;
+
+    let streamedAny = false;
+    try {
+      const result = await llmPostStream(
+        '/chat/completions',
+        body,
+        provider,
+        (content) => {
+          if (!streamedAny) {
+            streamedAny = true;
+            ttfMs = Date.now() - startedAt;
+          }
+          onDelta(content);
+        },
+        { timeout: TIER_TIMEOUT_MS[candidateTier] },
+      );
+      if (!result.content && !result.toolCalls) {
+        throw new AiGatewayError(
+          'empty',
+          `${activeModelFor(candidateTier)} returned no content.`,
+        );
+      }
+      return {
+        value: { content: result.content, toolCalls: result.toolCalls },
+        model: provider.model,
+      };
+    } catch (e) {
+      if (streamedAny) {
+        // Never retry or fall back once the client has begun receiving text.
+        throw new AiGatewayError(
+          'unknown',
+          'NVIDIA interrupted the response mid-stream.',
+        );
+      }
+      throw e;
+    }
+  });
+
+  logAiCall({
+    event: 'chat_stream',
+    stream: true,
+    tier,
+    triedTiers: outcome.triedTiers,
+    retries: outcome.retries,
+    model: outcome.model,
+    msgCount: messages.length,
+    promptChars: messages.reduce(
+      (sum, m) => sum + (typeof m.content === 'string' ? m.content.length : 0),
+      0,
+    ),
+    ttfMs,
+    latencyMs: Date.now() - startedAt,
+    intent: classification.intent,
+    complexity: classification.complexity,
+    classifiedBy: classification.classifiedBy,
+  });
+
+  const usedTier = outcome.triedTiers[outcome.triedTiers.length - 1];
+  return {
+    content: outcome.value.content,
+    toolCalls: outcome.value.toolCalls,
+    model: outcome.model,
+    tier: usedTier,
+    triedTiers: outcome.triedTiers,
+    retries: outcome.retries,
+    ttfMs,
     classification: {
       intent: classification.intent,
       complexity: classification.complexity,

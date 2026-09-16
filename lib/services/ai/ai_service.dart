@@ -173,6 +173,12 @@ class AIResponse {
       if (text.endsWith('```')) {
         text = text.substring(0, text.length - 3);
       }
+      if (text.startsWith('NaNjson')) {
+        text = text.substring('NaNjson'.length);
+      }
+      if (text.endsWith('NaN')) {
+        text = text.substring(0, text.length - 'NaN'.length);
+      }
       final decoded = jsonDecode(text.trim());
       if (decoded is Map<String, dynamic>) return decoded;
       if (decoded is Map) return Map<String, dynamic>.from(decoded);

@@ -95,7 +95,7 @@ class DeviceSpeechService implements VoiceCapturer {
     if (!_transcript.isClosed) _transcript.add(text);
   }
 
-  @override
+@override
   Future<bool> startRecording({String? language}) async {
     if (!await _ensureInitialized()) return false;
     if (_speech.isListening) return false;
@@ -106,16 +106,18 @@ class DeviceSpeechService implements VoiceCapturer {
       await _speech.listen(
         onResult: _onResult,
         localeId: _localeFor(language),
-        listenFor: const Duration(seconds: 20),
-        pauseFor: const Duration(seconds: 2),
-        partialResults: true,
-        cancelOnError: true,
-        listenMode: ListenMode.dictation,
+        listenOptions: SpeechListenOptions(
+          listenFor: const Duration(seconds: 20),
+          pauseFor: const Duration(seconds: 2),
+          partialResults: true,
+          cancelOnError: true,
+          listenMode: ListenMode.dictation,
+        ),
         onSoundLevelChange: (level) {
           if (!_amplitude.isClosed) _amplitude.add(level);
         },
       );
-      return _speech.isListening;
+return _speech.isListening;
     } catch (e) {
       _lastError = e.toString();
       return false;

@@ -19,6 +19,7 @@ import { NvidiaChatMessage, ToolSpec } from './nvidia';
 import {
   AiGatewayError,
   chatWithRouter,
+  chatWithRouterStream,
   classifyIntent,
   httpStatusFor,
   moderateText,
@@ -144,6 +145,84 @@ app.post('/ai/chat', requireAuth, async (req, res) => {
     const message = e instanceof Error ? e.message : String(e);
     logger.error('chat failed', e);
     res.status(status).json({ success: false, error: message });
+  }
+});
+
+/**
+ * POST /ai/chat/stream
+ * body: { messages, language?, context?, tools?, tier?, classify? }
+ *
+ * Same routing as /ai/chat but streams NVIDIA text deltas as Server-Sent
+ * Events (data: {delta} ... data: {done|error}). The client falls back to the
+ * non-streaming /ai/chat when this endpoint is unavailable.
+ */
+app.post('/ai/chat/stream', requireAuth, async (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const messages = Array.isArray(body.messages)
+      ? (body.messages as NvidiaChatMessage[])
+      : [];
+    if (messages.length === 0) {
+      res.status(400).json({ success: false, error: 'messages is required.' });
+      return;
+    }
+
+    const tier =
+      typeof body.tier === 'string' && APP_TIERS.has(body.tier)
+        ? (body.tier as 'main' | 'general' | 'fast' | 'creative')
+        : undefined;
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const emit = (payload: unknown) => {
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+      (res as express.Response & { flush?: () => void }).flush?.();
+    };
+
+    const result = await chatWithRouterStream(
+      {
+        messages,
+        language: body.language,
+        context: body.context,
+        tools: body.tools as ToolSpec[] | undefined,
+        tier,
+        classify: body.classify === true,
+        complexity: body.complexity,
+        intent: body.intent,
+        label: body.label,
+      },
+      (delta) => emit({ delta }),
+    );
+
+    emit({
+      done: true,
+      content: result.content,
+      toolCalls: result.toolCalls,
+      metadata: {
+        provider: 'nvidia',
+        model: result.model,
+        tier: result.tier,
+        triedTiers: result.triedTiers,
+        retries: result.retries,
+        ttfMs: result.ttfMs,
+        classification: result.classification,
+      },
+    });
+    res.end();
+  } catch (e) {
+    const status = e instanceof AiGatewayError ? httpStatusFor(e) : 500;
+    const message = e instanceof Error ? e.message : String(e);
+    logger.error('chat stream failed', e);
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ error: message, status })}\n\n`);
+      res.end();
+    } else {
+      res.status(status).json({ success: false, error: message });
+    }
   }
 });
 

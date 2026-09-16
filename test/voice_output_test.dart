@@ -1,8 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
 
 import 'package:vidhai/services/ai/voice_output_service.dart';
 
 void main() {
+  setUp(() {
+    WidgetsFlutterBinding.ensureInitialized();
+  });
   group('VoiceOutputService.ttsLanguageCode', () {
     test('maps every supported app language to an Indian BCP-47 tag', () {
       const cases = <String, String>{

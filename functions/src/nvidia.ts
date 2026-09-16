@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Readable } from 'stream';
 
 export const NVIDIA_BASE =
   process.env.NVIDIA_BASE_URL ?? 'https://integrate.api.nvidia.com/v1';
@@ -96,6 +97,140 @@ export async function llmPost<T>(
     throw err;
   }
   return res.data;
+}
+
+export interface NvidiaStreamResult {
+  content: string;
+  toolCalls: NvidiaChatMessage['tool_calls'] | null;
+  finishReason: string | null;
+}
+
+/**
+ * Streaming (SSE) OpenAI-compatible call against NVIDIA NIM.
+ *
+ * Frames are `data: {chunk}` with content and/or tool_call deltas, terminated
+ * by `data: [DONE]`. Only text deltas are forwarded through [onDelta]; tool
+ * calls are accumulated per index and returned in the final result so the
+ * non-streaming routing contract stays identical.
+ */
+export async function llmPostStream(
+  path: string,
+  body: Record<string, unknown>,
+  provider: NvidiaProvider,
+  onDelta: (content: string) => void,
+  opts: { timeout?: number } = {},
+): Promise<NvidiaStreamResult> {
+  const response = await axios.post<Readable>(
+    `${provider.base}${path}`,
+    body,
+    {
+      headers: {
+        Authorization: `Bearer ${provider.key}`,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      responseType: 'stream',
+      timeout: opts.timeout ?? LLM_TIMEOUT_MS,
+    },
+  );
+
+  if (response.status !== 200) {
+    response.data.resume();
+    const err = new Error(
+      `NVIDIA (${provider.model}) returned HTTP ${response.status}`,
+    ) as Error & { raw?: unknown };
+    throw err;
+  }
+
+  const contentParts: string[] = [];
+  const toolCallParts: Array<{ id: string; name: string; arguments: string }> =
+    [];
+  let finishReason: string | null = null;
+
+  await new Promise<void>((resolve, reject) => {
+    let buffer = '';
+    response.data.on('data', (raw: Buffer | string) => {
+      buffer += raw.toString('utf8');
+      let newline: number;
+      while ((newline = buffer.indexOf('\n')) >= 0) {
+        const line = buffer.slice(0, newline).trim();
+        buffer = buffer.slice(newline + 1);
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice('data:'.length).trim();
+        if (!data || data === '[DONE]') continue;
+
+        let chunk: Record<string, unknown>;
+        try {
+          chunk = JSON.parse(data);
+        } catch {
+          continue;
+        }
+
+        const choice = (
+          Array.isArray(chunk.choices) ? chunk.choices[0] : undefined
+        ) as
+          | {
+              delta?: Record<string, unknown>;
+              finish_reason?: unknown;
+            }
+          | undefined;
+        const delta = choice?.delta;
+
+        if (typeof delta?.content === 'string' && delta.content) {
+          contentParts.push(delta.content);
+          onDelta(delta.content);
+        }
+
+        if (Array.isArray(delta?.tool_calls)) {
+          for (const call of delta.tool_calls as Array<{
+            index?: number;
+            id?: string;
+            function?: { name?: string; arguments?: string };
+          }>) {
+            const idx =
+              typeof call.index === 'number'
+                ? call.index
+                : toolCallParts.length - 1;
+            if (idx >= 0 && idx < toolCallParts.length) {
+              if (call.id) toolCallParts[idx].id = call.id;
+              if (call.function?.name) {
+                toolCallParts[idx].name = call.function.name;
+              }
+              if (call.function?.arguments) {
+                toolCallParts[idx].arguments += call.function.arguments;
+              }
+            } else if (idx === toolCallParts.length || idx === -1) {
+              toolCallParts.push({
+                id: call.id ?? '',
+                name: call.function?.name ?? '',
+                arguments: call.function?.arguments ?? '',
+              });
+            }
+          }
+        }
+
+        if (choice?.finish_reason != null) {
+          finishReason = String(choice.finish_reason);
+        }
+      }
+    });
+    response.data.on('end', () => resolve());
+    response.data.on('error', (err) => reject(err));
+  });
+
+  const toolCalls = toolCallParts
+    .filter((t) => t.name)
+    .map((t) => ({
+      id: t.id,
+      type: 'function' as const,
+      function: { name: t.name, arguments: t.arguments },
+    }));
+
+  return {
+    content: contentParts.join(''),
+    toolCalls: toolCalls.length ? toolCalls : null,
+    finishReason,
+  };
 }
 
 export function buildSystemPrompt(

@@ -431,12 +431,14 @@ class VidhAIChatService {
     String language = 'en',
     Map<String, dynamic>? userProfile,
     List<Map<String, dynamic>>? farms,
+    void Function(String delta)? onDelta,
   }) async {
     final result = await _orchestrator.process(
       input: message,
       language: language,
       userProfile: userProfile,
       farms: farms,
+      onDelta: onDelta,
     );
 
     if (!result.failed && result.text.trim().isNotEmpty) {
