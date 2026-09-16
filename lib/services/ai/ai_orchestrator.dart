@@ -78,7 +78,12 @@ class AiOrchestrator {
     ];
 
     final contextJson = _context.toBackendContext(contextExtras);
-    final toolSpecs = VidhAIToolRegistry.instance.aiSpecs();
+
+    // Do not attach every app tool schema to every ordinary farming question.
+    // Tool definitions add prompt tokens and can materially increase NVIDIA
+    // time-to-first-token. AI Chat already carries profile/farm context, so
+    // only advertise tools that the current request can actually need.
+    final toolSpecs = _toolSpecsForInput(input);
 
     try {
       for (var round = 0; round < maxToolRounds; round++) {
@@ -143,6 +148,108 @@ class AiOrchestrator {
     } catch (e) {
       return _replyFromFailure(fail.AiFailureHandler.fromError(e));
     }
+  }
+
+  List<Map<String, dynamic>> _toolSpecsForInput(String input) {
+    final text = input.toLowerCase().trim();
+    final wanted = <String>{};
+
+    bool hasAny(Iterable<String> terms) =>
+        terms.any((term) => text.contains(term));
+
+    if (hasAny(const [
+      'weather',
+      'rain',
+      'temperature',
+      'forecast',
+      'climate',
+      'வானிலை',
+      'மழை',
+      'வெப்ப',
+      'mazhai',
+    ])) {
+      wanted.add('GET_WEATHER');
+    }
+
+    if (hasAny(const [
+      'price',
+      'market',
+      'mandi',
+      'rate',
+      'விலை',
+      'சந்தை',
+      'vilai',
+    ])) {
+      wanted.add('GET_MANDI_PRICES');
+    }
+
+    if (hasAny(const [
+      'task',
+      'to-do',
+      'todo',
+      'schedule',
+      'reminder',
+      'பணி',
+      'வேலை',
+    ])) {
+      wanted.add('FARM_TASKS');
+    }
+
+    if (hasAny(const [
+      'my farm',
+      'farm details',
+      'current crop',
+      'my crop',
+      'என் பண்ணை',
+      'பண்ணை விவரம்',
+    ])) {
+      wanted.add('GET_FARM_DETAILS');
+    }
+
+    if (hasAny(const [
+      'my profile',
+      'my name',
+      'account details',
+      'என் பெயர்',
+      'சுயவிவரம்',
+    ])) {
+      wanted.add('GET_PROFILE');
+    }
+
+    if (hasAny(const [
+      'open ',
+      'go to ',
+      'navigate',
+      'take me to',
+      'show screen',
+      'திற',
+      'பக்கம்',
+    ])) {
+      wanted.add('OPEN_SCREEN');
+    }
+
+    // "What should I do now?" is a real-time farm-action question: the
+    // assistant may need today's tasks and current weather, while farm context
+    // itself is already supplied in the request context.
+    if (hasAny(const [
+      'what should i do',
+      'what do i do now',
+      'what to do now',
+      'இப்ப என்ன செய்ய',
+      'இப்போது என்ன செய்ய',
+    ])) {
+      wanted
+        ..add('FARM_TASKS')
+        ..add('GET_WEATHER');
+    }
+
+    if (wanted.isEmpty) return const [];
+
+    return VidhAIToolRegistry.instance.aiSpecs().where((spec) {
+      final function = spec['function'];
+      if (function is! Map) return false;
+      return wanted.contains((function['name'] ?? '').toString());
+    }).toList();
   }
 
   /// Runs one chat attempt, retrying classified retryable failures (timeout,
