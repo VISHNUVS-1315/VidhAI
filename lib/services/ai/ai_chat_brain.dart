@@ -5,12 +5,12 @@ export 'nvidia_service.dart' show NvidiaChatResult, NvidiaToolCall;
 
 /// Single VidhAI AI brain.
 ///
-/// All production chat requests go through the secure Render backend and are
-/// served only by NVIDIA models. No provider switching or client-side AI keys.
+/// All production app-chat requests go through the secure Render backend and
+/// are served by Groq GPT-OSS 20B. No client-side AI keys are stored.
 class AiChatBrain {
   AiChatBrain._();
 
-  static String get activeProvider => 'nvidia';
+  static String get activeProvider => 'groq';
 
   static Future<NvidiaChatResult> chat({
     required List<AIMessage> messages,
