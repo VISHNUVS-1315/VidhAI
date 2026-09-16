@@ -627,7 +627,7 @@ export async function chatWithRouter(
     if (!extracted.content && !extracted.toolCalls) {
       throw new AiGatewayError(
         'empty',
-        `${activeModelFor(candidateTier)} returned no content.`,
+        `${provider.model} returned no content.`,
       );
     }
     return {
@@ -744,7 +744,7 @@ export async function chatWithRouterStream(
       if (!result.content && !result.toolCalls) {
         throw new AiGatewayError(
           'empty',
-          `${activeModelFor(candidateTier)} returned no content.`,
+          `${provider.model} returned no content.`,
         );
       }
       return {
@@ -756,7 +756,7 @@ export async function chatWithRouterStream(
         // Never retry or fall back once the client has begun receiving text.
         throw new AiGatewayError(
           'unknown',
-          'NVIDIA interrupted the response mid-stream.',
+          'Groq interrupted the response mid-stream.',
         );
       }
       throw e;
