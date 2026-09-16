@@ -30,7 +30,7 @@ class _OrchestratorError implements Exception {
   _OrchestratorError(this.failure);
 }
 
-/// Drives chat through the NVIDIA brain, executes real app tools,
+/// Drives app chat through the backend Groq brain, executes real app tools,
 /// executes any requested tools against the real app, and keeps looping up to
 /// [maxToolRounds] until the assistant produces a final answer.
 class AiOrchestrator {
