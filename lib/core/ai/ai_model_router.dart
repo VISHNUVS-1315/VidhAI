@@ -64,27 +64,23 @@ class AiModelRouter {
   ];
 
   /// Human-readable model names per tier (for diagnostics/UI labels only).
-  /// `general` is temporarily served by Lightning while DeepSeek V4 Flash is
-  /// disabled (repeated timeouts). Re-enable by routing `general` back to
-  /// DeepSeek and updating this label.
+  /// All production AI tiers are served through NVIDIA NIM.
   static const Map<AiTier, String> tierNames = {
     AiTier.main: 'Nemotron Ultra 550B',
     AiTier.general: 'Nemotron Lightning 30B',
     AiTier.fast: 'Nemotron Lightning 30B',
-    AiTier.creative: 'Muse Glimmer 30B',
+    AiTier.creative: 'Nemotron Ultra 550B',
     AiTier.vision: 'Nano Omni 30B',
     AiTier.safety: 'Content Safety',
   };
 
   /// Wire model IDs per tier (mirrors the backend config; the backend remains
-  /// authoritative and env-configurable). `general` mirrors the active routing —
-  /// Lightning now, DeepSeek (`deepseek-ai/deepseek-v4-flash-0731`) only after
-  /// ENABLE_DEEPSEEK=true on the backend.
+  /// authoritative and env-configurable).
   static const Map<AiTier, String> tierModels = {
     AiTier.main: 'nvidia/nemotron-3-ultra-550b-a55b',
     AiTier.general: 'nvidia/nemotron-3.5-lightning-30b-a3b',
     AiTier.fast: 'nvidia/nemotron-3.5-lightning-30b-a3b',
-    AiTier.creative: 'meta/muse-glimmer-30b',
+    AiTier.creative: 'nvidia/nemotron-3-ultra-550b-a55b',
     AiTier.vision: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
     AiTier.safety: 'nvidia/nemotron-3.5-content-safety',
   };
