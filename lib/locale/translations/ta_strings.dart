@@ -524,6 +524,36 @@ const Map<String, String> taStrings = {
   'notifications': 'அறிவிப்புகள்',
   'notifications_empty_hint':
       'வானிலை எச்சரிக்கைகள், சந்தை புதுப்பிப்புகள் மற்றும் AI பரிந்துரைகள் இங்கே தோன்றும்.',
+  'notif_welcome_title': 'வித்ஹாய்க்கு வரவேற்கிறோம் 🌱',
+  'notif_welcome_message':
+      'உங்கள் ஸ்மார்ட் விவசாய உதவியாளர் தயாராக உள்ளது. ஒன்றாக சிறப்பாக வளர்வோம்.',
+  'notif_todo_updated_title': 'செய்ய வேண்டிய பட்டியல் புதுப்பிக்கப்பட்டது',
+  'notif_todo_updated_message':
+      '{farm} இல் இன்று {count} பணிகள் தயாராக உள்ளன. உங்கள் அட்டவணையைப் பார்க்க தட்டவும்.',
+  'notif_task_reminder_title': 'பணி நினைவூட்டல்',
+  'notif_weather_rain_title': 'வானிலை எச்சரிக்கை 🌧️',
+  'notif_weather_rain_message':
+      'உங்கள் பண்ணை அருகே இன்று மதியம் மழை எதிர்பார்க்கப்படுகிறது. தெளிப்பதை தாமதப்படுத்துங்கள்.',
+  'notif_weather_heavy_rain_title': 'கனமழை எச்சரிக்கை ⛈️',
+  'notif_weather_heavy_rain_message':
+      'உங்கள் பண்ணை அருகே கனமழை எதிர்பார்க்கப்படுகிறது. பயிரை பாதுகாத்து வயல் வேலைகளைத் தவிர்க்கவும்.',
+  'notif_weather_heat_title': 'அதிக வெப்ப எச்சரிக்கை ☀️',
+  'notif_weather_heat_message':
+      'இன்று அதிக வெப்பநிலை எதிர்பார்க்கப்படுகிறது. நீர்ப்பாசனத்தை சரிபார்த்து மதியம் தெளிப்பதைத் தவிர்க்கவும்.',
+  'notif_weather_wind_title': 'பலத்த காற்று எச்சரிக்கை 💨',
+  'notif_weather_wind_message':
+      'உங்கள் பண்ணை அருகே பலத்த காற்று எதிர்பார்க்கப்படுகிறது. தாங்கிகளை உறுதி செய்யுங்கள்.',
+  'notif_weather_humidity_title': 'நோய் ஆபத்து எச்சரிக்கை 🌫️',
+  'notif_weather_humidity_message':
+      'அதிக ஈரப்பதம் நோய் அபாயத்தை அதிகரிக்கலாம். பூஞ்சை தொற்றுகளை கவனிக்கவும்.',
+  'notif_market_update_title': 'சந்தைப் புதுப்பிப்பு 📈',
+  'notif_market_update_message':
+      '{commodity} உங்கள் சந்தையில் ₹{price} விலையில் உள்ளது.',
+  'notif_settings_title': 'அறிவிப்பு அமைப்புகள்',
+  'notif_settings_tasks': 'பணி நினைவூட்டல்கள்',
+  'notif_settings_weather': 'வானிலை எச்சரிக்கைகள்',
+  'notif_settings_market': 'சந்தை புதுப்பிப்புகள்',
+  'notif_settings_general': 'பொது வித்ஹாய் அறிவிப்புகள்',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'பண்ணைகளின் எண்ணிக்கை',
   'of_label': 'இல்',

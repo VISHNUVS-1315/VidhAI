@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vidhai/services/task_service.dart';
+import 'package:vidhai/services/notification_service.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/services/weather_service.dart';
 import 'package:vidhai/features/farm/crop_stage.dart';
@@ -468,7 +469,12 @@ class _TasksScreenState extends State<TasksScreen> {
           GestureDetector(
             onTap: () async {
               await _taskService.toggleTaskCompletion(task);
-              _loadTasks();
+              if (!task.completed) {
+                await NotificationService()
+                    .cancelTaskReminder(task.copyWith(completed: true));
+              }
+              await _loadTasks();
+              await NotificationService().syncTodoFingerprint(_allTasks);
             },
             child: Container(
               width: 22,

@@ -508,6 +508,36 @@ const Map<String, String> mrStrings = {
   'notifications': 'सूचना',
   'notifications_empty_hint':
       'हवामान सूचना, बाजार अपडेट आणि AI शिफारसी येथे दिसतील.',
+  'notif_welcome_title': 'विधाईमध्ये आपले स्वागत आहे 🌱',
+  'notif_welcome_message':
+      'तुमचा स्मार्ट शेती सहाय्यक तयार आहे. चला मिळून अधिक चांगली शेती करूया.',
+  'notif_todo_updated_title': 'करण्याची यादी अपडेट झाली',
+  'notif_todo_updated_message':
+      '{farm} साठी आज {count} कामे तयार आहेत. तुमचे वेळापत्रक पाहण्यासाठी टॅप करा.',
+  'notif_task_reminder_title': 'शेतीचे काम आठवणी',
+  'notif_weather_rain_title': 'हवामान चेतावणी 🌧️',
+  'notif_weather_rain_message':
+      'आज दुपारी तुमच्या शेताजवळ पाऊस अपेक्षित आहे. फवारणी लांबणीवर टाका.',
+  'notif_weather_heavy_rain_title': 'मुसळधार पाऊस चेतावणी ⛈️',
+  'notif_weather_heavy_rain_message':
+      'तुमच्या शेताजवळ मुसळधार पाऊस अपेक्षित आहे. पिकाचे संरक्षण करा आणि शेतातील काम टाळा.',
+  'notif_weather_heat_title': 'उच्च तापमान चेतावणी ☀️',
+  'notif_weather_heat_message':
+      'आज उच्च तापमान अपेक्षित आहे. सिंचन तपासा आणि दुपारी फवारणी टाळा.',
+  'notif_weather_wind_title': 'जोरदार वारा चेतावणी 💨',
+  'notif_weather_wind_message':
+      'तुमच्या शेताजवळ जोरदार वारा अपेक्षित आहे. आधार व आच्छादन सुरक्षित करा.',
+  'notif_weather_humidity_title': 'रोग जोखीम चेतावणी 🌫️',
+  'notif_weather_humidity_message':
+      'उच्च आर्द्रतेमुळे रोगांचा धोका वाढू शकतो. बुरशीच्या संसर्गाकडे लक्ष द्या.',
+  'notif_market_update_title': 'बाजार अपडेट 📈',
+  'notif_market_update_message':
+      '{commodity} तुमच्या बाजारात ₹{price} दराने उपलब्ध आहे.',
+  'notif_settings_title': 'सूचना सेटिंग्ज',
+  'notif_settings_tasks': 'कामाच्या आठवणी',
+  'notif_settings_weather': 'हवामान चेतावणी',
+  'notif_settings_market': 'बाजार अपडेट',
+  'notif_settings_general': 'सामान्य विधाई सूचना',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'शेतीची संख्या',
   'of_label': 'पैकी',

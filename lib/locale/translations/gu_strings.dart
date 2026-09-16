@@ -513,6 +513,36 @@ const Map<String, String> guStrings = {
   'notifications': 'સૂચનાઓ',
   'notifications_empty_hint':
       'હવામાન ચેતવણીઓ, બજાર અપડેટ્સ અને AI ભલામણો અહીં દેખાશે.',
+  'notif_welcome_title': 'વિધાયમાં આપનું સ્વાગત છે 🌱',
+  'notif_welcome_message':
+      'તમારો સ્માર્ટ ખેતી સહાયક તૈયાર છે. ચાલો સાથે મળીને વધુ સારા ફસલ ઉગાડીએ.',
+  'notif_todo_updated_title': 'કરવાની યાદી અપડેટ થઈ',
+  'notif_todo_updated_message':
+      '{farm} માટે આજે {count} કામો તૈયાર છે. તમારું શેડ્યૂલ જોવા ટૅપ કરો.',
+  'notif_task_reminder_title': 'ખેતી કામની રીમાઇન્ડર',
+  'notif_weather_rain_title': 'હવામાન ચેતવણી 🌧️',
+  'notif_weather_rain_message':
+      'આજે બપોરે તમારા ખેતર નજીક વરસાદની શક્યતા છે. છંટકાવ મુલતવી રાખો.',
+  'notif_weather_heavy_rain_title': 'ભારે વરસાદ ચેતવણી ⛈️',
+  'notif_weather_heavy_rain_message':
+      'તમારા ખેતર નજીક ભારે વરસાદની શક્યતા છે. પાકનું રક્ષણ કરો અને ખેતીનું કામ ટાળો.',
+  'notif_weather_heat_title': 'ઉંચા તાપમાન ચેતવણી ☀️',
+  'notif_weather_heat_message':
+      'આજે ઉંચા તાપમાનની શક્યતા છે. સિંચાઈ તપાસો અને બપોરે છંટકાવ ટાળો.',
+  'notif_weather_wind_title': 'જોરદાર પવન ચેતવણી 💨',
+  'notif_weather_wind_message':
+      'તમારા ખેતર નજીક જોરદાર પવનની શક્યતા છે. આધાર અને આચ્છાદન સુરક્ષિત કરો.',
+  'notif_weather_humidity_title': 'રોગ જોખમ ચેતવણી 🌫️',
+  'notif_weather_humidity_message':
+      'ઉંચી ભેજને લીધે રોગનું જોખમ વધી શકે છે. ફૂગના ચેપ પર ધ્યાન રાખો.',
+  'notif_market_update_title': 'બજાર અપડેટ 📈',
+  'notif_market_update_message':
+      '{commodity} તમારા બજારમાં ₹{price} ભાવે ઉપલબ્ધ છે.',
+  'notif_settings_title': 'નોટિફિકેશન સેટિંગ્સ',
+  'notif_settings_tasks': 'કામની રીમાઇન્ડર',
+  'notif_settings_weather': 'હવામાન ચેતવણી',
+  'notif_settings_market': 'બજાર અપડેટ',
+  'notif_settings_general': 'સામાન્ય વિધાય નોટિફિકેશન',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'ફાર્મ્સની સંખ્યા',
   'of_label': 'માંથી',

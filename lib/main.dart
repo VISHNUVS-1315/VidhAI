@@ -22,6 +22,8 @@ import 'package:vidhai/features/ai_live/ai_live_screen.dart';
 import 'package:vidhai/features/home/main_shell_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:vidhai/services/notification_service.dart';
+import 'package:vidhai/services/background_work.dart';
+import 'package:vidhai/features/home/screens/tasks_screen.dart';
 import 'package:vidhai/services/ai/ai_service.dart';
 import 'package:vidhai/services/ai/ai_config.dart';
 import 'package:vidhai/features/notifications/screens/notification_center_screen.dart';
@@ -95,6 +97,7 @@ Future<void> main() async {
   await _connectToFirebaseEmulators();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await NotificationService().initialize();
+  await registerWeatherWorker();
   _registerAiTools();
 
   // All AI intelligence runs through the secure NVIDIA backend. Voice input
@@ -182,6 +185,9 @@ class VidhAIApp extends StatelessWidget {
                   case '/notification_center':
                     return MaterialPageRoute(
                         builder: (_) => const NotificationCenterScreen());
+                  case '/tasks':
+                    return MaterialPageRoute(
+                        builder: (_) => const TasksScreen());
                   case '/farm_details':
                     final farmId = settings.arguments as String? ?? '';
                     return MaterialPageRoute(

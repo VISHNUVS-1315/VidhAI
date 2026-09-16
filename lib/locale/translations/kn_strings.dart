@@ -521,6 +521,36 @@ const Map<String, String> knStrings = {
   'notifications': 'ಅಧಿಸೂಚನೆಗಳು',
   'notifications_empty_hint':
       'ಹವಾಮಾನ ಎಚ್ಚರಿಕೆಗಳು, ಮಾರುಕಟ್ಟೆ ನವೀಕರಣಗಳು ಮತ್ತು AI ಶಿಫಾರಸುಗಳು ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.',
+  'notif_welcome_title': 'ವಿಧಾಯಿಗೆ ಸ್ವಾಗತ 🌱',
+  'notif_welcome_message':
+      'ನಿಮ್ಮ ಸ್ಮಾರ್ಟ್ ಕೃಷಿ ಸಹಾಯಕ ಸಿದ್ಧವಾಗಿದ್ದಾನೆ. ಒಟ್ಟಿಗೆ ಚೆನ್ನಾಗಿ ಬೆಳೆಯೋಣ.',
+  'notif_todo_updated_title': 'ಮಾಡಬೇಕಾದ ಪಟ್ಟಿ ನವೀಕರಿಸಲಾಗಿದೆ',
+  'notif_todo_updated_message':
+      '{farm} ಗಾಗಿ ಇಂದು {count} ಕಾರ್ಯಗಳು ಸಿದ್ಧವಾಗಿವೆ. ನಿಮ್ಮ ವೇಳಾಪಟ್ಟಿ ನೋಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ.',
+  'notif_task_reminder_title': 'ಕೃಷಿ ಕಾರ್ಯ ನೆನಪಿಸಿಕೆ',
+  'notif_weather_rain_title': 'ಹವಾಮಾನ ಎಚ್ಚರಿಕೆ 🌧️',
+  'notif_weather_rain_message':
+      'ನಿಮ್ಮ ಹೊಲದ ಬಳಿ ಇಂದು ಮಧ್ಯಾಹ್ನ ಮಳೆಯಾಗುವ ಸಾಧ್ಯತೆ ಇದೆ. ಸಿಂಪರಣೆ ವಿಳಂಬಿಸಿ.',
+  'notif_weather_heavy_rain_title': 'ಭಾರೀ ಮಳೆ ಎಚ್ಚರಿಕೆ ⛈️',
+  'notif_weather_heavy_rain_message':
+      'ನಿಮ್ಮ ಹೊಲದ ಬಳಿ ಭಾರೀ ಮಳೆಯಾಗುವ ಸಾಧ್ಯತೆ ಇದೆ. ಬೆಳೆಯನ್ನು ರಕ್ಷಿಸಿ, ಕೃಷಿ ಕೆಲಸ ಮಾಡಬೇಡಿ.',
+  'notif_weather_heat_title': 'ಹೆಚ್ಚಿನ ತಾಪಮಾನ ಎಚ್ಚರಿಕೆ ☀️',
+  'notif_weather_heat_message':
+      'ಇಂದು ಹೆಚ್ಚಿನ ತಾಪಮಾನವಾಗುವ ಸಾಧ್ಯತೆ ಇದೆ. ನೀರಾವರಿ ಪರಿಶೀಲಿಸಿ, ಮಧ್ಯಾಹ್ನ ಸಿಂಪರಣೆ ಮಾಡಬೇಡಿ.',
+  'notif_weather_wind_title': 'ಬಲವಾದ ಗಾಳಿ ಎಚ್ಚರಿಕೆ 💨',
+  'notif_weather_wind_message':
+      'ನಿಮ್ಮ ಹೊಲದ ಬಳಿ ಬಲವಾದ ಗಾಳಿ ಬೀಸುವ ಸಾಧ್ಯತೆ ಇದೆ. ಆಧಾರಗಳನ್ನು ಭದ್ರಪಡಿಸಿ.',
+  'notif_weather_humidity_title': 'ರೋಗ ಅಪಾಯ ಎಚ್ಚರಿಕೆ 🌫️',
+  'notif_weather_humidity_message':
+      'ಹೆಚ್ಚಿನ ಆರ್ದ್ರತೆಯು ರೋಗ ಅಪಾಯವನ್ನು ಹೆಚ್ಚಿಸಬಹುದು. ಶಿಲೀಂಧ್ರ ಸೋಂಕುಗಳ ಬಗ್ಗೆ ಗಮನಿಸಿ.',
+  'notif_market_update_title': 'ಮಾರುಕಟ್ಟೆ ನವೀಕರಣ 📈',
+  'notif_market_update_message':
+      '{commodity} ನಿಮ್ಮ ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ₹{price} ಬೆಲೆಯಲ್ಲಿದೆ.',
+  'notif_settings_title': 'ಅಧಿಸೂಚನಾ ಸೆಟ್ಟಿಂಗ್‌ಗಳು',
+  'notif_settings_tasks': 'ಕಾರ್ಯ ನೆನಪಿಸಿಕೆಗಳು',
+  'notif_settings_weather': 'ಹವಾಮಾನ ಎಚ್ಚರಿಕೆಗಳು',
+  'notif_settings_market': 'ಮಾರುಕಟ್ಟೆ ನವೀಕರಣಗಳು',
+  'notif_settings_general': 'ಸಾಮಾನ್ಯ ವಿಧಾಯಿ ಅಧಿಸೂಚನೆಗಳು',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'ಹೊಲಗಳ ಸಂಖ್ಯೆ',
   'of_label': 'ರಲ್ಲಿ',

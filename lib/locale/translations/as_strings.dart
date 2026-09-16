@@ -513,6 +513,36 @@ const Map<String, String> asStrings = {
   'notifications': 'জাননী',
   'notifications_empty_hint':
       'বতৰ সতৰ্কবাণী, বজাৰ আপডেট আৰু AI পৰামৰ্শ ইয়াত দেখা যাব।',
+  'notif_welcome_title': 'ভিধাইত আদৰণি 🌱',
+  'notif_welcome_message':
+      'আপোনাৰ স্মাৰ্ট কৃষি সহায়ক প্ৰস্তুত। আহক, একেলগে ভাল চাষ কৰোঁ।',
+  'notif_todo_updated_title': 'কৰিবলগীয়া তালিকা আপডেট হ’ল',
+  'notif_todo_updated_message':
+      '{farm} ৰ বাবে আজি {count} টা কাম প্ৰস্তুত। আপোনাৰ সময়সূচী চাবলৈ টেপ কৰক।',
+  'notif_task_reminder_title': 'কৃষি কামৰ মনপোতা',
+  'notif_weather_rain_title': 'বতৰ সতৰ্কবাণী 🌧️',
+  'notif_weather_rain_message':
+      'আজি আবেলি আপোনাৰ খেতিৰ ওচৰত বৰষুণৰ সম্ভাৱনা। ছিটিকনি পলমকৈ কৰক।',
+  'notif_weather_heavy_rain_title': 'প্ৰবল বৰষুণ সতৰ্কবাণী ⛈️',
+  'notif_weather_heavy_rain_message':
+      'আপোনাৰ খেতিৰ ওচৰত প্ৰবল বৰষুণৰ সম্ভাৱনা। শস্য ৰক্ষা কৰক আৰু খেতিৰ কাম এৰক।',
+  'notif_weather_heat_title': 'উচ্চ তাপমাত্ৰা সতৰ্কবাণী ☀️',
+  'notif_weather_heat_message':
+      'আজি উচ্চ তাপমাত্ৰা সম্ভাৱনা। জোৱা-পানী পৰীক্ষা কৰক আৰু আবেলি ছিটিকনি এৰক।',
+  'notif_weather_wind_title': 'জোৰদাৰ বতাহ সতৰ্কবাণী 💨',
+  'notif_weather_wind_message':
+      'আপোনাৰ খেতিৰ ওচৰত জোৰদাৰ বতাহ সম্ভাৱনা। ভেটি আৰু আশ্ৰয় সুৰক্ষিত কৰক।',
+  'notif_weather_humidity_title': 'ৰোগৰ বিপদ সতৰ্কবাণী 🌫️',
+  'notif_weather_humidity_message':
+      'উচ্চ আৰ্দ্ৰতাই ৰোগৰ বিপদ বঢ়াব পাৰে। ছত্ৰা সংক্ৰমণলৈ মন দিয়ক।',
+  'notif_market_update_title': 'বজাৰ আপডেট 📈',
+  'notif_market_update_message':
+      '{commodity} আপোনাৰ বজাৰত ₹{price} দৰত উপলব্ধ।',
+  'notif_settings_title': 'সূচনা ছেটিংছ',
+  'notif_settings_tasks': 'কামৰ মনপোতা',
+  'notif_settings_weather': 'বতৰ সতৰ্কবাণী',
+  'notif_settings_market': 'বজাৰ আপডেট',
+  'notif_settings_general': 'সাধাৰণ ভিধাই সূচনা',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'খেতিৰ সংখ্যা',
   'of_label': 'ভিতৰত',

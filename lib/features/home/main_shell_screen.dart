@@ -33,7 +33,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _shell.addListener(_onShellChanged);
     _loadConsole();
     _loadUnreadCount();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeWelcome());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeWelcome();
+      // Non-blocking: welcome once, schedule reminders, weather pass.
+      NotificationService().syncAfterSignIn();
+    });
   }
 
   /// First-entry AI welcome: once per app process, when the shell opens on the

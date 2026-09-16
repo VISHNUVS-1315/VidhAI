@@ -511,6 +511,36 @@ const Map<String, String> hiStrings = {
   'notifications': 'सूचनाएँ',
   'notifications_empty_hint':
       'मौसम अलर्ट, बाज़ार अपडेट और AI सिफारिशें यहाँ दिखाई देंगी।',
+  'notif_welcome_title': 'विधाई में आपका स्वागत है 🌱',
+  'notif_welcome_message':
+      'आपका स्मार्ट कृषि सहायक तैयार है। आइए मिलकर बेहतर उगाएँ।',
+  'notif_todo_updated_title': 'कार्य सूची अपडेट हुई',
+  'notif_todo_updated_message':
+      '{farm} के लिए आज {count} कार्य तैयार हैं। अपनी अनुसूची देखने के लिए टैप करें।',
+  'notif_task_reminder_title': 'कार्य अनुस्मारक',
+  'notif_weather_rain_title': 'मौसम अलर्ट 🌧️',
+  'notif_weather_rain_message':
+      'आपके खेत के पास आज दोपहर बारिश की संभावना है। छिड़काव में देरी करें।',
+  'notif_weather_heavy_rain_title': 'भारी बारिश अलर्ट ⛈️',
+  'notif_weather_heavy_rain_message':
+      'आपके खेत के पास भारी बारिश की संभावना है। फसल की रक्षा करें और खेत का काम टालें।',
+  'notif_weather_heat_title': 'उच्च तापमान अलर्ट ☀️',
+  'notif_weather_heat_message':
+      'आज उच्च तापमान की संभावना है। सिंचाई जाँचें और दोपहर में छिड़काव न करें।',
+  'notif_weather_wind_title': 'तेज़ हवा अलर्ट 💨',
+  'notif_weather_wind_message':
+      'आपके खेत के पास तेज़ हवा की संभावना है। सहारे और आश्रय सुरक्षित करें।',
+  'notif_weather_humidity_title': 'रोग जोखिम अलर्ट 🌫️',
+  'notif_weather_humidity_message':
+      'उच्च आर्द्रता से रोग का खतरा बढ़ सकता है। फफूंद संक्रमण पर नज़र रखें।',
+  'notif_market_update_title': 'बाज़ार अपडेट 📈',
+  'notif_market_update_message':
+      '{commodity} आपके बाज़ार में ₹{price} पर उपलब्ध है।',
+  'notif_settings_title': 'सूचना सेटिंग्स',
+  'notif_settings_tasks': 'कार्य अनुस्मारक',
+  'notif_settings_weather': 'मौसम अलर्ट',
+  'notif_settings_market': 'बाज़ार अपडेट',
+  'notif_settings_general': 'सामान्य विधाई सूचनाएँ',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'खेतों की संख्या',
   'of_label': 'का',

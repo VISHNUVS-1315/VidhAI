@@ -522,6 +522,36 @@ const Map<String, String> mlStrings = {
   'notifications': 'അറിയിപ്പുകൾ',
   'notifications_empty_hint':
       'കാലാവസ്ഥാ മുന്നറിയിപ്പുകൾ, മാർക്കറ്റ് അപ്ഡേറ്റുകൾ, AI ശുപാർശകൾ എന്നിവ ഇവിടെ ദൃശ്യമാകും.',
+  'notif_welcome_title': 'വിധായിലേക്ക് സ്വാഗതം 🌱',
+  'notif_welcome_message':
+      'നിങ്ങളുടെ സ്മാർട്ട് കൃഷി സഹായകൻ തയ്യാറാണ്. ഒന്നിച്ച് മെച്ചമായി വളരാം.',
+  'notif_todo_updated_title': 'ചെയ്യേണ്ട പട്ടിക അപ്ഡേറ്റ് ചെയ്തു',
+  'notif_todo_updated_message':
+      '{farm} ന് ഇന്ന് {count} ജോലികൾ തയ്യാറാണ്. നിങ്ങളുടെ ഷെഡ്യൂൾ കാണാൻ ടാപ്പ് ചെയ്യുക.',
+  'notif_task_reminder_title': 'ജോലി റിമൈൻഡർ',
+  'notif_weather_rain_title': 'കാലാവസ്ഥാ മുന്നറിയിപ്പ് 🌧️',
+  'notif_weather_rain_message':
+      'ഇന്ന് ഉച്ചയ്ക്ക് നിങ്ങളുടെ കൃഷിയിടത്തിനടുത്ത് മഴ പ്രതീക്ഷിക്കുന്നു. സ്പ്രേയിംഗ് വൈകിപ്പിക്കുക.',
+  'notif_weather_heavy_rain_title': 'കനത്ത മഴ മുന്നറിയിപ്പ് ⛈️',
+  'notif_weather_heavy_rain_message':
+      'നിങ്ങളുടെ കൃഷിയിടത്തിനടുത്ത് കനത്ത മഴ പ്രതീക്ഷിക്കുന്നു. വിള സംരക്ഷിക്കുക, കൃഷി ജോലികൾ ഒഴിവാക്കുക.',
+  'notif_weather_heat_title': 'ഉയർന്ന താപനില മുന്നറിയിപ്പ് ☀️',
+  'notif_weather_heat_message':
+      'ഇന്ന് ഉയർന്ന താപനില പ്രതീക്ഷിക്കുന്നു. ജലസേചനം പരിശോധിക്കുക, ഉച്ചയ്ക്ക് സ്പ്രേയിംഗ് ഒഴിവാക്കുക.',
+  'notif_weather_wind_title': 'ശക്തമായ കാറ്റ് മുന്നറിയിപ്പ് 💨',
+  'notif_weather_wind_message':
+      'നിങ്ങളുടെ കൃഷിയിടത്തിനടുത്ത് ശക്തമായ കാറ്റ് പ്രതീക്ഷിക്കുന്നു. താങ്ങുകൾ സുരക്ഷിതമാക്കുക.',
+  'notif_weather_humidity_title': 'രോഗ സാധ്യത മുന്നറിയിപ്പ് 🌫️',
+  'notif_weather_humidity_message':
+      'ഉയർന്ന ഈർപ്പം രോഗ സാധ്യത വർദ്ധിപ്പിക്കാം. ഫംഗസ് അണുബാധകൾ ശ്രദ്ധിക്കുക.',
+  'notif_market_update_title': 'വിപണി അപ്ഡേറ്റ് 📈',
+  'notif_market_update_message':
+      '{commodity} നിങ്ങളുടെ വിപണിയിൽ ₹{price} വിലയിൽ ലഭ്യമാണ്.',
+  'notif_settings_title': 'അറിയിപ്പ് ക്രമീകരണങ്ങൾ',
+  'notif_settings_tasks': 'ജോലി റിമൈൻഡറുകൾ',
+  'notif_settings_weather': 'കാലാവസ്ഥാ മുന്നറിയിപ്പുകൾ',
+  'notif_settings_market': 'വിപണി അപ്ഡേറ്റുകൾ',
+  'notif_settings_general': 'പൊതുവായ വിധായി അറിയിപ്പുകൾ',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'കൃഷിയിടങ്ങളുടെ എണ്ണം',
   'of_label': 'ന്റെ',

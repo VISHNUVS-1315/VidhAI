@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vidhai/services/data_service.dart';
-import 'package:vidhai/services/notification_service.dart';
+import 'package:vidhai/services/notification/notification_settings_service.dart';
+import 'package:vidhai/services/notification/notification_text.dart';
+import 'package:vidhai/services/notification/notification_logic.dart';
 import 'package:vidhai/data/models/notification_model.dart';
 import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/locale/locale.dart';
@@ -54,16 +56,123 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     await _loadNotifications();
   }
 
+  Future<void> _showSettings() async {
+    final colors = VidhAIColorsX(context);
+    final settings = NotificationSettingsService();
+    final futures = Future.wait([
+      settings.taskRemindersEnabled(),
+      settings.weatherAlertsEnabled(),
+      settings.marketUpdatesEnabled(),
+      settings.generalNotificationsEnabled(),
+    ]);
+    final values = await futures;
+    if (!mounted) return;
+
+    var task = values[0];
+    var weather = values[1];
+    var market = values[2];
+    var general = values[3];
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      NotificationText.settingsTitle,
+                      style: TextStyle(
+                        color: colors.onBackground,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: _settingsTitle(NotificationText.settingsTaskReminders),
+                      value: task,
+                      onChanged: (v) async {
+                        setModalState(() => task = v);
+                        await settings.setTaskReminders(v);
+                      },
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: _settingsTitle(NotificationText.settingsWeatherAlerts),
+                      value: weather,
+                      onChanged: (v) async {
+                        setModalState(() => weather = v);
+                        await settings.setWeatherAlerts(v);
+                      },
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: _settingsTitle(NotificationText.settingsMarketUpdates),
+                      value: market,
+                      onChanged: (v) async {
+                        setModalState(() => market = v);
+                        await settings.setMarketUpdates(v);
+                      },
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: _settingsTitle(NotificationText.settingsGeneral),
+                      value: general,
+                      onChanged: (v) async {
+                        setModalState(() => general = v);
+                        await settings.setGeneralNotifications(v);
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _settingsTitle(String text) {
+    final colors = VidhAIColorsX(context);
+    return Text(
+      text,
+      style: TextStyle(
+        color: colors.onBackground,
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
   void _onNotificationTap(NotificationModel notification) async {
     await _markAsRead(notification);
     if (!mounted) return;
 
-    final deepLinkRoute =
-        NotificationService.getDeepLinkRoute(notification.deepLink);
+    final deepLinkRoute = NotificationLogic.deepLinkFor(
+        notification.deepLink, notification.category);
     Navigator.of(context).pop();
 
-    if (deepLinkRoute != null && mounted) {
-      Navigator.of(context).pushNamed(deepLinkRoute);
+    if (deepLinkRoute.isNotEmpty && mounted) {
+      if (deepLinkRoute == '/tasks') {
+        Navigator.of(context).pushNamed('/tasks');
+      } else {
+        Navigator.of(context).pushNamed(deepLinkRoute);
+      }
     }
   }
 
@@ -141,6 +250,11 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: colors.onSurfaceMuted, size: 20),
+            onPressed: _showSettings,
+            tooltip: NotificationText.settingsTitle,
+          ),
           if (_notifications.any((n) => !n.isRead))
             TextButton(
               onPressed: _markAllAsRead,

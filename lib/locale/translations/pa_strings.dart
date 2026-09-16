@@ -507,6 +507,36 @@ const Map<String, String> paStrings = {
   'notifications': 'ਸੂਚਨਾਵਾਂ',
   'notifications_empty_hint':
       'ਮੌਸਮ ਅਲਰਟ, ਬਾਜ਼ਾਰ ਅੱਪਡੇਟ ਅਤੇ AI ਸਿਫ਼ਾਰਸ਼ਾਂ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੀਆਂ।',
+  'notif_welcome_title': 'ਵਿਧਾਈ ਵਿੱਚ ਤੁਹਾਡਾ ਸੁਆਗਤ ਹੈ 🌱',
+  'notif_welcome_message':
+      'ਤੁਹਾਡਾ ਸਮਾਰਟ ਖੇਤੀ ਸਹਾਇਕ ਤਿਆਰ ਹੈ। ਆਓ ਮਿਲ ਕੇ ਵਧੀਆ ਖੇਤੀ ਕਰੀਏ।',
+  'notif_todo_updated_title': 'ਕਰਨ ਵਾਲੀਆਂ ਚੀਜ਼ਾਂ ਦੀ ਸੂਚੀ ਅੱਪਡੇਟ ਹੋਈ',
+  'notif_todo_updated_message':
+      '{farm} ਲਈ ਅੱਜ {count} ਕੰਮ ਤਿਆਰ ਹਨ। ਆਪਣਾ ਸਮਾਂ-ਸਾਰਣੀ ਵੇਖਣ ਲਈ ਟੈਪ ਕਰੋ।',
+  'notif_task_reminder_title': 'ਖੇਤੀ ਕੰਮ ਦੀ ਯਾਦ-ਦਿਵਾਈ',
+  'notif_weather_rain_title': 'ਮੌਸਮ ਚੇਤਾਵਨੀ 🌧️',
+  'notif_weather_rain_message':
+      'ਅੱਜ ਦੁਪਹਿਰ ਤੁਹਾਡੇ ਖੇਤ ਨੇੜੇ ਮੀਂਹ ਦੀ ਸੰਭਾਵਨਾ ਹੈ। ਛਿੜਕਾਅ ਮੁਲਤਵੀ ਕਰੋ।',
+  'notif_weather_heavy_rain_title': 'ਤੇਜ਼ ਮੀਂਹ ਚੇਤਾਵਨੀ ⛈️',
+  'notif_weather_heavy_rain_message':
+      'ਤੁਹਾਡੇ ਖੇਤ ਨੇੜੇ ਤੇਜ਼ ਮੀਂਹ ਦੀ ਸੰਭਾਵਨਾ ਹੈ। ਫ਼ਸਲ ਦੀ ਰੱਖਿਆ ਕਰੋ ਅਤੇ ਖੇਤੀ ਦਾ ਕੰਮ ਟਾਲੋ।',
+  'notif_weather_heat_title': 'ਉੱਚ ਤਾਪਮਾਨ ਚੇਤਾਵਨੀ ☀️',
+  'notif_weather_heat_message':
+      'ਅੱਜ ਉੱਚ ਤਾਪਮਾਨ ਦੀ ਸੰਭਾਵਨਾ ਹੈ। ਸਿੰਜਾਈ ਦੀ ਜਾਂਚ ਕਰੋ ਅਤੇ ਦੁਪਹਿਰ ਨੂੰ ਛਿੜਕਾਅ ਨਾ ਕਰੋ।',
+  'notif_weather_wind_title': 'ਤੇਜ਼ ਹਵਾ ਚੇਤਾਵਨੀ 💨',
+  'notif_weather_wind_message':
+      'ਤੁਹਾਡੇ ਖੇਤ ਨੇੜੇ ਤੇਜ਼ ਹਵਾ ਦੀ ਸੰਭਾਵਨਾ ਹੈ। ਸਹਾਰੇ ਅਤੇ ਆਵਰਣ ਸੁਰੱਖਿਅਤ ਕਰੋ।',
+  'notif_weather_humidity_title': 'ਰੋਗ ਜੋਖਮ ਚੇਤਾਵਨੀ 🌫️',
+  'notif_weather_humidity_message':
+      'ਉੱਚ ਨਮੀ ਕਾਰਨ ਰੋਗਾਂ ਦਾ ਜੋਖਮ ਵਧ ਸਕਦਾ ਹੈ। ਫ਼ੰਗਲ ਲਾਗ ਉੱਤੇ ਧਿਆਨ ਰੱਖੋ।',
+  'notif_market_update_title': 'ਬਾਜ਼ਾਰ ਅੱਪਡੇਟ 📈',
+  'notif_market_update_message':
+      '{commodity} ਤੁਹਾਡੇ ਬਾਜ਼ਾਰ ਵਿੱਚ ₹{price} ਭਾਅ ਉੱਤੇ ਉਪਲਬਧ ਹੈ।',
+  'notif_settings_title': 'ਸੂਚਨਾ ਸੈਟਿੰਗਾਂ',
+  'notif_settings_tasks': 'ਕੰਮ ਦੀਆਂ ਯਾਦ-ਦਿਵਾਈਆਂ',
+  'notif_settings_weather': 'ਮੌਸਮ ਚੇਤਾਵਨੀਆਂ',
+  'notif_settings_market': 'ਬਾਜ਼ਾਰ ਅੱਪਡੇਟ',
+  'notif_settings_general': 'ਆਮ ਵਿਧਾਈ ਸੂਚਨਾਵਾਂ',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'ਖੇਤਾਂ ਦੀ ਗਿਣਤੀ',
   'of_label': 'ਦਾ',

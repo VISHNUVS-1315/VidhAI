@@ -518,6 +518,36 @@ const Map<String, String> teStrings = {
   'notifications': 'నోటిఫికేషన్లు',
   'notifications_empty_hint':
       'వాతావరణ హెచ్చరికలు, మార్కెట్ నవీకరణలు మరియు AI సిఫార్సులు ఇక్కడ కనిపిస్తాయి.',
+  'notif_welcome_title': 'విధాయికి స్వాగతం 🌱',
+  'notif_welcome_message':
+      'మీ స్మార్ట్ వ్యవసాయ సహాయకుడు సిద్ధంగా ఉన్నారు. కలిసి మెరుగైన దిగుబడి పొందుదాం.',
+  'notif_todo_updated_title': 'చేయవలసిన పనుల జాబితా నవీకరించబడింది',
+  'notif_todo_updated_message':
+      '{farm} కోసం ఈరోజు {count} పనులు సిద్ధంగా ఉన్నాయి. మీ షెడ్యూల్ చూడటానికి నొక్కండి.',
+  'notif_task_reminder_title': 'పని రిమైండర్',
+  'notif_weather_rain_title': 'వాతావరణ హెచ్చరిక 🌧️',
+  'notif_weather_rain_message':
+      'మీ పొలం దగ్గర ఈ మధ్యాహ్నం వర్షం అవకాశం ఉంది. పిచికారీ ఆలస్యం చేయండి.',
+  'notif_weather_heavy_rain_title': 'భారీ వర్ష హెచ్చరిక ⛈️',
+  'notif_weather_heavy_rain_message':
+      'మీ పొలం దగ్గర భారీ వర్షం అవకాశం ఉంది. పంటను రక్షించండి, పొలం పనులను నివారించండి.',
+  'notif_weather_heat_title': 'అధిక ఉష్ణ హెచ్చరిక ☀️',
+  'notif_weather_heat_message':
+      'ఈరోజు అధిక ఉష్ణోగ్రత అవకాశం ఉంది. నీటిపారుదల తనిఖీ చేసి మధ్యాహ్నం పిచికారీ మానండి.',
+  'notif_weather_wind_title': 'బలమైన గాలి హెచ్చరిక 💨',
+  'notif_weather_wind_message':
+      'మీ పొలం దగ్గర బలమైన గాలులు అవకాశం ఉన్నాయి. ఆధారాలు భద్రపరచండి.',
+  'notif_weather_humidity_title': 'వ్యాధి ప్రమాద హెచ్చరిక 🌫️',
+  'notif_weather_humidity_message':
+      'అధిక తేమ వ్యాధి ప్రమాదాన్ని పెంచుతుంది. శిలీంధ్ర సోకులపై గమనించండి.',
+  'notif_market_update_title': 'మార్కెట్ నవీకరణ 📈',
+  'notif_market_update_message':
+      '{commodity} మీ మార్కెట్ వద్ద ₹{price} ధరలో ఉంది.',
+  'notif_settings_title': 'నోటిఫికేషన్ సెట్టింగులు',
+  'notif_settings_tasks': 'పని రిమైండర్లు',
+  'notif_settings_weather': 'వాతావరణ హెచ్చరికలు',
+  'notif_settings_market': 'మార్కెట్ నవీకరణలు',
+  'notif_settings_general': 'సాధారణ విధాయి నోటిఫికేషన్లు',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'పొలాల సంఖ్య',
   'of_label': 'లో',

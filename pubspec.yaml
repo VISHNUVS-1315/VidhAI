@@ -24,6 +24,12 @@ dependencies:
   # Local Storage
   shared_preferences: ^2.2.2
 
+  # System notifications (local) + scheduling
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+  flutter_timezone: ^4.0.0
+  workmanager: ^0.10.10
+
   # Connectivity
   connectivity_plus: ^6.0.1
 

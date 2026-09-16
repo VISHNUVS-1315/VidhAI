@@ -512,6 +512,36 @@ const Map<String, String> urStrings = {
   'notifications': 'اطلاعات',
   'notifications_empty_hint':
       'موسمی الرٹس، بازاری اپ ڈیٹس، اور AI سفارشات یہاں ظاہر ہوں گی۔',
+  'notif_welcome_title': 'ودھائی میں خوش آمدید 🌱',
+  'notif_welcome_message':
+      'آپ کا اسمارٹ کاشتکاری معاون تیار ہے۔ آئیے مل کر بہتر کاشتکاری کریں۔',
+  'notif_todo_updated_title': 'کاموں کی فہرست اپ ڈیٹ ہوئی',
+  'notif_todo_updated_message':
+      '{farm} کے لیے آج {count} کام تیار ہیں۔ اپنا شیڈول دیکھنے کے لیے ٹیپ کریں۔',
+  'notif_task_reminder_title': 'کاشتکاری کام کی یاد دہانی',
+  'notif_weather_rain_title': 'موسمی الرٹ 🌧️',
+  'notif_weather_rain_message':
+      'آج دوپہر آپ کے کھیت کے قریب بارش کا امکان ہے۔ اسپرے ملتوی کریں۔',
+  'notif_weather_heavy_rain_title': 'شدید بارش الرٹ ⛈️',
+  'notif_weather_heavy_rain_message':
+      'آپ کے کھیت کے قریب شدید بارش کا امکان ہے۔ فصل کی حفاظت کریں اور کھیتی کا کام ٹالیں۔',
+  'notif_weather_heat_title': 'بلند درجہ حرارت الرٹ ☀️',
+  'notif_weather_heat_message':
+      'آج بلند درجہ حرارت کا امکان ہے۔ آبپاشی چیک کریں اور دوپہر اسپرے نہ کریں۔',
+  'notif_weather_wind_title': 'تیز ہوا الرٹ 💨',
+  'notif_weather_wind_message':
+      'آپ کے کھیت کے قریب تیز ہوا کا امکان ہے۔ سہارے اور چھپاؤ محفوظ کریں۔',
+  'notif_weather_humidity_title': 'بیماری خطرہ الرٹ 🌫️',
+  'notif_weather_humidity_message':
+      'زیادہ نمی بیماری کا خطرہ بڑھا سکتی ہے۔ فنگس کی بیماریوں پر نظر رکھیں۔',
+  'notif_market_update_title': 'بازار اپ ڈیٹ 📈',
+  'notif_market_update_message':
+      '{commodity} آپ کے بازار میں ₹{price} قیمت پر دستیاب ہے۔',
+  'notif_settings_title': 'اطلاعات کی سیٹنگز',
+  'notif_settings_tasks': 'کاموں کی یاد دہانیاں',
+  'notif_settings_weather': 'موسمی الرٹس',
+  'notif_settings_market': 'بازار اپ ڈیٹس',
+  'notif_settings_general': 'عمومی ودھائی اطلاعات',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'فارم کی تعداد',
   'of_label': 'کا',

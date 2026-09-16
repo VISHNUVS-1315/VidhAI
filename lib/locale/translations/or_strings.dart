@@ -516,6 +516,36 @@ const Map<String, String> orStrings = {
   'notifications': 'ବିଜ୍ଞପ୍ତି',
   'notifications_empty_hint':
       'ପାଗ ଚେତାବନୀ, ବଜାର ଅପଡେଟ୍, ଏବଂ AI ସୁପାରିଶ ଏଠାରେ ଦେଖାଯିବ।',
+  'notif_welcome_title': 'ଭିଧାଇରେ ସ୍ୱାଗତ 🌱',
+  'notif_welcome_message':
+      'ଆପଣଙ୍କ ସ୍ମାର୍ଟ କୃଷି ସହାୟକ ପ୍ରସ୍ତୁତ। ଆସନ୍ତୁ ଏକାଠି ଭଲ ଚାଷ କରିବା।',
+  'notif_todo_updated_title': 'କରିବା ତାଲିକା ଅପଡେଟ ହେଲା',
+  'notif_todo_updated_message':
+      '{farm} ପାଇଁ ଆଜି {count} ଟି କାର୍ଯ୍ୟ ପ୍ରସ୍ତୁତ। ଆପଣଙ୍କ ସମୟସୂଚୀ ଦେଖିବାକୁ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
+  'notif_task_reminder_title': 'କୃଷି କାର୍ଯ୍ୟ ରିମାଇଣ୍ଡର',
+  'notif_weather_rain_title': 'ପାଗ ଚେତାବନୀ 🌧️',
+  'notif_weather_rain_message':
+      'ଆଜି ଅପରାହ୍ନରେ ଆପଣଙ୍କ ଖେତ ନିକଟରେ ବର୍ଷା ସମ୍ଭାବନା। ସ୍ପ୍ରେ ବିଳମ୍ବ କରନ୍ତୁ।',
+  'notif_weather_heavy_rain_title': 'ପ୍ରବଳ ବର୍ଷା ଚେତାବନୀ ⛈️',
+  'notif_weather_heavy_rain_message':
+      'ଆପଣଙ୍କ ଖେତ ନିକଟରେ ପ୍ରବଳ ବର୍ଷା ସମ୍ଭାବନା। ଫସଲ ରକ୍ଷା କରନ୍ତୁ ଏବଂ ଖେତରେ କାମ ଏଡ଼ାନ୍ତୁ।',
+  'notif_weather_heat_title': 'ଉଚ୍ଚ ତାପମାତ୍ରା ଚେତାବନୀ ☀️',
+  'notif_weather_heat_message':
+      'ଆଜି ଉଚ୍ଚ ତାପମାତ୍ରା ସମ୍ଭାବନା। ସିଞ୍ଚନ ଯାଞ୍ଚ କରନ୍ତୁ ଏବଂ ଅପରାହ୍ନରେ ସ୍ପ୍ରେ ଏଡ଼ାନ୍ତୁ।',
+  'notif_weather_wind_title': 'ପ୍ରବଳ ପବନ ଚେତାବନୀ 💨',
+  'notif_weather_wind_message':
+      'ଆପଣଙ୍କ ଖେତ ନିକଟରେ ପ୍ରବଳ ପବନ ସମ୍ଭାବନା। ସହାୟକ ଓ ଆଚ୍ଛାଦନ ସୁରକ୍ଷିତ କରନ୍ତୁ।',
+  'notif_weather_humidity_title': 'ରୋଗ ବିପଦ ଚେତାବନୀ 🌫️',
+  'notif_weather_humidity_message':
+      'ଉଚ୍ଚ ଆର୍ଦ୍ରତା ରୋଗ ବିପଦ ବଢ଼ାଇପାରେ। ଛତୁ ସଂକ୍ରମଣ ପ୍ରତି ଧ୍ୟାନ ଦିଅନ୍ତୁ।',
+  'notif_market_update_title': 'ବଜାର ଅପଡେଟ 📈',
+  'notif_market_update_message':
+      '{commodity} ଆପଣଙ୍କ ବଜାରରେ ₹{price} ମୂଲ୍ୟରେ ଉପଲବ୍ଧ।',
+  'notif_settings_title': 'ବିଜ୍ଞପ୍ତି ସେଟିଂସ୍',
+  'notif_settings_tasks': 'କାର୍ଯ୍ୟ ରିମାଇଣ୍ଡର',
+  'notif_settings_weather': 'ପାଗ ଚେତାବନୀ',
+  'notif_settings_market': 'ବଜାର ଅପଡେଟ',
+  'notif_settings_general': 'ସାଧାରଣ ଭିଧାଇ ବିଜ୍ଞପ୍ତି',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'ଖେତ ସଂଖ୍ୟା',
   'of_label': 'ରୁ',

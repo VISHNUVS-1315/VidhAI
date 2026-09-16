@@ -520,6 +520,36 @@ const Map<String, String> bnStrings = {
   'notifications': 'বিজ্ঞপ্তি',
   'notifications_empty_hint':
       'আবহাওয়ার সতর্কতা, বাজারের আপডেট এবং AI সুপারিশ এখানে দেখা যাবে।',
+  'notif_welcome_title': 'ভিধায় আপনাকে স্বাগতম 🌱',
+  'notif_welcome_message':
+      'আপনার স্মার্ট কৃষি সহায়ক প্রস্তুত। আসুন মিলে আরও ভালো চাষ করি।',
+  'notif_todo_updated_title': 'করণীয় তালিকা আপডেট হয়েছে',
+  'notif_todo_updated_message':
+      '{farm} এর জন্য আজ {count} টি কাজ প্রস্তুত। আপনার সময়সূচি দেখতে ট্যাপ করুন।',
+  'notif_task_reminder_title': 'কৃষি কাজের রিমাইন্ডার',
+  'notif_weather_rain_title': 'আবহাওয়া সতর্কতা 🌧️',
+  'notif_weather_rain_message':
+      'আজ বিকেলে আপনার খামারের কাছে বৃষ্টির সম্ভাবনা। স্প্রে করা বিলম্বিত করুন।',
+  'notif_weather_heavy_rain_title': 'ভারী বৃষ্টি সতর্কতা ⛈️',
+  'notif_weather_heavy_rain_message':
+      'আপনার খামারের কাছে ভারী বৃষ্টির সম্ভাবনা। ফসল রক্ষা করুন এবং মাঠের কাজ এড়িয়ে চলুন।',
+  'notif_weather_heat_title': 'উচ্চ তাপমাত্রা সতর্কতা ☀️',
+  'notif_weather_heat_message':
+      'আজ উচ্চ তাপমাত্রা প্রত্যাশিত। সেচ পরীক্ষা করুন এবং দুপুরে স্প্রে করা এড়িয়ে চলুন।',
+  'notif_weather_wind_title': 'প্রবল বাতাস সতর্কতা 💨',
+  'notif_weather_wind_message':
+      'আপনার খামারের কাছে প্রবল বাতাস প্রত্যাশিত। সহায়ক ও আচ্ছাদন সুরক্ষিত করুন।',
+  'notif_weather_humidity_title': 'রোগ ঝুঁকি সতর্কতা 🌫️',
+  'notif_weather_humidity_message':
+      'উচ্চ আর্দ্রতা রোগের ঝুঁকি বাড়াতে পারে। ছত্রাক সংক্রমণ লক্ষ্য করুন।',
+  'notif_market_update_title': 'বাজার আপডেট 📈',
+  'notif_market_update_message':
+      '{commodity} আপনার বাজারে ₹{price} দামে পাওয়া যাচ্ছে।',
+  'notif_settings_title': 'বিজ্ঞপ্তি সেটিংস',
+  'notif_settings_tasks': 'কাজের রিমাইন্ডার',
+  'notif_settings_weather': 'আবহাওয়ার সতর্কতা',
+  'notif_settings_market': 'বাজারের আপডেট',
+  'notif_settings_general': 'সাধারণ ভিধায় বিজ্ঞপ্তি',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'খামারের সংখ্যা',
   'of_label': 'এর মধ্যে',

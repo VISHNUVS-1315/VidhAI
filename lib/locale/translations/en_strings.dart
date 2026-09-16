@@ -508,6 +508,36 @@ Map<String, String> enStrings = {
   'notifications': 'Notifications',
   'notifications_empty_hint':
       'Weather alerts, market updates and AI recommendations will appear here.',
+  'notif_welcome_title': 'Welcome to VidhAI 🌱',
+  'notif_welcome_message':
+      'Your smart farming assistant is ready. Let’s grow better together.',
+  'notif_todo_updated_title': 'To-Do List Updated',
+  'notif_todo_updated_message':
+      '{count} tasks are ready for {farm} today. Tap to view your schedule.',
+  'notif_task_reminder_title': 'Farm Task Reminder',
+  'notif_weather_rain_title': 'Weather Alert 🌧️',
+  'notif_weather_rain_message':
+      'Rain is expected near your farm this afternoon. Consider delaying spraying.',
+  'notif_weather_heavy_rain_title': 'Heavy Rain Alert ⛈️',
+  'notif_weather_heavy_rain_message':
+      'Heavy rain is expected near your farm. Protect your crop and avoid field work.',
+  'notif_weather_heat_title': 'High Temperature Alert ☀️',
+  'notif_weather_heat_message':
+      'High temperature is expected today. Check irrigation and avoid midday spraying.',
+  'notif_weather_wind_title': 'Strong Wind Alert 💨',
+  'notif_weather_wind_message':
+      'Strong winds are expected near your farm. Secure supports and spray shelters.',
+  'notif_weather_humidity_title': 'Disease Risk Alert 🌫️',
+  'notif_weather_humidity_message':
+      'High humidity may increase disease risk. Watch for fungal infections.',
+  'notif_market_update_title': 'Market Update 📈',
+  'notif_market_update_message':
+      '{commodity} is at ₹{price} near your market.',
+  'notif_settings_title': 'Notification Settings',
+  'notif_settings_tasks': 'Task reminders',
+  'notif_settings_weather': 'Weather alerts',
+  'notif_settings_market': 'Market updates',
+  'notif_settings_general': 'General VidhAI notifications',
   'npk_prefix': 'NPK:',
   'number_of_farms': 'Number of farms',
   'of_label': 'of',
