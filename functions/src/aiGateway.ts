@@ -3,6 +3,7 @@ import {
   NvidiaChatMessage,
   ToolSpec,
   buildSystemPrompt,
+  groqProvider,
   llmPost,
   llmPostStream,
   nvidiaProvider,
@@ -53,6 +54,14 @@ export const AI_MODELS: AiModelConfig = {
   creative:
     process.env.AI_MODEL_CREATIVE ?? 'nvidia/nemotron-3-ultra-550b-a55b',
 };
+
+// App text chat is intentionally isolated on Groq for low time-to-first-token.
+// Other VidhAI AI workloads (crop reasoning, vision, safety) remain on NVIDIA.
+export const AI_CHAT_MODEL =
+  process.env.AI_CHAT_MODEL ?? 'openai/gpt-oss-20b';
+const AI_CHAT_REASONING_EFFORT =
+  process.env.AI_CHAT_REASONING_EFFORT ?? 'low';
+const GROQ_CHAT_TIMEOUT_MS = Number(process.env.GROQ_CHAT_TIMEOUT_MS ?? 30_000);
 
 function activeModelFor(tier: AiTier): string {
   return AI_MODELS[tier];
@@ -116,6 +125,17 @@ function providerFor(tier: AiTier) {
   }
 }
 
+function chatProvider() {
+  try {
+    return groqProvider(AI_CHAT_MODEL);
+  } catch {
+    throw new AiGatewayError(
+      'no_key',
+      'GROQ_API_KEY is not configured on the server.',
+    );
+  }
+}
+
 function fallbackChainFor(tier: AiTier): AiTier[] {
   const seen = new Set<string>();
   return (FALLBACK_CHAINS[tier] ?? [tier]).filter((candidate) => {
@@ -141,13 +161,13 @@ function classifyError(e: unknown): AiGatewayError {
   if (status === 429) {
     return new AiGatewayError(
       'rate_limited',
-      'The NVIDIA AI service is rate-limiting requests right now.',
+      'The AI service is rate-limiting requests right now.',
     );
   }
   if (status) {
     return new AiGatewayError(
       'http',
-      `NVIDIA AI service returned HTTP ${status}.`,
+      `AI service returned HTTP ${status}.`,
     );
   }
   const code = err?.code ?? '';
@@ -155,7 +175,7 @@ function classifyError(e: unknown): AiGatewayError {
   if (code === 'ECONNABORTED' || /timeout/i.test(message)) {
     return new AiGatewayError(
       'timeout',
-      'The NVIDIA AI service took too long to respond.',
+      'The AI service took too long to respond.',
     );
   }
   if (
@@ -164,9 +184,9 @@ function classifyError(e: unknown): AiGatewayError {
     code === 'ECONNRESET' ||
     code === 'EAI_AGAIN'
   ) {
-    return new AiGatewayError('network', 'Could not reach the NVIDIA AI service.');
+    return new AiGatewayError('network', 'Could not reach the AI service.');
   }
-  return new AiGatewayError('unknown', 'NVIDIA AI request failed.');
+  return new AiGatewayError('unknown', 'AI request failed.');
 }
 
 function isRetryable(e: AiGatewayError): boolean {
@@ -202,7 +222,7 @@ export async function runWithFallback<T>(
   const chain = fallbackChainFor(tier);
   const triedTiers: AiTier[] = [];
   let retries = 0;
-  let lastError = new AiGatewayError('unknown', 'NVIDIA AI request failed.');
+  let lastError = new AiGatewayError('unknown', 'AI request failed.');
 
   for (const t of chain) {
     triedTiers.push(t);
@@ -587,15 +607,13 @@ export async function chatWithRouter(
     content: string;
     toolCalls: NvidiaChatMessage['tool_calls'] | null;
   }>(tier, async (candidateTier) => {
-    const provider = providerFor(candidateTier);
+    const provider = chatProvider();
     const body: Record<string, unknown> = {
       model: provider.model,
       messages,
       temperature: 0.4,
-      max_tokens: TIER_MAX_TOKENS[candidateTier],
-      // Nemotron reasoning is enabled by default. VidhAI must render only the
-      // user-facing answer, never the model's private reasoning trace.
-      chat_template_kwargs: { enable_thinking: false },
+      max_completion_tokens: TIER_MAX_TOKENS[candidateTier],
+      reasoning_effort: AI_CHAT_REASONING_EFFORT,
     };
     if (opts.tools?.length) body.tools = opts.tools;
 
@@ -603,7 +621,7 @@ export async function chatWithRouter(
       '/chat/completions',
       body,
       provider,
-      { timeout: TIER_TIMEOUT_MS[candidateTier] },
+      { timeout: GROQ_CHAT_TIMEOUT_MS },
     );
     const extracted = extractChoice(data);
     if (!extracted.content && !extracted.toolCalls) {
@@ -697,18 +715,13 @@ export async function chatWithRouterStream(
     content: string;
     toolCalls: NvidiaChatMessage['tool_calls'] | null;
   }>(tier, async (candidateTier) => {
-    const provider = providerFor(candidateTier);
+    const provider = chatProvider();
     const body: Record<string, unknown> = {
       model: provider.model,
       messages,
       temperature: 0.4,
-      max_tokens: TIER_MAX_TOKENS[candidateTier],
-      // Nemotron reasoning is enabled by default. Keep it off for app chat so
-      // the stream contains only the user-facing answer and starts faster.
-      chat_template_kwargs: { enable_thinking: false },
-      // NVIDIA's OpenAI-compatible endpoint only emits SSE token deltas when
-      // the request body explicitly sets stream=true. Accept headers alone are
-      // not sufficient and otherwise the backend waits for a full JSON reply.
+      max_completion_tokens: TIER_MAX_TOKENS[candidateTier],
+      reasoning_effort: AI_CHAT_REASONING_EFFORT,
       stream: true,
     };
     if (opts.tools?.length) body.tools = opts.tools;
@@ -726,7 +739,7 @@ export async function chatWithRouterStream(
           }
           onDelta(content);
         },
-        { timeout: TIER_TIMEOUT_MS[candidateTier] },
+        { timeout: GROQ_CHAT_TIMEOUT_MS },
       );
       if (!result.content && !result.toolCalls) {
         throw new AiGatewayError(
