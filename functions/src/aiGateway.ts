@@ -471,6 +471,7 @@ export async function classifyIntent(
         ],
         temperature: 0,
         max_tokens: 300,
+        chat_template_kwargs: { enable_thinking: false },
         response_format: { type: 'json_object' },
       },
       provider,
@@ -592,6 +593,9 @@ export async function chatWithRouter(
       messages,
       temperature: 0.4,
       max_tokens: TIER_MAX_TOKENS[candidateTier],
+      // Nemotron reasoning is enabled by default. VidhAI must render only the
+      // user-facing answer, never the model's private reasoning trace.
+      chat_template_kwargs: { enable_thinking: false },
     };
     if (opts.tools?.length) body.tools = opts.tools;
 
@@ -699,6 +703,9 @@ export async function chatWithRouterStream(
       messages,
       temperature: 0.4,
       max_tokens: TIER_MAX_TOKENS[candidateTier],
+      // Nemotron reasoning is enabled by default. Keep it off for app chat so
+      // the stream contains only the user-facing answer and starts faster.
+      chat_template_kwargs: { enable_thinking: false },
       // NVIDIA's OpenAI-compatible endpoint only emits SSE token deltas when
       // the request body explicitly sets stream=true. Accept headers alone are
       // not sufficient and otherwise the backend waits for a full JSON reply.
@@ -836,6 +843,7 @@ export async function visionAnalyze(
           messages: [{ role: 'user', content: parts }],
           temperature: 0.3,
           max_tokens: 4096,
+          chat_template_kwargs: { enable_thinking: false },
         },
         provider,
         { timeout: TIER_TIMEOUT_MS[tier] },
@@ -898,6 +906,7 @@ export async function moderateText(
         ],
         temperature: 0,
         max_tokens: 60,
+        chat_template_kwargs: { enable_thinking: false },
       },
       provider,
       { timeout: TIER_TIMEOUT_MS.safety },
