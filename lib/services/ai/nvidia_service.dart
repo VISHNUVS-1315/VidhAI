@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../../models/ai/ai_message.dart';
 import 'secure_api_client.dart';
 
-/// Tool/function request returned by the NVIDIA model router.
+/// Tool/function request returned by the backend chat model.
 class NvidiaToolCall {
   final String id;
   final String functionName;
@@ -19,7 +19,7 @@ class NvidiaToolCall {
   });
 }
 
-/// Normalized NVIDIA chat response used by the app orchestrator.
+/// Normalized backend chat response used by the app orchestrator.
 class NvidiaChatResult {
   final bool success;
   final String content;
@@ -41,7 +41,7 @@ class NvidiaChatResult {
 /// Single production AI client.
 ///
 /// The Flutter app never stores an AI key. Every request goes through the
-/// authenticated VidhAI Render backend, which routes only to NVIDIA models.
+/// authenticated VidhAI Render backend. App text chat is served by Groq.
 class NvidiaService {
   NvidiaService._();
   static final NvidiaService instance = NvidiaService._();
@@ -143,7 +143,7 @@ class NvidiaService {
       if (json['success'] != true) {
         return NvidiaChatResult(
           success: false,
-          error: (json['error'] as String?) ?? 'NVIDIA AI service unavailable.',
+          error: (json['error'] as String?) ?? 'AI service unavailable.',
         );
       }
 
@@ -172,7 +172,7 @@ class NvidiaService {
     } catch (e) {
       return NvidiaChatResult(
         success: false,
-        error: 'NVIDIA AI request failed: ${e.runtimeType}',
+        error: 'AI request failed: ${e.runtimeType}',
       );
     }
   }
@@ -233,7 +233,7 @@ class NvidiaService {
       if (event.containsKey('error')) {
         finish(NvidiaChatResult(
           success: false,
-          error: (event['error'] as String?) ?? 'NVIDIA AI service unavailable.',
+          error: (event['error'] as String?) ?? 'AI service unavailable.',
         ));
       }
     }
@@ -269,7 +269,7 @@ class NvidiaService {
             success: false,
             error: error is SecureApiException
                 ? error.message
-                : 'NVIDIA AI request failed: ${error.runtimeType}',
+                : 'AI request failed: ${error.runtimeType}',
           )),
         ),
       );
