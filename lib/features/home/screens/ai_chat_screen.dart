@@ -165,7 +165,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   String _polishResponse(String raw) {
     var text = raw.trim();
-    text = text.replaceAll(RegExp(r'\*\*([^*]+)\*\*'), r'$1');
+    // String.replaceAll does not expand regex capture groups in the
+    // replacement string, which previously rendered literal "$1" in chat.
+    text = text.replaceAllMapped(
+      RegExp(r'\*\*([^*]+)\*\*'),
+      (match) => match.group(1) ?? '',
+    );
     text = text.replaceAll(RegExp(r'^#{1,6}\s*', multiLine: true), '');
     text = text.replaceAll(RegExp(r'^\s*[-*+]\s+', multiLine: true), '• ');
     text = text.replaceAll(RegExp(r'^•\s?$', multiLine: true), '');
