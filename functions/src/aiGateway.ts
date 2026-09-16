@@ -61,7 +61,7 @@ function activeModelFor(tier: AiTier): string {
 const TIER_TIMEOUT_MS: Record<AiTier, number> = {
   main: 240_000,
   general: 60_000,
-  fast: 45_000,
+  fast: 30_000,
   vision: 120_000,
   safety: 60_000,
   creative: 240_000,
@@ -82,7 +82,7 @@ const TIER_MAX_RETRIES: Record<AiTier, number> = {
 const TIER_MAX_TOKENS: Record<AiTier, number> = {
   main: 4096,
   general: 1024,
-  fast: 512,
+  fast: 384,
   vision: 4096,
   safety: 60,
   creative: 4096,
@@ -95,7 +95,9 @@ const MAX_HISTORY_MESSAGES = 8;
 const FALLBACK_CHAINS: Record<AiTier, AiTier[]> = {
   main: ['main', 'general'],
   general: ['general', 'main'],
-  fast: ['fast', 'main'],
+  // Keep simple requests on Lightning only. Falling back to Ultra after a
+  // fast-tier slowdown makes a short chat feel dramatically slower.
+  fast: ['fast'],
   vision: ['vision', 'main'],
   safety: ['safety'],
   creative: ['creative', 'general'],
