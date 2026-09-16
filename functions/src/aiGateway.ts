@@ -97,6 +97,33 @@ const TIER_MAX_TOKENS: Record<AiTier, number> = {
   creative: 4096,
 };
 
+// Default ceiling for chat answers: short, farmer-friendly replies. Longer
+// output is allowed only when the farmer explicitly asks for details.
+const SHORT_ANSWER_MAX_TOKENS = 250;
+
+/** True when the latest user turn asks for an in-depth / detailed reply. */
+function asksForDetails(userText: string): boolean {
+  const lower = ` ${userText.trim().toLowerCase()} `;
+  return (
+    lower.includes('details') ||
+    lower.includes(' detail') ||
+    lower.includes('explain') ||
+    lower.includes('more information') ||
+    lower.includes('elaborate') ||
+    lower.includes('in depth') ||
+    lower.includes('in-depth') ||
+    lower.includes('tell me more') ||
+    lower.includes('expand')
+  );
+}
+
+/** Output cap for a chat generation: short by default, full budget on demand. */
+function chatMaxTokens(tier: AiTier, userText: string): number {
+  return asksForDetails(userText)
+    ? TIER_MAX_TOKENS[tier]
+    : Math.min(TIER_MAX_TOKENS[tier], SHORT_ANSWER_MAX_TOKENS);
+}
+
 // Keep only the last N non-system messages so prompt size (and therefore
 // NVIDIA latency) stays bounded across long conversations.
 const MAX_HISTORY_MESSAGES = 8;
@@ -309,8 +336,10 @@ function trimHistory(
 
 /** Extra system instruction for the fast tier: brevity without losing intent. */
 const FAST_BRIEF_PROMPT =
-  '\nKeep answers brief: for simple questions respond concisely in 1-4 short, ' +
-  'practical sentences, and go into more detail only when the farmer explicitly asks for it.';
+  '\nKeep answers brief and farmer-friendly: default to a maximum of 2-4 short ' +
+  'sentences or 3-5 short bullet points. Give the key fact and the immediate ' +
+  'action first. Do not repeat the question and do not add closing filler ' +
+  'lines. Go into more detail only when the farmer explicitly asks for it.';
 
 function buildChatMessages(
   opts: ChatRouterOptions,
@@ -612,7 +641,7 @@ export async function chatWithRouter(
       model: provider.model,
       messages,
       temperature: 0.4,
-      max_completion_tokens: TIER_MAX_TOKENS[candidateTier],
+max_completion_tokens: chatMaxTokens(candidateTier, userText),
       reasoning_effort: AI_CHAT_REASONING_EFFORT,
     };
     if (opts.tools?.length) body.tools = opts.tools;
@@ -720,7 +749,7 @@ export async function chatWithRouterStream(
       model: provider.model,
       messages,
       temperature: 0.4,
-      max_completion_tokens: TIER_MAX_TOKENS[candidateTier],
+      max_completion_tokens: chatMaxTokens(candidateTier, userText),
       reasoning_effort: AI_CHAT_REASONING_EFFORT,
       stream: true,
     };
