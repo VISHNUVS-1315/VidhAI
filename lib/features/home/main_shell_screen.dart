@@ -122,17 +122,29 @@ class _MainShellScreenState extends State<MainShellScreen> {
         ),
       ),
       child: SafeArea(
+        top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_rounded, loc.home,
-                  badge: _unreadCount),
-              _buildNavItem(1, Icons.landscape_rounded, loc.farm),
-              _buildCenterButton(),
-              _buildNavItem(3, Icons.build_rounded, loc.tools),
-              _buildNavItem(4, Icons.person_rounded, loc.account),
+              Expanded(
+                child: _buildNavItem(
+                  0,
+                  Icons.home_rounded,
+                  loc.home,
+                  badge: _unreadCount,
+                ),
+              ),
+              Expanded(
+                child: _buildNavItem(1, Icons.landscape_rounded, loc.farm),
+              ),
+              Expanded(child: _buildCenterButton()),
+              Expanded(
+                child: _buildNavItem(3, Icons.build_rounded, loc.tools),
+              ),
+              Expanded(
+                child: _buildNavItem(4, Icons.person_rounded, loc.account),
+              ),
             ],
           ),
         ),
@@ -150,8 +162,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
         if (index == 0) _loadConsole();
       },
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 60,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -168,13 +180,17 @@ class _MainShellScreenState extends State<MainShellScreen> {
                     end: -6,
                     top: -4,
                     child: Container(
-                      padding: const EdgeInsets.all(4),
+                      constraints:
+                          const BoxConstraints(minWidth: 16, minHeight: 16),
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.all(3),
                       decoration: const BoxDecoration(
                         color: Color(0xFFEF4444),
                         shape: BoxShape.circle,
                       ),
                       child: Text(
                         badge > 99 ? '99+' : '$badge',
+                        maxLines: 1,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 8,
@@ -187,12 +203,18 @@ class _MainShellScreenState extends State<MainShellScreen> {
               ],
             ),
             const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? colors.brandDeep : colors.onSurfaceMuted,
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            SizedBox(
+              width: double.infinity,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isSelected ? colors.brandDeep : colors.onSurfaceMuted,
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
               ),
             ),
           ],
@@ -203,30 +225,32 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   Widget _buildCenterButton() {
     final colors = VidhAIColorsX(context);
-    return GestureDetector(
-      onTap: () => _shell.switchTab(MainShellController.indexAi),
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [colors.brand, colors.brandDeep],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: colors.brand.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    return Center(
+      child: GestureDetector(
+        onTap: () => _shell.switchTab(MainShellController.indexAi),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [colors.brand, colors.brandDeep],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
-        ),
-        child: Icon(
-          Icons.auto_awesome,
-          color: colors.isDark ? Colors.white : colors.bg,
-          size: 22,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: colors.brand.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(
+            Icons.auto_awesome,
+            color: colors.isDark ? Colors.white : colors.bg,
+            size: 22,
+          ),
         ),
       ),
     );
