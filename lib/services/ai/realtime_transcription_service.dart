@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'device_speech_service.dart';
 
-/// High-level state of the AI Live on-device transcription session.
+/// High-level state of the AI Live transcription session.
 enum AiLiveState {
   idle,
   connecting,
@@ -15,7 +15,7 @@ enum AiLiveState {
   error,
 }
 
-/// Categorised failure reasons shown by the existing AI Live UI.
+/// Categorised failure reasons shown by the AI Live UI.
 enum AiLiveErrorKind {
   none,
   noInternet,
@@ -34,14 +34,16 @@ enum AiLiveErrorKind {
 
 enum AiLiveOutcome { started, alreadyRunning, failed }
 
-/// Realtime speech-to-text for AI Live using the phone's platform speech
-/// recognizer. No external STT provider, WebSocket, or API key is required.
+/// Realtime speech-to-text for AI Live using the platform recognizer.
+/// Partial transcript changes are forwarded immediately and recognition
+/// confidence is exposed when Android/iOS provides a confidence score.
 class RealtimeTranscriptionService extends ChangeNotifier {
   RealtimeTranscriptionService({DeviceSpeechService? speech})
       : _speech = speech ?? DeviceSpeechService.instance;
 
   final DeviceSpeechService _speech;
   StreamSubscription<String>? _transcriptSub;
+  StreamSubscription<double>? _confidenceSub;
 
   AiLiveState _state = AiLiveState.idle;
   AiLiveErrorKind _errorKind = AiLiveErrorKind.none;
@@ -51,6 +53,7 @@ class RealtimeTranscriptionService extends ChangeNotifier {
   bool _running = false;
   bool _micActive = false;
   String _languageCode = 'en';
+  double? _confidence;
 
   AiLiveState get state => _state;
   AiLiveErrorKind get errorKind => _errorKind;
@@ -61,6 +64,7 @@ class RealtimeTranscriptionService extends ChangeNotifier {
   bool get isRunning => _running;
   bool get hasTranscript => _liveTranscript.trim().isNotEmpty;
   bool get isMicActive => _micActive;
+  double? get confidence => _confidence;
 
   static bool isLanguageSupported(String? languageCode) {
     const supported = {
@@ -93,6 +97,7 @@ class RealtimeTranscriptionService extends ChangeNotifier {
     _errorDetail = '';
     _liveTranscript = '';
     _completedTranscript = '';
+    _confidence = null;
     _setState(AiLiveState.connecting);
 
     if (!await _speech.hasPermission()) {
@@ -101,6 +106,8 @@ class RealtimeTranscriptionService extends ChangeNotifier {
     }
 
     await _transcriptSub?.cancel();
+    await _confidenceSub?.cancel();
+
     _transcriptSub = _speech.onTranscript.listen((text) {
       if (!_running) return;
       _liveTranscript = text.trim();
@@ -110,8 +117,13 @@ class RealtimeTranscriptionService extends ChangeNotifier {
       notifyListeners();
     });
 
-    final started =
-        await _speech.startRecording(language: _languageCode);
+    _confidenceSub = _speech.onConfidence.listen((value) {
+      if (!_running || value <= 0) return;
+      _confidence = value.clamp(0.0, 1.0);
+      notifyListeners();
+    });
+
+    final started = await _speech.startRecording(language: _languageCode);
     if (!started) {
       _fail(AiLiveErrorKind.micUnavailable);
       return AiLiveOutcome.failed;
@@ -130,12 +142,12 @@ class RealtimeTranscriptionService extends ChangeNotifier {
     }
     _setState(AiLiveState.processing);
     _micActive = false;
-    final result =
-        await _speech.stopAndTranscribe(language: _languageCode);
+    final result = await _speech.stopAndTranscribe(language: _languageCode);
     _running = false;
     if (result.success && (result.text ?? '').trim().isNotEmpty) {
       _liveTranscript = result.text!.trim();
       _completedTranscript = _liveTranscript;
+      _confidence ??= _speech.latestConfidence;
     } else if (_liveTranscript.trim().isEmpty) {
       _errorDetail = result.error ?? '';
     }
@@ -147,9 +159,12 @@ class RealtimeTranscriptionService extends ChangeNotifier {
     _micActive = false;
     _liveTranscript = '';
     _completedTranscript = '';
+    _confidence = null;
     await _speech.cancel();
     await _transcriptSub?.cancel();
+    await _confidenceSub?.cancel();
     _transcriptSub = null;
+    _confidenceSub = null;
     _setState(AiLiveState.idle);
   }
 
@@ -185,6 +200,7 @@ class RealtimeTranscriptionService extends ChangeNotifier {
     _running = false;
     _micActive = false;
     _transcriptSub?.cancel();
+    _confidenceSub?.cancel();
     super.dispose();
   }
 }
