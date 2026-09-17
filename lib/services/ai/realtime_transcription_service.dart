@@ -119,7 +119,7 @@ class RealtimeTranscriptionService extends ChangeNotifier {
 
     _confidenceSub = _speech.onConfidence.listen((value) {
       if (!_running || value <= 0) return;
-      _confidence = value.clamp(0.0, 1.0);
+      _confidence = value.clamp(0.0, 1.0).toDouble();
       notifyListeners();
     });
 
