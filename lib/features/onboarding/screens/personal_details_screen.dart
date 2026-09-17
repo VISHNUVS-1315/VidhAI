@@ -213,12 +213,16 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               ListTile(
                 leading: Icon(Icons.camera_alt, color: colors.brandDeep),
                 title: Text(loc.takePhoto,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: colors.onBackground)),
                 onTap: () => Navigator.pop(ctx, ImageSource.camera),
               ),
               ListTile(
                 leading: Icon(Icons.photo_library, color: colors.brandDeep),
                 title: Text(loc.chooseFromGallery,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: colors.onBackground)),
                 onTap: () => Navigator.pop(ctx, ImageSource.gallery),
               ),
@@ -513,6 +517,8 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
           ),
           title: Text(
             loc.personalDetails,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
                 color: colors.onBackground, fontWeight: FontWeight.w600),
           ),
@@ -546,7 +552,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                // -- Header subtitle --
                 Padding(
                   padding: const EdgeInsets.only(bottom: 20),
                   child: Text(
@@ -558,40 +563,22 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-
-                // -- AI Live (realtime speech-to-form) --
                 _buildAiLiveCard(loc, colors),
                 const SizedBox(height: 20),
-
-                // -- Avatar --
                 _buildAvatarSection(loc),
                 const SizedBox(height: 28),
-
-                // -- Name --
                 _buildNameField(loc),
                 const SizedBox(height: 14),
-
-                // -- Gender --
                 _buildGenderField(loc),
                 const SizedBox(height: 14),
-
-                // -- DOB --
                 _buildDOBField(loc),
                 const SizedBox(height: 14),
-
-                // -- Age (calculated) --
                 _buildAgeField(loc),
                 const SizedBox(height: 14),
-
-                // -- Address --
                 _buildAddressField(loc),
                 const SizedBox(height: 20),
-
-                // -- Current Location Card --
                 _buildCurrentLocationCard(loc, colors),
                 const SizedBox(height: 24),
-
-                // -- Continue Button --
                 _buildSubmitButton(loc),
                 const SizedBox(height: 16),
               ],
@@ -634,6 +621,8 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                   children: [
                     Text(
                       loc.aiLiveButton,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: colors.onBackground,
                         fontSize: 15,
@@ -643,12 +632,15 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                     const SizedBox(height: 2),
                     Text(
                       loc.aiLiveDescription,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                       style:
                           TextStyle(color: colors.onSurfaceMuted, fontSize: 13),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               Icon(
                 directionalIcon(context, Icons.arrow_forward_ios),
                 color: colors.onSurfaceMuted,
@@ -725,6 +717,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
             const SizedBox(height: 8),
             Text(
               loc.t('tap_to_change_photo'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: colors.onSurfaceMuted,
                 fontSize: 12,
@@ -758,6 +753,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
     final colors = VidhAIColorsX(context);
     return DropdownButtonFormField<String>(
       initialValue: _selectedGender.isEmpty ? null : _selectedGender,
+      isExpanded: true,
       style: TextStyle(color: colors.onBackground, fontSize: 15),
       dropdownColor: colors.surface,
       decoration: _inputDecoration(
@@ -765,7 +761,10 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
         icon: Icons.wc_outlined,
       ),
       items: _genderValues
-          .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+          .map((g) => DropdownMenuItem(
+                value: g,
+                child: Text(g, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ))
           .toList(),
       onChanged: (v) => setState(() => _selectedGender = v ?? ''),
       validator: (v) => v == null || v.isEmpty ? loc.requiredField : null,
@@ -874,9 +873,12 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                   dense: true,
                   leading: Icon(Icons.location_on_outlined,
                       color: colors.brandDeep, size: 20),
-                  title: Text(s.displayText,
-                      style:
-                          TextStyle(color: colors.onBackground, fontSize: 13)),
+                  title: Text(
+                    s.displayText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: colors.onBackground, fontSize: 13),
+                  ),
                   onTap: () => _selectLocation(s),
                 );
               },
@@ -917,12 +919,16 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                     Icon(Icons.my_location, color: colors.brandDeep, size: 20),
               ),
               const SizedBox(width: 10),
-              Text(
-                loc.currentLocation,
-                style: TextStyle(
-                  color: colors.onBackground,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  loc.currentLocation,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.onBackground,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -959,6 +965,8 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 Expanded(
                   child: Text(
                     _buildLocationDisplayString(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: colors.onBackground,
                       fontSize: 14,
@@ -993,6 +1001,8 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 icon: Icon(Icons.refresh, color: colors.brandDeep, size: 16),
                 label: Text(
                   loc.retryLocation,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colors.brandDeep, fontSize: 13),
                 ),
               ),
@@ -1022,6 +1032,8 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 icon: Icon(Icons.refresh, color: colors.brandDeep, size: 16),
                 label: Text(
                   loc.retryLocation,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colors.brandDeep, fontSize: 13),
                 ),
               ),
@@ -1067,10 +1079,14 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 child: CircularProgressIndicator(
                     strokeWidth: 2.5, color: Colors.white),
               )
-            : Text(
-                loc.continueBtn,
-                style:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            : FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  loc.continueBtn,
+                  maxLines: 1,
+                  style: const TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.w600),
+                ),
               ),
       ),
     );
