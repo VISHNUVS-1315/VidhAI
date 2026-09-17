@@ -1,15 +1,10 @@
-﻿/**
+/**
  * VidhAI market-price service.
  *
- * Backend adapter layer for market prices. The UI never talks to a third-party
- * market API directly. Prices come only from the official AGMARKNET data.gov.in
- * resource via the MarketPriceProvider abstraction, are normalised to reliable
- * ₹/kg values, and are cached in
- * Firestore so every user shares a recent snapshot.
- *
- * If the aggregator is unreachable the service degrades to the last cached
- * snapshot (marked `stale: true`) so the offline-first client can still show
- * "Showing last available market prices".
+ * Primary live source: official AGMARKNET 2.0 public report backend.
+ * The UI never talks to market providers directly; records are normalized to
+ * reliable ₹/kg values and cached in Firestore. data.gov.in remains available
+ * as a compatible provider when a server-side API key is configured.
  */
 
 import axios from 'axios';
@@ -24,6 +19,7 @@ import {
   unitLabel,
 } from './marketData';
 import { nvidiaChat } from './nvidia';
+import { Agmarknet2PriceProvider } from './agmarknet2Provider';
 
 export interface MarketPriceRecord {
   commodity: string;
@@ -36,8 +32,8 @@ export interface MarketPriceRecord {
   maxPrice: number | null;
   originalUnit: string;
   unitLabel: string;
-  conversionFactor: number | null; // kg per original unit, null when unknown
-  normalizedPricePerKg: number | null; // modal price converted to ₹/kg
+  conversionFactor: number | null;
+  normalizedPricePerKg: number | null;
   arrival: string | null;
   date: string;
   source: string;
@@ -54,21 +50,19 @@ export interface PriceQuery {
 export interface PriceHistoryQuery {
   state?: string;
   commodity: string;
-  days?: number; // 7 or 30 (default 30)
+  days?: number;
 }
 
-/** One daily average reported by the aggregator (AGMARKNET, per quintal). */
 export interface PriceHistoryPoint {
-  date: string; // yyyy-mm-dd
-  modalPriceReported: number; // avg_modal_price in the reported unit (quintal)
+  date: string;
+  modalPriceReported: number;
   minPriceReported: number;
   maxPriceReported: number;
   dataPoints: number;
-  conversionFactor: number; // kg per reported unit (quintal -> 100)
-  normalizedPricePerKg: number; // modal price converted to ₹/kg
+  conversionFactor: number;
+  normalizedPricePerKg: number;
 }
 
-/** Adapter contract so another approved data source can be connected later. */
 export interface MarketPriceProvider {
   readonly id: string;
   readonly name: string;
@@ -77,9 +71,7 @@ export interface MarketPriceProvider {
   getHistoricalPrices(query: PriceHistoryQuery): Promise<PriceHistoryPoint[]>;
 }
 
-// Official AGMARKNET provider: data.gov.in only.
 const PROVIDER_TIMEOUT_MS = 20_000;
-
 const DATA_GOV_RESOURCE_ID =
   process.env.DATA_GOV_RESOURCE_ID ?? '35985678-0d79-46b4-9ed6-6f13308a1d24';
 const DATA_GOV_API_BASE =
@@ -105,13 +97,7 @@ function parseDataGovDate(raw: unknown): string {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString().slice(0, 10);
 }
 
-/**
- * Official data.gov.in AGMARKNET provider.
- *
- * Unlike the legacy mandi-api mirror, this provider is not restricted to five
- * states. It queries the Government of India resource directly using the
- * server-side DATA_GOV_API_KEY and supports State/District/Commodity filters.
- */
+/** Optional data.gov.in provider retained as a server-side fallback/override. */
 export class DataGovPriceProvider implements MarketPriceProvider {
   readonly id = 'data-gov-agmarknet';
   readonly name = 'AGMARKNET (data.gov.in)';
@@ -125,9 +111,7 @@ export class DataGovPriceProvider implements MarketPriceProvider {
     limit = 1000,
     offset = 0,
   ): Promise<Record<string, unknown>[]> {
-    if (!this.apiKey) {
-      throw new Error('DATA_GOV_API_KEY is not configured.');
-    }
+    if (!this.apiKey) throw new Error('DATA_GOV_API_KEY is not configured.');
     const params: Record<string, string | number> = {
       'api-key': this.apiKey,
       format: 'json',
@@ -197,23 +181,18 @@ export class DataGovPriceProvider implements MarketPriceProvider {
     if (query.state?.trim()) filters.State = query.state.trim();
     if (query.district?.trim()) filters.District = query.district.trim();
     if (query.commodity?.trim()) filters.Commodity = query.commodity.trim();
-
-    // The UI normally supplies the farmer's saved state. Avoid an unbounded
-    // all-India scan when no filters are available.
     if (Object.keys(filters).length === 0) return [];
 
     const limit = Math.max(1, Math.min(1000, query.limit ?? 300));
     const rows = await this.fetchRows(filters, Math.min(1000, limit * 2));
-    const records = rows
+    return rows
       .map((row) => this.mapRow(row))
       .filter((p): p is MarketPriceRecord => p !== null)
-      .sort((a, b) => b.date.localeCompare(a.date));
-    return records.slice(0, limit);
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, limit);
   }
 
   async getCommodities(_state?: string): Promise<string[]> {
-    // A full distinct scan of the national resource is expensive and slow.
-    // Keep the curated picker list; price queries themselves hit live data.gov.in.
     return REFERENCE_COMMODITIES.slice();
   }
 
@@ -223,10 +202,7 @@ export class DataGovPriceProvider implements MarketPriceProvider {
     if (!state || !commodity) return [];
 
     const days = Math.max(1, Math.min(90, query.days ?? 30));
-    const rows = await this.fetchRows(
-      { State: state, Commodity: commodity },
-      1000,
-    );
+    const rows = await this.fetchRows({ State: state, Commodity: commodity }, 1000);
     const cutoff = Date.now() - (days + 2) * 24 * 3600 * 1000;
     const byDate = new Map<string, { modal: number[]; min: number[]; max: number[] }>();
 
@@ -237,7 +213,6 @@ export class DataGovPriceProvider implements MarketPriceProvider {
       if (!date) continue;
       const ts = Date.parse(date);
       if (Number.isFinite(ts) && ts < cutoff) continue;
-
       const modal = parseNum(rowValue(row, 'Modal_Price', 'modal_price'));
       if (modal === null || modal <= 0) continue;
       const min = parseNum(rowValue(row, 'Min_Price', 'min_price')) ?? modal;
@@ -299,10 +274,8 @@ export function findState(stateName: string): IndiaStateInfo | undefined {
   );
 }
 
-// â”€â”€ Service: hierarchy + cached latest prices + deterministic insight â”€â”€â”€â”€â”€â”€â”€â”€
-
 const CACHE_COLLECTION = 'marketCache';
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1h shared snapshot
+const CACHE_TTL_MS = 60 * 60 * 1000;
 
 interface CacheDoc {
   key: string;
@@ -318,9 +291,7 @@ function cacheKey(query: PriceQuery): string {
 }
 
 export class MarketService {
-  constructor(readonly provider: MarketPriceProvider = new DataGovPriceProvider()) {}
-
-  // â”€â”€ Hierarchy (deterministic, no external calls) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  constructor(readonly provider: MarketPriceProvider = new Agmarknet2PriceProvider()) {}
 
   getStates(): IndiaStateInfo[] {
     return INDIAN_STATES.slice();
@@ -335,8 +306,6 @@ export class MarketService {
     return state ? state.districts.slice() : [];
   }
 
-  // â”€â”€ Commodities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   async getCommodities(state?: string): Promise<string[]> {
     try {
       const commodities = await this.provider.getCommodities(state);
@@ -347,12 +316,17 @@ export class MarketService {
     return REFERENCE_COMMODITIES.slice();
   }
 
-  // â”€â”€ Latest prices with Firestore snapshot cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   async getLatestPrices(
     query: PriceQuery,
     opts: { refresh?: boolean } = {},
-  ): Promise<{ prices: MarketPriceRecord[]; fromCache: boolean; stale: boolean; fetchedAt: string; source: string; error?: string }> {
+  ): Promise<{
+    prices: MarketPriceRecord[];
+    fromCache: boolean;
+    stale: boolean;
+    fetchedAt: string;
+    source: string;
+    error?: string;
+  }> {
     const key = cacheKey(query);
     let cached: CacheDoc | null = null;
     try {
@@ -368,12 +342,11 @@ export class MarketService {
         fromCache: true,
         stale: false,
         fetchedAt: new Date(cached!.fetchedAt).toISOString(),
-        source: this.provider.name,
+        source: cached!.source || this.provider.name,
       };
     }
 
     if (opts.refresh && cached) {
-      // Serve latest snapshot immediately for UI responsiveness while refreshing.
       try {
         const live = await this.provider.getLatestPrices(query);
         if (live.length) {
@@ -388,14 +361,13 @@ export class MarketService {
         }
       } catch (e) {
         logger.warn('market refresh failed, falling back to snapshot', e);
-        // fall through to cached
       }
       return {
         prices: cached.prices,
         fromCache: true,
         stale: true,
         fetchedAt: new Date(cached.fetchedAt).toISOString(),
-        source: this.provider.name,
+        source: cached.source || this.provider.name,
         error: 'Live refresh failed; showing last available market prices.',
       };
     }
@@ -420,7 +392,7 @@ export class MarketService {
           fromCache: true,
           stale: true,
           fetchedAt: new Date(cached.fetchedAt).toISOString(),
-          source: this.provider.name,
+          source: cached.source || this.provider.name,
           error: 'Live refresh failed; showing last available market prices.',
         };
       }
@@ -428,10 +400,25 @@ export class MarketService {
       throw new Error(`Market price feed is temporarily unavailable. ${message}`);
     }
 
-    return { prices: [], fromCache: false, stale: false, fetchedAt: new Date().toISOString(), source: this.provider.name };
-  }
+    if (cached && cached.prices.length) {
+      return {
+        prices: cached.prices,
+        fromCache: true,
+        stale: true,
+        fetchedAt: new Date(cached.fetchedAt).toISOString(),
+        source: cached.source || this.provider.name,
+        error: 'No newer report is available; showing last available market prices.',
+      };
+    }
 
-  // â”€â”€ Historical trend (real reported series only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    return {
+      prices: [],
+      fromCache: false,
+      stale: false,
+      fetchedAt: new Date().toISOString(),
+      source: this.provider.name,
+    };
+  }
 
   async getHistoricalPrices(query: PriceHistoryQuery): Promise<PriceHistoryPoint[]> {
     try {
@@ -442,9 +429,7 @@ export class MarketService {
     }
   }
 
-  // â”€â”€ Deterministic analytic insight (numbers only, never fabricated) â”€â”€â”€â”€â”€â”€â”€â”€
-
-  buildMarketInsight(prices: MarketPriceRecord[], language = 'en'): string {
+  buildMarketInsight(prices: MarketPriceRecord[], _language = 'en'): string {
     if (!prices.length) return '';
     const byCommodity = new Map<string, MarketPriceRecord[]>();
     for (const p of prices) {
@@ -462,16 +447,15 @@ export class MarketService {
       const markets = rows.filter((r) => r.market).length;
       const min = Math.min(...perKg);
       const max = Math.max(...perKg);
-      const avg = round2(perKg.reduce((s, v) => s + v, 0) / perKg.length);
+      const avg = round2(perKg.reduce((sum, value) => sum + value, 0) / perKg.length);
       lines.push(
-        `${commodity}: modal price between \u20B9${min} and \u20B9${max} per kg (average \u20B9${avg}/kg) across ${markets} reported market${markets === 1 ? '' : 's'}.`,
+        `${commodity}: modal price between ₹${min} and ₹${max} per kg (average ₹${avg}/kg) across ${markets} reported market${markets === 1 ? '' : 's'}.`,
       );
     }
     if (!lines.length) return '';
-    const header =
-      latestDate
-        ? `Based on reported prices from ${latestDate}, latest available. `
-        : 'Based on the latest available reported prices. ';
+    const header = latestDate
+      ? `Based on reported prices from ${latestDate}, latest available. `
+      : 'Based on the latest available reported prices. ';
     return header + lines.join(' ');
   }
 
@@ -496,7 +480,10 @@ export class MarketService {
           { role: 'system', content: system },
           { role: 'user', content: `Translate/rewrite: ${deterministic}` },
         ],
-        { language: opts.language ?? 'en', context: opts.farmContext ? { farmContext: opts.farmContext } : undefined },
+        {
+          language: opts.language ?? 'en',
+          context: opts.farmContext ? { farmContext: opts.farmContext } : undefined,
+        },
       );
       const content = (result.content ?? '').trim();
       return content.length ? content : deterministic;
@@ -505,8 +492,6 @@ export class MarketService {
       return deterministic;
     }
   }
-
-  // â”€â”€ Firestore cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private ensureDb(): admin.firestore.Firestore {
     ensureFirebaseAdmin();
@@ -533,8 +518,6 @@ export class MarketService {
       source: this.provider.name,
     } satisfies CacheDoc);
   }
-
-  // â”€â”€ Aggregates for summary/overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   summarize(prices: MarketPriceRecord[]): {
     totalPriceRecords: number;
