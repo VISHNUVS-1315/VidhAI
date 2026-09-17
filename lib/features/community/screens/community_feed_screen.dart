@@ -63,6 +63,8 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
             elevation: 0,
             title: Text(
               loc.community,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: colors.onBackground,
                 fontWeight: FontWeight.w800,
@@ -101,19 +103,50 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
               ),
             ],
           ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => _openCreateChooser(context),
-            backgroundColor: colors.brand,
-            foregroundColor: Colors.white,
-            icon: const Icon(Icons.add),
-            label: Text(loc.communityNewPost),
-          ),
+          floatingActionButton: _buildCreateFab(colors, loc),
         );
       },
     );
   }
 
+  Widget _buildCreateFab(FreshLeafColorsX colors, AppLocalizations loc) {
+    final narrow = MediaQuery.sizeOf(context).width < 360;
+    if (narrow) {
+      return FloatingActionButton(
+        onPressed: () => _openCreateChooser(context),
+        backgroundColor: colors.brand,
+        foregroundColor: Colors.white,
+        tooltip: loc.communityNewPost,
+        child: const Icon(Icons.add),
+      );
+    }
+    return FloatingActionButton.extended(
+      onPressed: () => _openCreateChooser(context),
+      backgroundColor: colors.brand,
+      foregroundColor: Colors.white,
+      icon: const Icon(Icons.add),
+      label: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 170),
+        child: Text(
+          loc.communityNewPost,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
   Widget _segmentedTabs(FreshLeafColorsX colors, AppLocalizations loc) {
+    Widget tabLabel(String label) => Tab(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label, maxLines: 1),
+            ),
+          ),
+        );
+
     return Container(
       height: 42,
       decoration: BoxDecoration(
@@ -125,6 +158,7 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
         controller: _tabController,
         dividerColor: Colors.transparent,
         indicatorSize: TabBarIndicatorSize.tab,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
         indicator: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(12),
@@ -141,9 +175,9 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
         unselectedLabelStyle:
             const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
         tabs: [
-          Tab(text: loc.communityTabExperience),
-          Tab(text: loc.communityTabHarvestSoon),
-          Tab(text: loc.communityTabDemand),
+          tabLabel(loc.communityTabExperience),
+          tabLabel(loc.communityTabHarvestSoon),
+          tabLabel(loc.communityTabDemand),
         ],
       ),
     );
@@ -161,7 +195,7 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
           borderRadius: BorderRadius.circular(20),
           onTap: () => _openDistrictPicker(context),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -169,7 +203,7 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
                     size: 16, color: colors.brandDeep),
                 const SizedBox(width: 4),
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 110),
+                  constraints: const BoxConstraints(maxWidth: 100),
                   child: Text(
                     label,
                     maxLines: 1,
@@ -228,56 +262,66 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
     final colors = FreshLeafColorsX(context);
     final type = await showModalBottomSheet<CommunityPostType>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 42,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colors.borderColor,
-                borderRadius: BorderRadius.circular(4),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.borderColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              loc.communityChooseType,
-              style: TextStyle(
-                color: colors.onBackground,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
+              const SizedBox(height: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  loc.communityChooseType,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.onBackground,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            _typeOption(
-              colors,
-              type: CommunityPostType.experience,
-              icon: Icons.lightbulb_outline,
-              label: loc.communityTypeExperience,
-              desc: loc.communityExperienceDesc,
-            ),
-            _typeOption(
-              colors,
-              type: CommunityPostType.harvest,
-              icon: Icons.agriculture_outlined,
-              label: loc.communityTypeHarvest,
-              desc: loc.communityHarvestDesc,
-            ),
-            _typeOption(
-              colors,
-              type: CommunityPostType.demand,
-              icon: Icons.shopping_basket_outlined,
-              label: loc.communityTypeDemand,
-              desc: loc.communityDemandDesc,
-            ),
-            const SizedBox(height: 12),
-          ],
+              const SizedBox(height: 8),
+              _typeOption(
+                colors,
+                type: CommunityPostType.experience,
+                icon: Icons.lightbulb_outline,
+                label: loc.communityTypeExperience,
+                desc: loc.communityExperienceDesc,
+              ),
+              _typeOption(
+                colors,
+                type: CommunityPostType.harvest,
+                icon: Icons.agriculture_outlined,
+                label: loc.communityTypeHarvest,
+                desc: loc.communityHarvestDesc,
+              ),
+              _typeOption(
+                colors,
+                type: CommunityPostType.demand,
+                icon: Icons.shopping_basket_outlined,
+                label: loc.communityTypeDemand,
+                desc: loc.communityDemandDesc,
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
       ),
     );
@@ -302,6 +346,8 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
       ),
       title: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: colors.onBackground,
           fontWeight: FontWeight.w700,
@@ -309,14 +355,14 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
       ),
       subtitle: Text(
         desc,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12.5),
       ),
       onTap: () => Navigator.of(context).pop(type),
     );
   }
 }
-
-// ───────────────────────────── Tab list ─────────────────────────────
 
 class _PostListTab extends StatefulWidget {
   const _PostListTab({
@@ -480,7 +526,10 @@ class _PostListTabState extends State<_PostListTab> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(loc.communityLoadMore),
+                      : FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(loc.communityLoadMore, maxLines: 1),
+                        ),
                 ),
               );
             }
@@ -522,26 +571,29 @@ class _PostListTabState extends State<_PostListTab> {
         message = loc.communityDemandEmpty;
         icon = Icons.shopping_basket_outlined;
     }
-    return Column(
-      children: [
-        Icon(icon, size: 54, color: colors.borderColor),
-        const SizedBox(height: 12),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: colors.onBackground,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          Icon(icon, size: 54, color: colors.borderColor),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: colors.onBackground,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          loc.communityFirstPost,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: colors.onSurfaceMuted, fontSize: 13),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            loc.communityFirstPost,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: colors.onSurfaceMuted, fontSize: 13),
+          ),
+        ],
+      ),
     );
   }
 
@@ -566,7 +618,13 @@ class _PostListTabState extends State<_PostListTab> {
               style: TextStyle(color: colors.onSurfaceMuted, fontSize: 14),
             ),
             const SizedBox(height: 14),
-            OutlinedButton(onPressed: onAction, child: Text(actionLabel)),
+            OutlinedButton(
+              onPressed: onAction,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(actionLabel, maxLines: 1),
+              ),
+            ),
           ],
         ),
       ),
@@ -595,13 +653,15 @@ class _SkeletonCard extends StatelessWidget {
             children: [
               _bar(colors, 40, 40, radius: 20),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _bar(colors, 120, 12),
-                  const SizedBox(height: 6),
-                  _bar(colors, 80, 10),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _bar(colors, 120, 12),
+                    const SizedBox(height: 6),
+                    _bar(colors, 80, 10),
+                  ],
+                ),
               ),
             ],
           ),
@@ -627,8 +687,6 @@ class _SkeletonCard extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────── District picker ───────────────────────────
 
 class _DistrictPickerSheet extends StatefulWidget {
   const _DistrictPickerSheet();
@@ -732,6 +790,8 @@ class _DistrictPickerSheetState extends State<_DistrictPickerSheet> {
                     _pickedState == null
                         ? loc.communityBrowseByDistrict
                         : loc.communitySelectDistrict,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: colors.onBackground,
                       fontSize: 16,
@@ -776,6 +836,8 @@ class _DistrictPickerSheetState extends State<_DistrictPickerSheet> {
             leading: Icon(Icons.my_location, color: colors.brand),
             title: Text(
               loc.communityMyDistrict,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: colors.onBackground,
                 fontWeight: FontWeight.w700,
@@ -783,6 +845,8 @@ class _DistrictPickerSheetState extends State<_DistrictPickerSheet> {
             ),
             subtitle: Text(
               _controller.homeDistrict,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12.5),
             ),
             onTap: () => _choose(
@@ -796,11 +860,14 @@ class _DistrictPickerSheetState extends State<_DistrictPickerSheet> {
             leading: Icon(Icons.map_outlined, color: colors.onSurfaceMuted),
             title: Text(
               state.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(color: colors.onBackground),
             ),
             trailing: state.districtCount > 0
                 ? Text(
                     '${state.districtCount}',
+                    maxLines: 1,
                     style: TextStyle(
                       color: colors.onSurfaceMuted,
                       fontSize: 12,
@@ -837,6 +904,8 @@ class _DistrictPickerSheetState extends State<_DistrictPickerSheet> {
                   color: colors.onSurfaceMuted),
               title: Text(
                 district,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: colors.onBackground),
               ),
               onTap: () => _choose(_pickedState!.name, district),
@@ -864,7 +933,10 @@ class _DistrictPickerSheetState extends State<_DistrictPickerSheet> {
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: onRetry,
-            child: Text(loc.communityLoadMore),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(loc.communityLoadMore, maxLines: 1),
+            ),
           ),
         ],
       ),
