@@ -25,6 +25,8 @@ class ToolsScreen extends StatelessWidget {
         elevation: 0,
         title: Text(
           loc.tools,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: colors.onBackground,
             fontSize: 18,
@@ -48,97 +50,102 @@ class ToolsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.0,
-            children: [
-              _ToolCard(
-                icon: Icons.bug_report_rounded,
-                title: loc.pestDetection,
-                description: loc.pestDetectDesc,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MultiPestDetectionScreen(),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final useSingleColumn = constraints.maxWidth < 300;
+              return GridView.count(
+                crossAxisCount: useSingleColumn ? 1 : 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                mainAxisExtent: useSingleColumn ? 150 : 180,
+                children: [
+                  _ToolCard(
+                    icon: Icons.bug_report_rounded,
+                    title: loc.pestDetection,
+                    description: loc.pestDetectDesc,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MultiPestDetectionScreen(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              _ToolCard(
-                icon: Icons.grass_rounded,
-                title: loc.fertilizerGuide,
-                description: loc.fertilizerGuideDesc,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const FertilizerGuideScreen(),
+                  _ToolCard(
+                    icon: Icons.grass_rounded,
+                    title: loc.fertilizerGuide,
+                    description: loc.fertilizerGuideDesc,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FertilizerGuideScreen(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              _ToolCard(
-                icon: Icons.trending_up_rounded,
-                title: loc.marketPrices,
-                description: loc.liveMandiPrices,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MarketPricesScreen(),
+                  _ToolCard(
+                    icon: Icons.trending_up_rounded,
+                    title: loc.marketPrices,
+                    description: loc.liveMandiPrices,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MarketPricesScreen(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              _ToolCard(
-                icon: Icons.search_rounded,
-                title: loc.cropSearch,
-                description: loc.cropSearchDesc,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CropSearchScreen(),
+                  _ToolCard(
+                    icon: Icons.search_rounded,
+                    title: loc.cropSearch,
+                    description: loc.cropSearchDesc,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CropSearchScreen(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              _ToolCard(
-                icon: Icons.terrain_rounded,
-                title: loc.soilScanner,
-                description: loc.soilScannerDesc,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CropSetupScreen(farmId: ''),
+                  _ToolCard(
+                    icon: Icons.terrain_rounded,
+                    title: loc.soilScanner,
+                    description: loc.soilScannerDesc,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CropSetupScreen(farmId: ''),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              _ToolCard(
-                icon: Icons.auto_awesome_rounded,
-                title: loc.vidhaiAssistant,
-                description: loc.askFarmingDesc,
-                onTap: () {
-                  AssistantSession.instance.open('tools');
-                  showVidhAIAssistantOverlay(context);
-                },
-              ),
-              _ToolCard(
-                icon: Icons.account_balance_rounded,
-                title: loc.govtSchemes,
-                description: loc.govtSchemesDesc,
-                onTap: () =>
-                    Navigator.pushNamed(context, '/government-schemes'),
-              ),
-              _ToolCard(
-                icon: Icons.forum_rounded,
-                title: loc.community,
-                description: loc.communityDesc,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CommunityPlaceholderScreen(),
+                  _ToolCard(
+                    icon: Icons.auto_awesome_rounded,
+                    title: loc.vidhaiAssistant,
+                    description: loc.askFarmingDesc,
+                    onTap: () {
+                      AssistantSession.instance.open('tools');
+                      showVidhAIAssistantOverlay(context);
+                    },
                   ),
-                ),
-              ),
-            ],
+                  _ToolCard(
+                    icon: Icons.account_balance_rounded,
+                    title: loc.govtSchemes,
+                    description: loc.govtSchemesDesc,
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/government-schemes'),
+                  ),
+                  _ToolCard(
+                    icon: Icons.forum_rounded,
+                    title: loc.community,
+                    description: loc.communityDesc,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CommunityPlaceholderScreen(),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -165,7 +172,7 @@ class _ToolCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(16),
@@ -202,12 +209,13 @@ class _ToolCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               description,
               style: TextStyle(
                 color: colors.onSurfaceMuted,
                 fontSize: 11,
+                height: 1.2,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
