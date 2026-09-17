@@ -62,6 +62,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                     const SizedBox(height: 24),
                     Text(
                       AppLocalizations.of(context).selectLanguage,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -112,14 +114,18 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               ),
               elevation: 0,
             ),
-            child: Text(
-              AppLocalizations.of(context).continueBtn,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: _selectedLanguage != null
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.3),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                AppLocalizations.of(context).continueBtn,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: _selectedLanguage != null
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.3),
+                ),
               ),
             ),
           ),
@@ -171,6 +177,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                   child: Center(
                     child: Text(
                       lang['native']!.substring(0, 1),
+                      maxLines: 1,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -188,17 +195,19 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                     children: [
                       Text(
                         lang['name']!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
-                          color: isSelected
-                              ? colors.onBackground
-                              : colors.onBackground,
+                          color: colors.onBackground,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         lang['native']!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13,
                           color: isSelected
@@ -209,6 +218,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 if (isSelected)
                   Icon(
                     Icons.check_circle_rounded,
