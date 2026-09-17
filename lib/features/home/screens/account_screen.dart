@@ -54,7 +54,6 @@ class _AccountScreenState extends State<AccountScreen> {
     final docPath = uid.isNotEmpty ? 'users/$uid' : 'users/<none>';
     debugPrint('[AccountScreen] DOC PATH=$docPath');
 
-    // Offline-first: render the cached profile immediately if we have one.
     UserProfile? cached;
     try {
       cached = await _dataService.loadCachedProfile();
@@ -66,8 +65,6 @@ class _AccountScreenState extends State<AccountScreen> {
       setState(() => _profile = cached);
     }
 
-    // Sync: refresh from Firestore users/{uid} (source of truth) so any
-    // onboarded profile data is auto-filled on top of the cached view.
     var fetchError = false;
     if (uid.isNotEmpty) {
       try {
@@ -115,7 +112,11 @@ class _AccountScreenState extends State<AccountScreen> {
             OutlinedButton.icon(
               onPressed: _loadProfile,
               icon: Icon(Icons.refresh, color: _accent, size: 18),
-              label: Text(loc.retry, style: TextStyle(color: _accent)),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(loc.retry,
+                    maxLines: 1, style: TextStyle(color: _accent)),
+              ),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: _accent.withValues(alpha: 0.4)),
                 shape: RoundedRectangleBorder(
@@ -147,6 +148,8 @@ class _AccountScreenState extends State<AccountScreen> {
         elevation: 0,
         title: Text(
           loc.account,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(color: _text, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -167,22 +170,30 @@ class _AccountScreenState extends State<AccountScreen> {
                       child: CircleAvatar(
                         radius: 48,
                         backgroundColor: _cardColor,
-                        child: Text(
-                          _getInitial(),
-                          style: TextStyle(
-                            color: _accent,
-                            fontSize: 40,
-                            fontWeight: FontWeight.w700,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            _getInitial(),
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: _accent,
+                              fontSize: 40,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Center(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
                         _profile?.displayName.isNotEmpty == true
                             ? _profile!.displayName
                             : loc.userFallback,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: _text,
                           fontSize: 20,
@@ -191,9 +202,13 @@ class _AccountScreenState extends State<AccountScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Center(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
                         _profile?.email ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: _muted,
                           fontSize: 14,
@@ -278,6 +293,8 @@ class _AccountScreenState extends State<AccountScreen> {
         leading: Icon(icon, color: _muted),
         title: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(color: _text, fontSize: 15),
         ),
         trailing: Icon(
@@ -292,76 +309,86 @@ class _AccountScreenState extends State<AccountScreen> {
     final loc = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: _cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          final current = ThemeController.instance.mode;
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: _muted.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => SafeArea(
+        child: StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final current = ThemeController.instance.mode;
+            return SingleChildScrollView(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: _muted.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    Text(
+                      loc.appearance,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: _text,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      loc.appearanceDesc,
+                      style: TextStyle(color: _muted, fontSize: 13),
+                    ),
+                    const SizedBox(height: 20),
+                    _appearanceOption(
+                      ctx,
+                      setSheetState,
+                      Icons.light_mode_outlined,
+                      loc.lightMode,
+                      loc.mintTheme,
+                      ThemeMode.light,
+                      current,
+                    ),
+                    _appearanceOption(
+                      ctx,
+                      setSheetState,
+                      Icons.dark_mode_outlined,
+                      loc.darkMode,
+                      loc.pistachioTheme,
+                      ThemeMode.dark,
+                      current,
+                    ),
+                    _appearanceOption(
+                      ctx,
+                      setSheetState,
+                      Icons.settings_suggest_outlined,
+                      loc.systemDefault,
+                      loc.followDeviceSetting,
+                      ThemeMode.system,
+                      current,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  loc.appearance,
-                  style: TextStyle(
-                    color: _text,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  loc.appearanceDesc,
-                  style: TextStyle(color: _muted, fontSize: 13),
-                ),
-                const SizedBox(height: 20),
-                _appearanceOption(
-                  ctx,
-                  setSheetState,
-                  Icons.light_mode_outlined,
-                  loc.lightMode,
-                  loc.mintTheme,
-                  ThemeMode.light,
-                  current,
-                ),
-                _appearanceOption(
-                  ctx,
-                  setSheetState,
-                  Icons.dark_mode_outlined,
-                  loc.darkMode,
-                  loc.pistachioTheme,
-                  ThemeMode.dark,
-                  current,
-                ),
-                _appearanceOption(
-                  ctx,
-                  setSheetState,
-                  Icons.settings_suggest_outlined,
-                  loc.systemDefault,
-                  loc.followDeviceSetting,
-                  ThemeMode.system,
-                  current,
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          );
-        },
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -404,6 +431,8 @@ class _AccountScreenState extends State<AccountScreen> {
                   children: [
                     Text(
                       title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: _text,
                         fontSize: 15,
@@ -413,13 +442,17 @@ class _AccountScreenState extends State<AccountScreen> {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: _muted, fontSize: 12),
                     ),
                   ],
                 ),
               ),
-              if (isSelected)
+              if (isSelected) ...[
+                const SizedBox(width: 8),
                 Icon(Icons.check_circle, color: _accent, size: 22),
+              ],
             ],
           ),
         ),
@@ -466,12 +499,16 @@ class _AccountScreenState extends State<AccountScreen> {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Text(
-          loc.logout,
-          style: TextStyle(
-            color: _danger,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            loc.logout,
+            maxLines: 1,
+            style: TextStyle(
+              color: _danger,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
@@ -482,43 +519,48 @@ class _AccountScreenState extends State<AccountScreen> {
     final loc = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: _cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: _muted.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: _muted.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              loc.helpSupport,
-              style: TextStyle(
-                color: _text,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 20),
+              Text(
+                loc.helpSupport,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: _text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            _helpItem(Icons.email_outlined, loc.emailUs, 'support@vidhai.com'),
-            _helpItem(Icons.phone_outlined, loc.callUs, '+91 1800-VIDHAI'),
-            _helpItem(Icons.chat_bubble_outline, loc.liveChat,
-                loc.liveChatAvailability),
-            _helpItem(Icons.article_outlined, loc.faq, loc.helpCenter),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+              _helpItem(Icons.email_outlined, loc.emailUs, 'support@vidhai.com'),
+              _helpItem(Icons.phone_outlined, loc.callUs, '+91 1800-VIDHAI'),
+              _helpItem(Icons.chat_bubble_outline, loc.liveChat,
+                  loc.liveChatAvailability),
+              _helpItem(Icons.article_outlined, loc.faq, loc.helpCenter),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -537,6 +579,8 @@ class _AccountScreenState extends State<AccountScreen> {
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: _text,
                     fontSize: 15,
@@ -546,6 +590,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: _muted,
                     fontSize: 13,
@@ -647,6 +693,8 @@ class _AccountScreenState extends State<AccountScreen> {
       value: value,
       title: Text(
         title,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(color: _text, fontSize: 15),
       ),
       activeColor: _accent,
@@ -684,6 +732,8 @@ class _AccountScreenState extends State<AccountScreen> {
               const SizedBox(height: 8),
               Text(
                 user.email ?? '',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: _text, fontWeight: FontWeight.w500),
               ),
