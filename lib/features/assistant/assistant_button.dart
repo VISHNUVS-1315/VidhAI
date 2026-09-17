@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -48,7 +49,7 @@ class _VidhAIAssistantButtonState extends State<VidhAIAssistantButton>
     )..repeat();
     _confidenceSub = DeviceSpeechService.instance.onConfidence.listen((value) {
       if (!mounted || value <= 0) return;
-      setState(() => _confidence = value.clamp(0.0, 1.0));
+      setState(() => _confidence = value.clamp(0.0, 1.0).toDouble());
     });
   }
 
@@ -60,6 +61,7 @@ class _VidhAIAssistantButtonState extends State<VidhAIAssistantButton>
   }
 
   Future<void> _openAssistant() async {
+    if (mounted) setState(() => _confidence = null);
     final session = AssistantSession.instance;
     // Jarvis-style behaviour: after the assistant replies, it should be ready
     // for the next user turn without requiring a second tap.
@@ -123,7 +125,9 @@ class _VidhAIAssistantButtonState extends State<VidhAIAssistantButton>
                             ],
                           ),
                           border: Border.all(
-                            color: phaseColor.withValues(alpha: active ? 0.85 : 0.35),
+                            color: phaseColor.withValues(
+                              alpha: active ? 0.85 : 0.35,
+                            ),
                             width: active ? 1.5 : 1,
                           ),
                           boxShadow: [
@@ -215,7 +219,7 @@ class _MiniIntelligencePainter extends CustomPainter {
 
     final glow = Paint()
       ..color = color.withValues(alpha: active ? 0.18 : 0.1)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 7);
     canvas.drawCircle(center, shortest * 0.23, glow);
 
     final ringPaint = Paint()
@@ -227,7 +231,13 @@ class _MiniIntelligencePainter extends CustomPainter {
       final radius = shortest * (0.22 + i * 0.085);
       final rect = Rect.fromCircle(center: center, radius: radius);
       final start = progress * math.pi * 2 + i * math.pi * 0.7;
-      canvas.drawArc(rect, start, math.pi * (0.85 + i * 0.18), false, ringPaint);
+      canvas.drawArc(
+        rect,
+        start,
+        math.pi * (0.85 + i * 0.18),
+        false,
+        ringPaint,
+      );
     }
 
     final nodePaint = Paint()..color = color;
@@ -248,10 +258,12 @@ class _MiniIntelligencePainter extends CustomPainter {
           color,
           color.withValues(alpha: 0.45),
         ],
-      ).createShader(Rect.fromCircle(
-        center: center,
-        radius: coreRadius * (1 + amplitude * 0.16),
-      ));
+      ).createShader(
+        Rect.fromCircle(
+          center: center,
+          radius: coreRadius * (1 + amplitude * 0.16),
+        ),
+      );
     canvas.drawCircle(
       center,
       coreRadius * (1 + amplitude * 0.16),
