@@ -69,6 +69,8 @@ class _AddFarmScreenState extends State<AddFarmScreen> {
         ),
         title: Text(
           _isEditing ? loc.editFarm : loc.addNewFarm,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: colors.onBackground,
             fontSize: 18,
@@ -124,11 +126,15 @@ class _AddFarmScreenState extends State<AddFarmScreen> {
                       strokeWidth: 2.5,
                     ),
                   )
-                : Text(
-                    loc.saveFarm,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      loc.saveFarm,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
           ),
