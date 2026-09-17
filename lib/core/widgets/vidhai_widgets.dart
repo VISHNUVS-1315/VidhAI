@@ -109,7 +109,10 @@ class VidhAIButton extends StatelessWidget {
             : (icon != null
                 ? Icon(icon, size: 20, color: fg)
                 : const SizedBox.shrink()),
-        label: Text(label),
+        label: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, maxLines: 1),
+        ),
         style: OutlinedButton.styleFrom(
           backgroundColor: bg,
           foregroundColor: fg,
@@ -234,39 +237,50 @@ class VidhAISectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = VidhAIColorsX(context);
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: colors.onBackground,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        if (trailing != null)
-          GestureDetector(
-            onTap: onTrailing,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  trailing!,
-                  style: TextStyle(
-                      color: colors.brandDeep,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600),
-                ),
-                SizedBox(
-                    width: 2,
-                    child: Icon(
-                        directionalIcon(
-                            context, trailingIcon ?? Icons.chevron_right),
-                        size: 16,
-                        color: colors.brandDeep)),
-              ],
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.onBackground,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
             ),
           ),
+        ),
+        if (trailing != null) ...[
+          const SizedBox(width: 8),
+          Flexible(
+            child: GestureDetector(
+              onTap: onTrailing,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      trailing!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: colors.brandDeep,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    directionalIcon(
+                        context, trailingIcon ?? Icons.chevron_right),
+                    size: 16,
+                    color: colors.brandDeep,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -316,10 +330,15 @@ class VidhAIChip extends StatelessWidget {
               Icon(icon, size: 16, color: fg),
               const SizedBox(width: 6),
             ],
-            Text(
-              label,
-              style: TextStyle(
-                  color: fg, fontSize: 13, fontWeight: FontWeight.w600),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 220),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: fg, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),
@@ -350,12 +369,16 @@ class VidhAICircleAvatar extends StatelessWidget {
     return CircleAvatar(
       radius: radius,
       backgroundColor: backgroundColor ?? colors.brand.withValues(alpha: 0.5),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: radius * 0.8,
-          fontWeight: FontWeight.w700,
-          color: textColor ?? colors.brandDeep,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          maxLines: 1,
+          style: TextStyle(
+            fontSize: radius * 0.8,
+            fontWeight: FontWeight.w700,
+            color: textColor ?? colors.brandDeep,
+          ),
         ),
       ),
     );
@@ -397,6 +420,8 @@ class VidhAIProfileTile extends StatelessWidget {
       ),
       title: Text(
         title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
             color: colors.onBackground,
             fontSize: 15,
@@ -405,6 +430,8 @@ class VidhAIProfileTile extends StatelessWidget {
       subtitle: subtitle != null
           ? Text(
               subtitle!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(color: colors.onSurfaceMuted, fontSize: 13),
             )
           : null,
@@ -487,57 +514,71 @@ class VidhAIBottomNavigation extends StatelessWidget {
               return Expanded(
                 child: InkWell(
                   onTap: () => onTap(i),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Icon(
-                            selected
-                                ? (item.activeIcon ?? item.icon)
-                                : item.icon,
-                            color: selected
-                                ? colors.brandDeep
-                                : colors.onSurfaceMuted,
-                            size: 22,
-                          ),
-                          if (item.badge > 0)
-                            Positioned(
-                              right: -7,
-                              top: -5,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: FreshLeafColors.danger,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  item.badge > 99 ? '99+' : '${item.badge}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.bold,
-                                    height: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Icon(
+                              selected
+                                  ? (item.activeIcon ?? item.icon)
+                                  : item.icon,
+                              color: selected
+                                  ? colors.brandDeep
+                                  : colors.onSurfaceMuted,
+                              size: 22,
+                            ),
+                            if (item.badge > 0)
+                              Positioned(
+                                right: -7,
+                                top: -5,
+                                child: Container(
+                                  constraints: const BoxConstraints(
+                                      minWidth: 16, minHeight: 16),
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: const BoxDecoration(
+                                    color: FreshLeafColors.danger,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    item.badge > 99 ? '99+' : '${item.badge}',
+                                    maxLines: 1,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                      height: 1,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        item.label,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight:
-                              selected ? FontWeight.w700 : FontWeight.w500,
-                          color: selected
-                              ? colors.brandDeep
-                              : colors.onSurfaceMuted,
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            item.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: selected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: selected
+                                  ? colors.brandDeep
+                                  : colors.onSurfaceMuted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -593,11 +634,16 @@ class VidhAIAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       centerTitle: centerTitle,
       leading: leading,
-      title: Text(title,
-          style: TextStyle(
-              color: colors.onBackground,
-              fontSize: 18,
-              fontWeight: FontWeight.w700)),
+      title: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: colors.onBackground,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
       actions: actions,
     );
   }
@@ -648,6 +694,8 @@ class VidhAIPriceCard extends StatelessWidget {
               children: [
                 Text(
                   commodity,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: colors.onBackground,
                       fontSize: 14,
@@ -656,40 +704,51 @@ class VidhAIPriceCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   market,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colors.onSurfaceMuted, fontSize: 11),
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '₹${price > 0 ? price.toStringAsFixed(0) : '--'}',
-                style: TextStyle(
-                    color: colors.brandDeep,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700),
-              ),
-              if (change != null)
-                Row(
-                  children: [
-                    Icon(
-                      change! >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                      size: 12,
-                      color: change! >= 0 ? colors.success : colors.danger,
-                    ),
-                    Text(
-                      '${change!.abs().toStringAsFixed(1)}%',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: change! >= 0 ? colors.success : colors.danger,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+          const SizedBox(width: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '₹${price > 0 ? price.toStringAsFixed(0) : '--'}',
+                  maxLines: 1,
+                  style: TextStyle(
+                      color: colors.brandDeep,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700),
                 ),
-            ],
+                if (change != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        change! >= 0
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                        size: 12,
+                        color: change! >= 0 ? colors.success : colors.danger,
+                      ),
+                      Text(
+                        '${change!.abs().toStringAsFixed(1)}%',
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: change! >= 0 ? colors.success : colors.danger,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -760,11 +819,15 @@ class VidhAIProductCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   farmerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colors.onSurfaceMuted, fontSize: 11),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   '₹$price / $unit',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: colors.brandDeep,
                       fontSize: 15,
@@ -828,18 +891,28 @@ class VidhAIFarmCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name,
-                    style: TextStyle(
-                        color: colors.onBackground,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.onBackground,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle,
-                    style:
-                        TextStyle(color: colors.onSurfaceMuted, fontSize: 12)),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
+                ),
                 const SizedBox(height: 6),
                 Text(
                   acreage,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: colors.onSurfaceMuted,
                       fontSize: 12,
@@ -848,16 +921,22 @@ class VidhAIFarmCard extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: sc.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                  color: sc, fontSize: 11, fontWeight: FontWeight.w700),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 110),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: sc.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                status,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: sc, fontSize: 11, fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ],
@@ -910,42 +989,69 @@ class VidhAIOrderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: TextStyle(
-                        color: colors.onBackground,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.onBackground,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle,
-                    style:
-                        TextStyle(color: colors.onSurfaceMuted, fontSize: 11)),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: colors.onSurfaceMuted, fontSize: 11),
+                ),
                 const SizedBox(height: 4),
-                Text(id,
-                    style:
-                        TextStyle(color: colors.onSurfaceMuted, fontSize: 10)),
+                Text(
+                  id,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: colors.onSurfaceMuted, fontSize: 10),
+                ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('₹$amount',
-                  style: TextStyle(
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 110),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '₹$amount',
+                    maxLines: 1,
+                    style: TextStyle(
                       color: colors.brandDeep,
                       fontSize: 14,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: sc.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-                child: Text(status,
+                const SizedBox(height: 4),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: sc.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    status,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: sc, fontSize: 10, fontWeight: FontWeight.w700)),
-              ),
-            ],
+                        color: sc, fontSize: 10, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
