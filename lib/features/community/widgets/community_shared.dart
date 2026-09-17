@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:vidhai/core/theme/vidhai_theme.dart';
@@ -11,6 +13,28 @@ String communityDate(BuildContext context, DateTime? date) {
   if (date == null) return '';
   final locale = Localizations.localeOf(context).toLanguageTag();
   return DateFormat.yMMMd(locale).format(date);
+}
+
+/// Returns an image provider for both the new inline Firestore data URLs and
+/// legacy HTTP/Firebase Storage URLs.
+ImageProvider<Object>? communityImageProvider(String source) {
+  final value = source.trim();
+  if (value.isEmpty) return null;
+
+  if (value.startsWith('data:image/')) {
+    const marker = ';base64,';
+    final markerIndex = value.indexOf(marker);
+    if (markerIndex > 0) {
+      try {
+        final encoded = value.substring(markerIndex + marker.length);
+        return MemoryImage(base64Decode(encoded));
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
+  return NetworkImage(value);
 }
 
 Color riskColor(BuildContext context, PriceRiskLevel level) {
@@ -76,7 +100,6 @@ String statusLabel(AppLocalizations loc, CommunityStatus status) {
   }
 }
 
-/// Small round avatar that falls back to the author's initial.
 class CommunityAvatar extends StatelessWidget {
   const CommunityAvatar({
     super.key,
@@ -105,13 +128,16 @@ class CommunityAvatar extends StatelessWidget {
         ),
       ),
     );
-    if (photo.trim().isEmpty) return fallback;
+
+    final provider = communityImageProvider(photo);
+    if (provider == null) return fallback;
+
     return CircleAvatar(
       radius: radius,
       backgroundColor: colors.surfaceMuted,
       child: ClipOval(
-        child: Image.network(
-          photo,
+        child: Image(
+          image: provider,
           width: radius * 2,
           height: radius * 2,
           fit: BoxFit.cover,
@@ -122,7 +148,6 @@ class CommunityAvatar extends StatelessWidget {
   }
 }
 
-/// Rounded pill used for type, status, counts and metadata.
 class CommunityChip extends StatelessWidget {
   const CommunityChip({
     super.key,
@@ -169,7 +194,6 @@ class CommunityChip extends StatelessWidget {
   }
 }
 
-/// Buyer-acceptance risk gauge drawn from the real market reference price.
 class PriceRiskBar extends StatelessWidget {
   const PriceRiskBar({super.key, required this.risk});
 
@@ -187,7 +211,6 @@ class PriceRiskBar extends StatelessWidget {
     }
 
     final pct = risk.pctOfReference;
-    // Map 80%..140% onto 0..1 for the marker position.
     final clamped = pct.clamp(80.0, 140.0);
     final position = (clamped - 80) / 60;
     final color = riskColor(context, risk.level);
@@ -300,7 +323,6 @@ class PriceRiskBar extends StatelessWidget {
   }
 }
 
-/// Reusable post card used by the feed and My Activity.
 class CommunityPostCard extends StatelessWidget {
   const CommunityPostCard({
     super.key,
@@ -316,6 +338,7 @@ class CommunityPostCard extends StatelessWidget {
     final colors = FreshLeafColorsX(context);
     final loc = AppLocalizations.of(context);
     final typeColor = postTypeColor(context, post.type);
+    final imageProvider = communityImageProvider(post.imageUrl);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
@@ -344,12 +367,12 @@ class CommunityPostCard extends StatelessWidget {
                 _header(context, loc, colors, typeColor),
                 const SizedBox(height: 10),
                 _body(context, loc, colors, typeColor),
-                if (post.imageUrl.isNotEmpty) ...[
+                if (imageProvider != null) ...[
                   const SizedBox(height: 10),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: Image.network(
-                      post.imageUrl,
+                    child: Image(
+                      image: imageProvider,
                       height: 180,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -367,8 +390,12 @@ class CommunityPostCard extends StatelessWidget {
     );
   }
 
-  Widget _header(BuildContext context, AppLocalizations loc,
-      FreshLeafColorsX colors, Color typeColor) {
+  Widget _header(
+    BuildContext context,
+    AppLocalizations loc,
+    FreshLeafColorsX colors,
+    Color typeColor,
+  ) {
     final time = communityDate(context, post.createdAt);
     return Row(
       children: [
@@ -390,9 +417,7 @@ class CommunityPostCard extends StatelessWidget {
               ),
               if (post.district.isNotEmpty || time.isNotEmpty)
                 Text(
-                  [post.district, time]
-                      .where((e) => e.isNotEmpty)
-                      .join(' · '),
+                  [post.district, time].where((e) => e.isNotEmpty).join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -416,8 +441,12 @@ class CommunityPostCard extends StatelessWidget {
     );
   }
 
-  Widget _body(BuildContext context, AppLocalizations loc,
-      FreshLeafColorsX colors, Color typeColor) {
+  Widget _body(
+    BuildContext context,
+    AppLocalizations loc,
+    FreshLeafColorsX colors,
+    Color typeColor,
+  ) {
     if (post.isExperience) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,8 +514,7 @@ class CommunityPostCard extends StatelessWidget {
           children: [
             if (post.quantityKg != null)
               CommunityChip(
-                label:
-                    '${_qty(post.quantityKg!)} ${loc.communityKgUnit}',
+                label: '${_qty(post.quantityKg!)} ${loc.communityKgUnit}',
                 icon: Icons.scale_outlined,
               ),
             if (date != null)
@@ -524,48 +552,72 @@ class CommunityPostCard extends StatelessWidget {
   }
 
   Widget _footer(
-      BuildContext context, AppLocalizations loc, FreshLeafColorsX colors) {
+    BuildContext context,
+    AppLocalizations loc,
+    FreshLeafColorsX colors,
+  ) {
     final children = <Widget>[];
     if (post.isExperience) {
-      children.add(_stat(colors, Icons.favorite_border,
-          loc.communityLikes('${post.likeCount}')));
-      children.add(_stat(colors, Icons.mode_comment_outlined,
-          loc.communityComments('${post.commentCount}')));
+      children.add(
+        _stat(
+          colors,
+          Icons.favorite_border,
+          loc.communityLikes('${post.likeCount}'),
+        ),
+      );
+      children.add(
+        _stat(
+          colors,
+          Icons.mode_comment_outlined,
+          loc.communityComments('${post.commentCount}'),
+        ),
+      );
     } else if (post.isHarvest) {
-      children.add(_stat(colors, Icons.handshake_outlined,
-          loc.communityInterestedCount('${post.interestedCount}')));
+      children.add(
+        _stat(
+          colors,
+          Icons.handshake_outlined,
+          loc.communityInterestedCount('${post.interestedCount}'),
+        ),
+      );
     } else {
-      children.add(_stat(colors, Icons.local_shipping_outlined,
-          loc.communitySupplierCount('${post.supplierCount}')));
+      children.add(
+        _stat(
+          colors,
+          Icons.local_shipping_outlined,
+          loc.communitySupplierCount('${post.supplierCount}'),
+        ),
+      );
     }
+
     children.add(const Spacer());
-    children.add(Text(
-      loc.communityViewDetails,
-      style: TextStyle(
-        color: colors.brand,
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
+    children.add(
+      Text(
+        loc.communityViewDetails,
+        style: TextStyle(
+          color: colors.brand,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
-    ));
+    );
     return Row(children: children);
   }
 
-  Widget _stat(FreshLeafColorsX colors, IconData icon, String label) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 14),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: colors.onSurfaceMuted),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _stat(FreshLeafColorsX colors, IconData icon, String label) => Padding(
+        padding: const EdgeInsets.only(right: 14),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: colors.onSurfaceMuted),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
+            ),
+          ],
+        ),
+      );
 
   String _harvestLabel(AppLocalizations loc, CommunityPost post) {
     final days = post.daysUntilHarvest;
