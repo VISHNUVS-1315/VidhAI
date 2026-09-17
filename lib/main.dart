@@ -155,6 +155,22 @@ class VidhAIApp extends StatelessWidget {
               locale: Locale(activeLanguage),
               supportedLocales: AppLocalizations.supportedLocales,
               localizationsDelegates: AppLocalizations.localizationsDelegates,
+              // Keep layouts stable on small phones and with large system text.
+              // We still respect accessibility scaling up to 1.2x, while
+              // preventing extreme scales from causing RenderFlex pixel
+              // overflows across dense cards, app bars and bottom navigation.
+              builder: (context, child) {
+                final mediaQuery = MediaQuery.of(context);
+                return MediaQuery(
+                  data: mediaQuery.copyWith(
+                    textScaler: mediaQuery.textScaler.clamp(
+                      minScaleFactor: 0.85,
+                      maxScaleFactor: 1.2,
+                    ),
+                  ),
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
               initialRoute: '/splash',
               onGenerateRoute: (settings) {
                 switch (settings.name) {
