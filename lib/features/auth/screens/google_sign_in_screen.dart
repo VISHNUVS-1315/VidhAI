@@ -96,8 +96,10 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      Text(
+                      const Text(
                         'VidhAI',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.w800,
@@ -109,6 +111,8 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Empowering Farmers, Enriching Lives',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 15,
                           color: Colors.white.withValues(alpha: 0.92),
@@ -135,16 +139,16 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
       right: 0,
       height: size.height * 0.62,
       child: DecoratedBox(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomCenter,
             colors: [
-              const Color(0xFF1B5E3E),
-              const Color(0xFF2E7D32),
-              const Color(0xFF4CAF6C),
+              Color(0xFF1B5E3E),
+              Color(0xFF2E7D32),
+              Color(0xFF4CAF6C),
             ],
-            stops: const [0.0, 0.55, 1.0],
+            stops: [0.0, 0.55, 1.0],
           ),
         ),
         child: Stack(
@@ -199,6 +203,8 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
         children: [
           Text(
             loc.signInWithGoogle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -226,6 +232,8 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
               Expanded(
                 child: Text(
                   'Secure • No passwords',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12.5,
@@ -267,20 +275,30 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                       color: Color(0xFF2E7D32),
                     ),
                   )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const GoogleGLogo(size: 24),
-                      const SizedBox(width: 12),
-                      Text(
-                        loc.signInWithGoogle,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF1F2F23),
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const GoogleGLogo(size: 24),
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              loc.signInWithGoogle,
+                              maxLines: 1,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1F2F23),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
           ),
         ),
