@@ -1,49 +1,79 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Private user profile and farm data.
-    match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    function signedIn() {
+      return request.auth != null;
+    }
+    function me() {
+      return request.auth.uid;
+    }
+
+    // Private user profile, farms, crops and community activity.
+    match /users/{userId} {
+      allow read, write: if signedIn() && me() == userId;
+
+      // Activity inbox drives the Community badge. Any signed-in member may
+      // create a notification in another member's inbox ONLY when they are the
+      // recorded actor (interest/comment/status change). Only the owner of the
+      // inbox may read, mark read, or delete.
+      match /community_activity/{activityId} {
+        allow read, update, delete: if signedIn() && me() == userId;
+        allow create: if signedIn()
+          && request.resource.data.ownerId == userId
+          && request.resource.data.actorId == me();
+      }
 
       match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if signedIn() && me() == userId;
       }
     }
 
-    // Community feed: signed-in users can read posts. A post can only be
-    // created as the signed-in user. Updates are allowed for signed-in users
-    // because reactions and counters are shared fields.
+    // Community posts: one collection shared by experience / harvest / demand.
+    // Posts are visible to every signed-in farmer; a post is always created
+    // under the author's own uid. Counter fields (likeCount, commentCount,
+    // interestedCount, supplierCount) are updated by other members reacting to
+    // the post, so updates are allowed for signed-in users.
     match /community_posts/{postId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.authorId == request.auth.uid;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null
-        && resource.data.authorId == request.auth.uid;
-    }
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.authorId == me();
+      allow update: if signedIn();
+      allow delete: if signedIn() && resource.data.authorId == me();
 
-    match /community_comments/{commentId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.authorId == request.auth.uid;
-      allow update, delete: if request.auth != null
-        && resource.data.authorId == request.auth.uid;
-    }
+      match /comments/{commentId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.authorId == me();
+        allow update, delete: if signedIn()
+          && resource.data.authorId == me();
+      }
 
-    // Buyer/farmer interest records. The sender and the owner of the post can
-    // read the matching interest record.
-    match /community_interests/{interestId} {
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-      allow read: if request.auth != null
-        && (resource.data.userId == request.auth.uid
-          || resource.data.postAuthorId == request.auth.uid);
-      allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid;
-      allow delete: if request.auth != null
-        && (resource.data.userId == request.auth.uid
-          || resource.data.postAuthorId == request.auth.uid);
+      match /likes/{likeId} {
+        allow read: if signedIn();
+        allow create, delete: if signedIn() && likeId == me();
+      }
+
+      // Interest (harvest) and supplier (demand) records. The sender may
+      // withdraw; the post owner may accept/decline.
+      match /interests/{memberId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && memberId == me()
+          && request.resource.data.userId == me();
+        allow update, delete: if signedIn()
+          && (resource.data.userId == me()
+            || resource.data.postAuthorId == me());
+      }
+
+      match /suppliers/{memberId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && memberId == me()
+          && request.resource.data.userId == me();
+        allow update, delete: if signedIn()
+          && (resource.data.userId == me()
+            || resource.data.postAuthorId == me());
+      }
     }
   }
 }

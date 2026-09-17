@@ -258,6 +258,8 @@ class LocalNotificationEngine {
         return 'Weather Alerts';
       case NotificationChannels.market:
         return 'Market Updates';
+      case NotificationChannels.community:
+        return 'Community';
       case NotificationChannels.welcome:
         return 'Welcome';
       default:
@@ -273,6 +275,8 @@ class LocalNotificationEngine {
         return AndroidNotificationCategory.alarm;
       case NotificationCategories.market:
         return AndroidNotificationCategory.event;
+      case NotificationCategories.community:
+        return AndroidNotificationCategory.message;
       case NotificationCategories.welcome:
         return AndroidNotificationCategory.status;
       default:

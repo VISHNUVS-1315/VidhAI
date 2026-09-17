@@ -1945,6 +1945,498 @@ class AppLocalizations {
   String get apply =>
       _strings[languageCode]?['apply'] ?? _strings['en']!['apply']!;
 
+  // Community rebuild getters
+  String get communityTabFeed =>
+      _strings[languageCode]?['community_tab_feed'] ??
+      _strings['en']!['community_tab_feed']!;
+  String get communityTabHarvest =>
+      _strings[languageCode]?['community_tab_harvest'] ??
+      _strings['en']!['community_tab_harvest']!;
+  String get communityTabDemand =>
+      _strings[languageCode]?['community_tab_demand'] ??
+      _strings['en']!['community_tab_demand']!;
+  String get communityNewPost =>
+      _strings[languageCode]?['community_new_post'] ??
+      _strings['en']!['community_new_post']!;
+  String get communityChooseType =>
+      _strings[languageCode]?['community_choose_type'] ??
+      _strings['en']!['community_choose_type']!;
+  String get communityTypeHarvest =>
+      _strings[languageCode]?['community_type_harvest'] ??
+      _strings['en']!['community_type_harvest']!;
+  String get communityTypeProblem =>
+      _strings[languageCode]?['community_type_problem'] ??
+      _strings['en']!['community_type_problem']!;
+  String get communityTypeExperience =>
+      _strings[languageCode]?['community_type_experience'] ??
+      _strings['en']!['community_type_experience']!;
+  String get communityTypeCropUpdate =>
+      _strings[languageCode]?['community_type_crop_update'] ??
+      _strings['en']!['community_type_crop_update']!;
+  String get communityTypeDemand =>
+      _strings[languageCode]?['community_type_demand'] ??
+      _strings['en']!['community_type_demand']!;
+  String get communityImInterested =>
+      _strings[languageCode]?['community_im_interested'] ??
+      _strings['en']!['community_im_interested']!;
+  String get communityInterestedDone =>
+      _strings[languageCode]?['community_interested_done'] ??
+      _strings['en']!['community_interested_done']!;
+  String get communityICanSupply =>
+      _strings[languageCode]?['community_i_can_supply'] ??
+      _strings['en']!['community_i_can_supply']!;
+  String get communitySuppliedDone =>
+      _strings[languageCode]?['community_supplied_done'] ??
+      _strings['en']!['community_supplied_done']!;
+  String get communityViewInterested =>
+      _strings[languageCode]?['community_view_interested'] ??
+      _strings['en']!['community_view_interested']!;
+  String get communityViewSuppliers =>
+      _strings[languageCode]?['community_view_suppliers'] ??
+      _strings['en']!['community_view_suppliers']!;
+  String get communityExpectedPrice =>
+      _strings[languageCode]?['community_expected_price'] ??
+      _strings['en']!['community_expected_price']!;
+  String get communityPricePerKg =>
+      _strings[languageCode]?['community_price_per_kg'] ??
+      _strings['en']!['community_price_per_kg']!;
+  String get communityRequiredBy =>
+      _strings[languageCode]?['community_required_by'] ??
+      _strings['en']!['community_required_by']!;
+  String get communityFulfilled =>
+      _strings[languageCode]?['community_fulfilled'] ??
+      _strings['en']!['community_fulfilled']!;
+  String get communityClosed =>
+      _strings[languageCode]?['community_closed'] ??
+      _strings['en']!['community_closed']!;
+  String get communityMarkFulfilled =>
+      _strings[languageCode]?['community_mark_fulfilled'] ??
+      _strings['en']!['community_mark_fulfilled']!;
+  String get communityMarkClosed =>
+      _strings[languageCode]?['community_mark_closed'] ??
+      _strings['en']!['community_mark_closed']!;
+  String get communityReopen =>
+      _strings[languageCode]?['community_reopen'] ??
+      _strings['en']!['community_reopen']!;
+  String get communityMyPosts =>
+      _strings[languageCode]?['community_my_posts'] ??
+      _strings['en']!['community_my_posts']!;
+  String get communityMyDistrict =>
+      _strings[languageCode]?['community_my_district'] ??
+      _strings['en']!['community_my_district']!;
+  String get communityFeedEmpty =>
+      _strings[languageCode]?['community_feed_empty'] ??
+      _strings['en']!['community_feed_empty']!;
+  String get communityHarvestEmpty =>
+      _strings[languageCode]?['community_harvest_empty'] ??
+      _strings['en']!['community_harvest_empty']!;
+  String get communityDemandEmpty =>
+      _strings[languageCode]?['community_demand_empty'] ??
+      _strings['en']!['community_demand_empty']!;
+  String get communityLoadFailed =>
+      _strings[languageCode]?['community_load_failed'] ??
+      _strings['en']!['community_load_failed']!;
+  String get communityWaitingConnection =>
+      _strings[languageCode]?['community_waiting_connection'] ??
+      _strings['en']!['community_waiting_connection']!;
+  String get communityAddPhoto =>
+      _strings[languageCode]?['community_add_photo'] ??
+      _strings['en']!['community_add_photo']!;
+  String get communityCropName =>
+      _strings[languageCode]?['community_crop_name'] ??
+      _strings['en']!['community_crop_name']!;
+  String get communitySelectHarvestDate =>
+      _strings[languageCode]?['community_select_harvest_date'] ??
+      _strings['en']!['community_select_harvest_date']!;
+  String get communitySelectFarm =>
+      _strings[languageCode]?['community_select_farm'] ??
+      _strings['en']!['community_select_farm']!;
+  String get communitySelectDate =>
+      _strings[languageCode]?['community_select_date'] ??
+      _strings['en']!['community_select_date']!;
+  String get communityDescription =>
+      _strings[languageCode]?['community_description'] ??
+      _strings['en']!['community_description']!;
+  String get communityDeleteConfirm =>
+      _strings[languageCode]?['community_delete_confirm'] ??
+      _strings['en']!['community_delete_confirm']!;
+  String get communityPostUpdated =>
+      _strings[languageCode]?['community_post_updated'] ??
+      _strings['en']!['community_post_updated']!;
+  String get communityPostDeleted =>
+      _strings[languageCode]?['community_post_deleted'] ??
+      _strings['en']!['community_post_deleted']!;
+  String get communityInterestSent =>
+      _strings[languageCode]?['community_interest_sent'] ??
+      _strings['en']!['community_interest_sent']!;
+  String get communitySupplySent =>
+      _strings[languageCode]?['community_supply_sent'] ??
+      _strings['en']!['community_supply_sent']!;
+  String get communityKgUnit =>
+      _strings[languageCode]?['community_kg_unit'] ??
+      _strings['en']!['community_kg_unit']!;
+  String get nearestCommunity =>
+      _strings[languageCode]?['nearest_community'] ??
+      _strings['en']!['nearest_community']!;
+
+  String get communityShareTitle =>
+      _strings[languageCode]?['community_share_title'] ??
+      _strings['en']!['community_share_title']!;
+
+  String get communityExperienceDesc =>
+      _strings[languageCode]?['community_experience_desc'] ??
+      _strings['en']!['community_experience_desc']!;
+
+  String get communityHarvestDesc =>
+      _strings[languageCode]?['community_harvest_desc'] ??
+      _strings['en']!['community_harvest_desc']!;
+
+  String get communityDemandDesc =>
+      _strings[languageCode]?['community_demand_desc'] ??
+      _strings['en']!['community_demand_desc']!;
+
+  String get communityExperienceTitleLbl =>
+      _strings[languageCode]?['community_experience_title_lbl'] ??
+      _strings['en']!['community_experience_title_lbl']!;
+
+  String get communityExperienceTextHint =>
+      _strings[languageCode]?['community_experience_text_hint'] ??
+      _strings['en']!['community_experience_text_hint']!;
+
+  String get communityCropOptional =>
+      _strings[languageCode]?['community_crop_optional'] ??
+      _strings['en']!['community_crop_optional']!;
+
+  String get communityFarmOptional =>
+      _strings[languageCode]?['community_farm_optional'] ??
+      _strings['en']!['community_farm_optional']!;
+
+  String get communityQuantityLabel =>
+      _strings[languageCode]?['community_quantity_label'] ??
+      _strings['en']!['community_quantity_label']!;
+
+  String get communityQuantityHint =>
+      _strings[languageCode]?['community_quantity_hint'] ??
+      _strings['en']!['community_quantity_hint']!;
+
+  String get communityHarvestDateLabel =>
+      _strings[languageCode]?['community_harvest_date_label'] ??
+      _strings['en']!['community_harvest_date_label']!;
+
+  String get communityRequiredDateLabel =>
+      _strings[languageCode]?['community_required_date_label'] ??
+      _strings['en']!['community_required_date_label']!;
+
+  String get communityPriceLabel =>
+      _strings[languageCode]?['community_price_label'] ??
+      _strings['en']!['community_price_label']!;
+
+  String get communityTargetPriceLabel =>
+      _strings[languageCode]?['community_target_price_label'] ??
+      _strings['en']!['community_target_price_label']!;
+
+  String get communityMarketPriceLabel =>
+      _strings[languageCode]?['community_market_price_label'] ??
+      _strings['en']!['community_market_price_label']!;
+
+  String get communitySuggestedLabel =>
+      _strings[languageCode]?['community_suggested_label'] ??
+      _strings['en']!['community_suggested_label']!;
+
+  String get communityNoMarketData =>
+      _strings[languageCode]?['community_no_market_data'] ??
+      _strings['en']!['community_no_market_data']!;
+
+  String get communityBuyerAcceptanceRisk =>
+      _strings[languageCode]?['community_buyer_acceptance_risk'] ??
+      _strings['en']!['community_buyer_acceptance_risk']!;
+
+  String get communityBelowMarketWarning =>
+      _strings[languageCode]?['community_below_market_warning'] ??
+      _strings['en']!['community_below_market_warning']!;
+
+  String get communityMarketSource =>
+      _strings[languageCode]?['community_market_source'] ??
+      _strings['en']!['community_market_source']!;
+
+  String communityStateFallback(String state) =>
+      (_strings[languageCode]?['community_state_fallback'] ??
+              _strings['en']!['community_state_fallback']!)
+.replaceAll('{state}', state);
+
+  String get communityPriceLoading =>
+      _strings[languageCode]?['community_price_loading'] ??
+      _strings['en']!['community_price_loading']!;
+
+  String get communityPriceUnavailable =>
+      _strings[languageCode]?['community_price_unavailable'] ??
+      _strings['en']!['community_price_unavailable']!;
+
+  String get priceRiskCompetitive =>
+      _strings[languageCode]?['price_risk_competitive'] ??
+      _strings['en']!['price_risk_competitive']!;
+
+  String get priceRiskSlightlyHigh =>
+      _strings[languageCode]?['price_risk_slightly_high'] ??
+      _strings['en']!['price_risk_slightly_high']!;
+
+  String get priceRiskHigh =>
+      _strings[languageCode]?['price_risk_high'] ??
+      _strings['en']!['price_risk_high']!;
+
+  String get priceRiskVeryHigh =>
+      _strings[languageCode]?['price_risk_very_high'] ??
+      _strings['en']!['price_risk_very_high']!;
+
+  String get communityHarvestSoon =>
+      _strings[languageCode]?['community_harvest_soon'] ??
+      _strings['en']!['community_harvest_soon']!;
+
+  String communityInterestedCount(String count) =>
+      (_strings[languageCode]?['community_interested_count'] ??
+              _strings['en']!['community_interested_count']!)
+.replaceAll('{count}', count);
+
+  String communitySupplierCount(String count) =>
+      (_strings[languageCode]?['community_supplier_count'] ??
+              _strings['en']!['community_supplier_count']!)
+.replaceAll('{count}', count);
+
+  String get communityReserved =>
+      _strings[languageCode]?['community_reserved'] ??
+      _strings['en']!['community_reserved']!;
+
+  String get communityMarkReserved =>
+      _strings[languageCode]?['community_mark_reserved'] ??
+      _strings['en']!['community_mark_reserved']!;
+
+  String get communityAccepted =>
+      _strings[languageCode]?['community_accepted'] ??
+      _strings['en']!['community_accepted']!;
+
+  String get communityDeclined =>
+      _strings[languageCode]?['community_declined'] ??
+      _strings['en']!['community_declined']!;
+
+  String get communityPending =>
+      _strings[languageCode]?['community_pending'] ??
+      _strings['en']!['community_pending']!;
+
+  String get communityAccept =>
+      _strings[languageCode]?['community_accept'] ??
+      _strings['en']!['community_accept']!;
+
+  String get communityDecline =>
+      _strings[languageCode]?['community_decline'] ??
+      _strings['en']!['community_decline']!;
+
+  String get communityMyActivity =>
+      _strings[languageCode]?['community_my_activity'] ??
+      _strings['en']!['community_my_activity']!;
+
+  String get communityTabPosts =>
+      _strings[languageCode]?['community_tab_posts'] ??
+      _strings['en']!['community_tab_posts']!;
+
+  String get communityTabResponses =>
+      _strings[languageCode]?['community_tab_responses'] ??
+      _strings['en']!['community_tab_responses']!;
+
+  String get communityTabActivity =>
+      _strings[languageCode]?['community_tab_activity'] ??
+      _strings['en']!['community_tab_activity']!;
+
+  String get communityActivityEmpty =>
+      _strings[languageCode]?['community_activity_empty'] ??
+      _strings['en']!['community_activity_empty']!;
+
+  String get communityResponsesEmpty =>
+      _strings[languageCode]?['community_responses_empty'] ??
+      _strings['en']!['community_responses_empty']!;
+
+  String get communityMyPostsEmpty =>
+      _strings[languageCode]?['community_my_posts_empty'] ??
+      _strings['en']!['community_my_posts_empty']!;
+
+  String communityActInterestNew(String name, String crop) =>
+      (_strings[languageCode]?['community_act_interest_new'] ??
+              _strings['en']!['community_act_interest_new']!)
+.replaceAll('{name}', name).replaceAll('{crop}', crop);
+
+  String communityActSupplierNew(String name, String crop) =>
+      (_strings[languageCode]?['community_act_supplier_new'] ??
+              _strings['en']!['community_act_supplier_new']!)
+.replaceAll('{name}', name).replaceAll('{crop}', crop);
+
+  String communityActInterestAccepted(String name) =>
+      (_strings[languageCode]?['community_act_interest_accepted'] ??
+              _strings['en']!['community_act_interest_accepted']!)
+.replaceAll('{name}', name);
+
+  String communityActInterestDeclined(String name) =>
+      (_strings[languageCode]?['community_act_interest_declined'] ??
+              _strings['en']!['community_act_interest_declined']!)
+.replaceAll('{name}', name);
+
+  String communityActSupplierAccepted(String name) =>
+      (_strings[languageCode]?['community_act_supplier_accepted'] ??
+              _strings['en']!['community_act_supplier_accepted']!)
+.replaceAll('{name}', name);
+
+  String communityActSupplierDeclined(String name) =>
+      (_strings[languageCode]?['community_act_supplier_declined'] ??
+              _strings['en']!['community_act_supplier_declined']!)
+.replaceAll('{name}', name);
+
+  String communityActComment(String name) =>
+      (_strings[languageCode]?['community_act_comment'] ??
+              _strings['en']!['community_act_comment']!)
+.replaceAll('{name}', name);
+
+  String communityActStatusChanged(String crop, String status) =>
+      (_strings[languageCode]?['community_act_status_changed'] ??
+              _strings['en']!['community_act_status_changed']!)
+.replaceAll('{crop}', crop).replaceAll('{status}', status);
+
+  String get communitySelectState =>
+      _strings[languageCode]?['community_select_state'] ??
+      _strings['en']!['community_select_state']!;
+
+  String get communitySelectDistrict =>
+      _strings[languageCode]?['community_select_district'] ??
+      _strings['en']!['community_select_district']!;
+
+  String get communityBrowseByDistrict =>
+      _strings[languageCode]?['community_browse_by_district'] ??
+      _strings['en']!['community_browse_by_district']!;
+
+  String get communityStatesLoadFailed =>
+      _strings[languageCode]?['community_states_load_failed'] ??
+      _strings['en']!['community_states_load_failed']!;
+
+  String get communityDistrictsLoadFailed =>
+      _strings[languageCode]?['community_districts_load_failed'] ??
+      _strings['en']!['community_districts_load_failed']!;
+
+  String get communityExperienceEmpty =>
+      _strings[languageCode]?['community_experience_empty'] ??
+      _strings['en']!['community_experience_empty']!;
+
+  String get communityFirstPost =>
+      _strings[languageCode]?['community_first_post'] ??
+      _strings['en']!['community_first_post']!;
+
+  String get communityLoading =>
+      _strings[languageCode]?['community_loading'] ??
+      _strings['en']!['community_loading']!;
+
+  String get communityLoadMore =>
+      _strings[languageCode]?['community_load_more'] ??
+      _strings['en']!['community_load_more']!;
+
+  String get communityViewDetails =>
+      _strings[languageCode]?['community_view_details'] ??
+      _strings['en']!['community_view_details']!;
+
+  String get communityCommentHint =>
+      _strings[languageCode]?['community_comment_hint'] ??
+      _strings['en']!['community_comment_hint']!;
+
+  String communityComments(String count) =>
+      (_strings[languageCode]?['community_comments'] ??
+              _strings['en']!['community_comments']!)
+.replaceAll('{count}', count);
+
+  String communityLikes(String count) =>
+      (_strings[languageCode]?['community_likes'] ??
+              _strings['en']!['community_likes']!)
+.replaceAll('{count}', count);
+
+  String get communitySendNote =>
+      _strings[languageCode]?['community_send_note'] ??
+      _strings['en']!['community_send_note']!;
+
+  String get communityOwner =>
+      _strings[languageCode]?['community_owner'] ??
+      _strings['en']!['community_owner']!;
+
+  String get communityOwnerOnlyActions =>
+      _strings[languageCode]?['community_owner_only_actions'] ??
+      _strings['en']!['community_owner_only_actions']!;
+
+  String get communityDeletePost =>
+      _strings[languageCode]?['community_delete_post'] ??
+      _strings['en']!['community_delete_post']!;
+
+  String communityNotifHarvestTitle(String crop, String district) =>
+      (_strings[languageCode]?['community_notif_harvest_title'] ??
+              _strings['en']!['community_notif_harvest_title']!)
+.replaceAll('{crop}', crop).replaceAll('{district}', district);
+
+  String communityNotifHarvestBody(String name, String crop, String qty) =>
+      (_strings[languageCode]?['community_notif_harvest_body'] ??
+              _strings['en']!['community_notif_harvest_body']!)
+.replaceAll('{name}', name).replaceAll('{crop}', crop).replaceAll('{qty}', qty);
+
+  String communityNotifDemandTitle(String crop, String district) =>
+      (_strings[languageCode]?['community_notif_demand_title'] ??
+              _strings['en']!['community_notif_demand_title']!)
+.replaceAll('{crop}', crop).replaceAll('{district}', district);
+
+  String communityNotifDemandBody(String crop, String qty, String date) =>
+      (_strings[languageCode]?['community_notif_demand_body'] ??
+              _strings['en']!['community_notif_demand_body']!)
+.replaceAll('{crop}', crop).replaceAll('{qty}', qty).replaceAll('{date}', date);
+
+  String get communityEditTitle =>
+      _strings[languageCode]?['community_edit_title'] ??
+      _strings['en']!['community_edit_title']!;
+
+  String get communityCreateTitle =>
+      _strings[languageCode]?['community_create_title'] ??
+      _strings['en']!['community_create_title']!;
+
+  String get communityPostNow =>
+      _strings[languageCode]?['community_post_now'] ??
+      _strings['en']!['community_post_now']!;
+
+  String get communityTabExperience =>
+      _strings[languageCode]?['community_tab_experience'] ??
+      _strings['en']!['community_tab_experience']!;
+
+  String get communityTabHarvestSoon =>
+      _strings[languageCode]?['community_tab_harvest_soon'] ??
+      _strings['en']!['community_tab_harvest_soon']!;
+
+  String get communityRequireCrop =>
+      _strings[languageCode]?['community_require_crop'] ??
+      _strings['en']!['community_require_crop']!;
+
+  String get communityRequireQuantity =>
+      _strings[languageCode]?['community_require_quantity'] ??
+      _strings['en']!['community_require_quantity']!;
+
+  String get communityRequireHarvestDate =>
+      _strings[languageCode]?['community_require_harvest_date'] ??
+      _strings['en']!['community_require_harvest_date']!;
+
+  String get communityRequireExperience =>
+      _strings[languageCode]?['community_require_experience'] ??
+      _strings['en']!['community_require_experience']!;
+  String get communityInterestedEmpty =>
+      _strings[languageCode]?['community_interested_empty'] ??
+      _strings['en']!['community_interested_empty']!;
+  String get communitySuppliersEmpty =>
+      _strings[languageCode]?['community_suppliers_empty'] ??
+      _strings['en']!['community_suppliers_empty']!;
+  String communityHarvestInDays(String days) =>
+      (_strings[languageCode]?['community_harvest_in_days'] ??
+              _strings['en']!['community_harvest_in_days']!)
+          .replaceAll('{days}', days);
+  String get communityHarvestToday =>
+      _strings[languageCode]?['community_harvest_today'] ??
+      _strings['en']!['community_harvest_today']!;
+
   // Add farm screen
   String get addNewFarm =>
       _strings[languageCode]?['add_new_farm'] ??

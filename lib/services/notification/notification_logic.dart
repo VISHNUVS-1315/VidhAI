@@ -11,6 +11,7 @@ class NotificationCategories {
   static const market = 'market';
   static const recommendation = 'recommendation';
   static const alert = 'alert';
+  static const community = 'community';
 
   static const List<String> all = [
     welcome,
@@ -19,6 +20,7 @@ class NotificationCategories {
     market,
     recommendation,
     alert,
+    community,
   ];
 
   static bool isValid(String category) => all.contains(category);
@@ -31,6 +33,7 @@ class NotificationChannels {
   static const updates = 'vidhai_updates';
   static const welcome = 'vidhai_welcome';
   static const market = 'vidhai_market';
+  static const community = 'vidhai_community';
   static const default_ = 'vidhai_default';
 
   static String channelFor(String category) {
@@ -43,6 +46,8 @@ class NotificationChannels {
         return weather;
       case NotificationCategories.market:
         return market;
+      case NotificationCategories.community:
+        return community;
       default:
         return updates;
     }
@@ -67,6 +72,8 @@ class NotificationLogic {
         return '/main_shell';
       case NotificationCategories.market:
         return '/market-prices';
+      case NotificationCategories.community:
+        return '/community';
       default:
         return '/main_shell';
     }

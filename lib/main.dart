@@ -44,6 +44,7 @@ import 'package:vidhai/features/tools/screens/fertilizer_guide_screen.dart';
 import 'package:vidhai/features/tools/screens/market_prices_screen.dart';
 import 'package:vidhai/features/tools/screens/crop_search_screen.dart';
 import 'package:vidhai/features/schemes/screens/government_schemes_screen.dart';
+import 'package:vidhai/features/community/screens/community_feed_screen.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/tools/ai_tool.dart';
 import 'package:vidhai/tools/farm_tool.dart';
@@ -256,6 +257,9 @@ class VidhAIApp extends StatelessWidget {
                   case '/government-schemes':
                     return MaterialPageRoute(
                         builder: (_) => const GovernmentSchemesScreen());
+                  case '/community':
+                    return MaterialPageRoute(
+                        builder: (_) => const CommunityFeedScreen());
                   default:
                     return MaterialPageRoute(
                         builder: (_) => const SplashScreen());

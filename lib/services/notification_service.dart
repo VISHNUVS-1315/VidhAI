@@ -93,7 +93,9 @@ class NotificationService {
             ? NotificationCategories.weather
             : notification.category == NotificationCategories.market
                 ? NotificationCategories.market
-                : null;
+                : notification.category == NotificationCategories.community
+                    ? NotificationCategories.community
+                    : null;
 
     _settings.isEnabled(settingsCategory ?? notification.category).then((ok) {
       if (!ok) return;

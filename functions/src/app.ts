@@ -591,6 +591,90 @@ app.post('/market/insight', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * POST /community/notify
+ * body: { postId }
+ *
+ * Fans out a district-topic push after a harvest/demand post is published.
+ * The backend re-derives the post from Firestore and verifies the caller owns
+ * it, so a client can never spoof another farmer's or another district's
+ * broadcast. The FCM server credential never reaches the app.
+ */
+app.post('/community/notify', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const postId = typeof req.body?.postId === 'string' ? req.body.postId : '';
+    if (!postId) {
+      res.status(400).json({ success: false, error: 'postId is required.' });
+      return;
+    }
+
+    const admin = ensureFirebaseAdmin();
+    const snap = await admin
+      .firestore()
+      .collection('community_posts')
+      .doc(postId)
+      .get();
+    if (!snap.exists) {
+      res.status(404).json({ success: false, error: 'Post not found.' });
+      return;
+    }
+
+    const post = snap.data() ?? {};
+    if (post.authorId !== req.firebaseUid) {
+      res.status(403).json({ success: false, error: 'Not the post owner.' });
+      return;
+    }
+
+    const type = typeof post.type === 'string' ? post.type : '';
+    if (type !== 'harvest' && type !== 'demand') {
+      res.json({ success: true, skipped: 'type' });
+      return;
+    }
+
+    const district = String(post.district ?? '').trim();
+    if (!district) {
+      res.json({ success: true, skipped: 'district' });
+      return;
+    }
+
+    const crop = String(post.cropName ?? '').trim() || 'Crop';
+    const authorName = String(post.authorName ?? '').trim() || 'A farmer';
+    const quantity = post.quantityKg != null ? `${post.quantityKg} kg` : '';
+    const topic =
+      'district_' +
+      district
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+    const title =
+      type === 'harvest'
+        ? `${crop} available in ${district}`
+        : `Demand for ${crop} in ${district}`;
+    const body =
+      type === 'harvest'
+        ? `${authorName} harvests ${crop}${quantity ? `, ${quantity}` : ''}`
+        : `${quantity ? `${quantity} ` : ''}${crop} required`;
+
+    await admin.messaging().send({
+      topic,
+      notification: { title, body },
+      data: {
+        category: 'community',
+        type: 'community',
+        postId,
+        deepLink: '/community',
+      },
+    });
+
+    res.json({ success: true, topic, type });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    logger.error('community notify failed', e);
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
 // 404 for unknown routes.
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found.' });
