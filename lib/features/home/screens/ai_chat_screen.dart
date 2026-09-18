@@ -1,15 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/farm_profile.dart';
 import 'package:vidhai/features/assistant/voice_turn_recorder.dart';
-import 'package:vidhai/features/home/screens/live_voice_screen.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/services/ai/ai_chat_service.dart';
 import 'package:vidhai/services/ai/domain_services.dart';
@@ -39,6 +41,23 @@ class _ChatMessage {
   });
 }
 
+class _PendingFileAttachment {
+  final PlatformFile file;
+  double progress;
+  bool uploading;
+  String? downloadUrl;
+  String? error;
+  Future<void>? uploadFuture;
+
+  _PendingFileAttachment({
+    required this.file,
+    this.progress = 0,
+    this.uploading = true,
+  });
+
+  String get name => file.name;
+}
+
 class AiChatScreen extends StatefulWidget {
   final String source;
   final String? targetFarmId;
@@ -64,7 +83,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   final List<_ChatMessage> _messages = [];
   final List<XFile> _pendingImages = [];
-  final List<String> _pendingFiles = [];
+  final List<_PendingFileAttachment> _pendingFiles = [];
 
   List<FarmProfile> _farms = [];
   String? _selectedFarmId;
@@ -84,14 +103,28 @@ class _AiChatScreenState extends State<AiChatScreen> {
     super.initState();
     _tts.addListener(_onTtsChanged);
     _loadFarms();
+    unawaited(_loadChatHistory());
+  }
+
+  Future<void> _loadChatHistory() async {
+    await _history.init();
+    if (!mounted) return;
     final active = _history.activeSession;
-    if (active != null) {
-      _messages.addAll(active.messages.map((m) => _ChatMessage(
-            text: m.content,
-            isUser: m.role == 'user',
-            timestamp: m.timestamp,
-          )));
-    }
+    setState(() {
+      _messages
+        ..clear()
+        ..addAll(
+          (active?.messages ?? const <ChatMessage>[]).map(
+            (m) => _ChatMessage(
+              text: m.content,
+              isUser: m.role == 'user',
+              timestamp: m.timestamp,
+              fileName: m.metadata?['fileName']?.toString(),
+            ),
+          ),
+        );
+    });
+    _scrollToBottom();
   }
 
   Future<void> _loadFarms() async {
@@ -230,10 +263,18 @@ class _AiChatScreenState extends State<AiChatScreen> {
       return;
     }
     if (_pendingFiles.isNotEmpty) {
-      final fileName = _pendingFiles.removeAt(0);
+      final attachment = _pendingFiles.removeAt(0);
       if (mounted) setState(() {});
-      await _standardSend(clean,
-          fileName: fileName, voiceInitiated: voiceInitiated);
+      final uploadFuture = attachment.uploadFuture;
+      if (uploadFuture != null) await uploadFuture;
+      final fileContext = await _readTextAttachment(attachment.file);
+      await _standardSend(
+        clean,
+        fileName: attachment.name,
+        fileUrl: attachment.downloadUrl,
+        fileContext: fileContext,
+        voiceInitiated: voiceInitiated,
+      );
       return;
     }
     if (clean.isEmpty) return;
@@ -243,19 +284,44 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Future<void> _standardSend(
     String text, {
     String? fileName,
+    String? fileUrl,
+    String? fileContext,
     bool voiceInitiated = false,
   }) async {
     if (_isTyping || _streamActive) return;
     final loc = AppLocalizations.of(context);
+    final displayText = text.trim();
     final userMsg = _ChatMessage(
-      text: text,
+      text: displayText,
       isUser: true,
       timestamp: DateTime.now(),
       fileName: fileName,
       voiceInitiated: voiceInitiated,
     );
-    final session = _session(title: text);
-    session.messages.add(ChatMessage.user(text));
+    final session = _session(
+      title: displayText.isNotEmpty ? displayText : (fileName ?? 'Attachment'),
+    );
+    session.messages.add(
+      ChatMessage.user(
+        displayText,
+        metadata: {
+          if (fileName != null) 'fileName': fileName,
+          if (fileUrl != null) 'fileUrl': fileUrl,
+        },
+      ),
+    );
+    session.updatedAt = DateTime.now();
+    unawaited(_history.persist());
+
+    final aiInput = fileContext != null && fileContext.trim().isNotEmpty
+        ? '''${displayText.isEmpty ? 'Use the attached file to answer the user.' : displayText}
+
+Attached file: ${fileName ?? 'file'}
+File content:
+${fileContext.trim()}'''
+        : (displayText.isNotEmpty
+            ? displayText
+            : 'The user attached a file named ${fileName ?? 'file'}.');
 
     setState(() {
       _messages.add(userMsg);
@@ -291,13 +357,14 @@ class _AiChatScreenState extends State<AiChatScreen> {
     }
 
     try {
-      final response = await _getResponse(text, onDelta: onDelta);
+      final response = await _getResponse(aiInput, onDelta: onDelta);
       if (!mounted) return;
       final finalText = streamed.isNotEmpty ? streamed : response;
       final reply = _polishResponse(finalText);
       assistantMsg?.text = reply;
       session.messages.add(ChatMessage.assistant(reply));
       session.updatedAt = DateTime.now();
+      unawaited(_history.persist());
       setState(() {
         _isTyping = false;
         _streamActive = false;
@@ -381,6 +448,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       );
       session.messages.add(ChatMessage.assistant(reply));
       session.updatedAt = DateTime.now();
+      unawaited(_history.persist());
       setState(() {
         _isTyping = false;
         _messages.add(aiMsg);
@@ -412,6 +480,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
   // ── Voice recording ────────────────────────────────────────────────────
 
   Future<void> _beginRecording() async {
+    await _tts.stop();
     final lang = await _getLanguage();
     _recorder.onText = (t) {
       if (mounted) setState(() => _liveTranscript = t);
@@ -480,6 +549,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   void _startNewChat() {
     _history.createSession();
+    unawaited(_history.persist());
     setState(() {
       _messages.clear();
       _controller.clear();
@@ -492,6 +562,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   void _loadSession(String sessionId) {
     _history.setActiveSession(sessionId);
+    unawaited(_history.persist());
     final stored = _history.getHistoryForSession(sessionId);
     setState(() {
       _messages
@@ -500,6 +571,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
               text: m.content,
               isUser: m.role == 'user',
               timestamp: m.timestamp,
+              fileName: m.metadata?['fileName']?.toString(),
             )));
       _controller.clear();
       _pendingImages.clear();
@@ -519,134 +591,148 @@ class _AiChatScreenState extends State<AiChatScreen> {
     }
   }
 
-  void _openLiveVoice() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const LiveVoiceScreen()),
-    );
-  }
-
-  void _openHistory() {
+  Widget _buildChatDrawer() {
+    final x = FreshLeafColorsX(context);
     final loc = AppLocalizations.of(context);
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        final x = FreshLeafColorsX(sheetContext);
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.62,
-          minChildSize: 0.4,
-          maxChildSize: 0.92,
-          builder: (context, scrollController) {
-            final sessions = _history.sessions;
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 12, 12),
-                  child: Row(
-                    children: [
-                      Text(
-                        loc.chatHistory,
-                        style: TextStyle(
-                          color: x.onBackground,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                        ),
+    final sessions = _history.sessions;
+
+    return Drawer(
+      backgroundColor: x.bg,
+      width: MediaQuery.sizeOf(context).width * 0.86,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 10, 8),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 34,
+                      height: 34,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      loc.aiChatAssistantHeading,
+                      style: TextStyle(
+                        color: x.onBackground,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
                       ),
-                      const Spacer(),
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          _startNewChat();
-                        },
-                        icon: Icon(Icons.edit_square, color: x.brand, size: 18),
-                        label: Text(loc.newChat),
-                      ),
-                    ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.close_rounded, color: x.onSurfaceMuted),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _startNewChat();
+                  },
+                  icon: Icon(Icons.edit_square, color: x.brand, size: 19),
+                  label: Text(loc.newChat),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: x.onBackground,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 13,
+                    ),
+                    alignment: AlignmentDirectional.centerStart,
+                    side: BorderSide(color: x.borderColor),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
-                const Divider(height: 1),
-                Expanded(
-                  child: sessions.isEmpty
-                      ? _buildNoChats(x, loc)
-                      : ListView.builder(
-                          controller: scrollController,
-                          padding: const EdgeInsets.only(bottom: 16),
-                          itemCount: sessions.length,
-                          itemBuilder: (context, index) {
-                            final session = sessions[index];
-                            return Dismissible(
-                              key: ValueKey(session.id),
-                              direction: DismissDirection.endToStart,
-                              background: Container(
-                                alignment: AlignmentDirectional.centerEnd,
-                                padding:
-                                    const EdgeInsetsDirectional.only(end: 24),
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: x.error,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: const Icon(
-                                  Icons.delete_outline_rounded,
-                                  color: Colors.white,
-                                ),
+              ),
+            ),
+            Divider(height: 1, color: x.borderColor),
+            Expanded(
+              child: sessions.isEmpty
+                  ? _buildNoChats(x, loc)
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(8, 10, 8, 16),
+                      itemCount: sessions.length,
+                      itemBuilder: (context, index) {
+                        final session = sessions[index];
+                        final selected =
+                            _history.activeSession?.id == session.id;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? x.brand.withValues(alpha: 0.10)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            dense: true,
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              _loadSession(session.id);
+                            },
+                            leading: Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              color: selected ? x.brand : x.onSurfaceMuted,
+                              size: 20,
+                            ),
+                            title: Text(
+                              session.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: x.onBackground,
+                                fontSize: 14,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
                               ),
-                              onDismissed: (_) => _deleteSession(session.id),
-                              child: ListTile(
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  _loadSession(session.id);
-                                },
-                                leading: CircleAvatar(
-                                  backgroundColor:
-                                      x.brand.withValues(alpha: 0.12),
-                                  child: Icon(
-                                    Icons.chat_bubble_outline_rounded,
-                                    color: x.brand,
-                                    size: 20,
+                            ),
+                            subtitle: session.preview.isEmpty
+                                ? null
+                                : Text(
+                                    session.preview,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: x.onSurfaceMuted,
+                                      fontSize: 11,
+                                    ),
                                   ),
-                                ),
-                                title: Text(
-                                  session.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: x.onBackground,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  session.messages.isEmpty
-                                      ? _formatListTime(session.updatedAt)
-                                      : '${session.preview}\n${_formatListTime(session.updatedAt)}',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: x.onSurfaceMuted,
-                                    fontSize: 12,
-                                  ),
-                                ),
+                            trailing: IconButton(
+                              tooltip: loc.delete,
+                              onPressed: () => _deleteSession(session.id),
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                color: x.onSurfaceMuted,
+                                size: 19,
                               ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildNoChats(FreshLeafColorsX x, AppLocalizations loc) {
+  Widget _buildNoChats  Widget _buildNoChats(FreshLeafColorsX x, AppLocalizations loc) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -732,34 +818,145 @@ class _AiChatScreenState extends State<AiChatScreen> {
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+      withData: true,
+    );
     if (result == null || !mounted) return;
-    final name = result.files.single.name;
-    if (name.isEmpty) return;
-    setState(() => _pendingFiles.add(name));
+    final file = result.files.single;
+    if (file.name.trim().isEmpty) return;
+
+    final attachment = _PendingFileAttachment(file: file);
+    setState(() => _pendingFiles.add(attachment));
+    attachment.uploadFuture = _uploadFile(attachment);
   }
 
+  Future<void> _uploadFile(_PendingFileAttachment attachment) async {
+    StreamSubscription<TaskSnapshot>? progressSub;
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        attachment
+          ..uploading = false
+          ..error = 'auth';
+        if (mounted) setState(() {});
+        return;
+      }
+
+      final safeName = attachment.name.replaceAll(
+        RegExp(r'[^A-Za-z0-9._-]'),
+        '_',
+      );
+      final ref = FirebaseStorage.instance.ref().child(
+            'chat/${user.uid}/${DateTime.now().microsecondsSinceEpoch}_$safeName',
+          );
+      final metadata = SettableMetadata(
+        contentType: _mimeForFileName(attachment.name),
+        customMetadata: const {'source': 'vidhai-ai-chat'},
+      );
+
+      final bytes = attachment.file.bytes;
+      final localPath = attachment.file.path;
+      final UploadTask task;
+      if (bytes != null) {
+        task = ref.putData(bytes, metadata);
+      } else if (localPath != null && localPath.isNotEmpty) {
+        task = ref.putFile(File(localPath), metadata);
+      } else {
+        throw StateError('No readable file data');
+      }
+
+      progressSub = task.snapshotEvents.listen((snapshot) {
+        if (!mounted || snapshot.totalBytes <= 0) return;
+        setState(() {
+          attachment.progress =
+              snapshot.bytesTransferred / snapshot.totalBytes;
+        });
+      });
+
+      final snapshot = await task;
+      attachment.downloadUrl = await snapshot.ref.getDownloadURL();
+      attachment.progress = 1;
+      attachment.uploading = false;
+      if (mounted) setState(() {});
+    } catch (_) {
+      attachment
+        ..uploading = false
+        ..error = 'upload';
+      if (mounted) setState(() {});
+    } finally {
+      await progressSub?.cancel();
+    }
+  }
+
+  Future<String?> _readTextAttachment(PlatformFile file) async {
+    final ext = (file.extension ?? '').toLowerCase();
+    const textExtensions = {
+      'txt',
+      'md',
+      'csv',
+      'json',
+      'log',
+      'yaml',
+      'yml',
+      'xml',
+    };
+    if (!textExtensions.contains(ext)) return null;
+
+    try {
+      final bytes = file.bytes ??
+          (file.path == null ? null : await File(file.path!).readAsBytes());
+      if (bytes == null) return null;
+      var content = utf8.decode(bytes, allowMalformed: true).trim();
+      const maxChars = 14000;
+      if (content.length > maxChars) {
+        content = content.substring(0, maxChars);
+      }
+      return content;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _mimeForFileName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.txt')) return 'text/plain';
+    if (lower.endsWith('.csv')) return 'text/csv';
+    if (lower.endsWith('.json')) return 'application/json';
+    if (lower.endsWith('.md')) return 'text/markdown';
+    if (lower.endsWith('.doc')) return 'application/msword';
+    if (lower.endsWith('.docx')) {
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    }
+    if (lower.endsWith('.xls')) return 'application/vnd.ms-excel';
+    if (lower.endsWith('.xlsx')) {
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    }
+    return 'application/octet-stream';
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────
   // ── Build ──────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final x = FreshLeafColorsX(context);
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: x.bg,
+      drawer: _buildChatDrawer(),
       appBar: AppBar(
         backgroundColor: x.bg,
-        leading: widget.source == 'shell'
-            ? const SizedBox(width: 48)
-            : IconButton(
-                icon: Icon(
-                  directionalIcon(context, Icons.arrow_back_ios_new_rounded),
-                  color: x.onBackground,
-                  size: 20,
-                ),
-                onPressed: () => Navigator.of(context).maybePop(),
-              ),
+        leading: Builder(
+          builder: (scaffoldContext) => IconButton(
+            tooltip: loc.chatHistory,
+            icon: Icon(Icons.menu_rounded, color: x.onBackground, size: 24),
+            onPressed: () => Scaffold.of(scaffoldContext).openDrawer(),
+          ),
+        ),
         title: Text(
-          AppLocalizations.of(context).aiChatAssistantHeading,
+          loc.aiChatAssistantHeading,
           style: TextStyle(
             color: x.onBackground,
             fontSize: 17,
@@ -767,27 +964,15 @@ class _AiChatScreenState extends State<AiChatScreen> {
           ),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            tooltip: AppLocalizations.of(context).voice,
-            icon: Icon(Icons.record_voice_over_rounded, color: x.onBackground),
-            onPressed: _openLiveVoice,
-          ),
-          IconButton(
-            tooltip: AppLocalizations.of(context).chatHistory,
-            icon: Icon(Icons.history_rounded, color: x.onBackground),
-            onPressed: _openHistory,
-          ),
-        ],
       ),
       body: Column(
         children: [
+          _buildFarmSelector(),
           Expanded(
             child: _messages.isEmpty && !_isTyping
                 ? _buildEmptyState()
                 : _buildMessageList(),
           ),
-          _buildFarmSelector(),
           _buildAttachmentChips(),
           if (_recording) _buildRecordingBar() else _buildComposer(),
         ],
@@ -799,66 +984,64 @@ class _AiChatScreenState extends State<AiChatScreen> {
     if (_farms.isEmpty) return const SizedBox.shrink();
     final x = FreshLeafColorsX(context);
     final loc = AppLocalizations.of(context);
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
       decoration: BoxDecoration(
         color: x.bg,
-        border: Border(top: BorderSide(color: x.borderColor, width: 0.5)),
+        border: Border(bottom: BorderSide(color: x.borderColor, width: 0.5)),
       ),
-      child: SizedBox(
-        height: 34,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
+      child: Container(
+        height: 42,
+        padding: const EdgeInsetsDirectional.only(start: 12, end: 8),
+        decoration: BoxDecoration(
+          color: x.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: x.borderColor),
+        ),
+        child: Row(
           children: [
-            Padding(
-              padding: const EdgeInsetsDirectional.only(end: 6),
-              child: ChoiceChip(
-                selected: _selectedFarmId == null,
-                onSelected: (_) => setState(() => _selectedFarmId = null),
-                label: Text(loc.t('chat_all_farms')),
-                labelStyle: TextStyle(
-                  fontSize: 12,
-                  color:
-                      _selectedFarmId == null ? Colors.white : x.onBackground,
+            Icon(Icons.agriculture_rounded, color: x.brand, size: 19),
+            const SizedBox(width: 8),
+            Expanded(
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: _selectedFarmId,
+                  isExpanded: true,
+                  borderRadius: BorderRadius.circular(14),
+                  dropdownColor: x.surface,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: x.onSurfaceMuted,
+                  ),
+                  style: TextStyle(
+                    color: x.onBackground,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  items: [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text(loc.t('chat_all_farms')),
+                    ),
+                    ..._farms.map(
+                      (farm) => DropdownMenuItem<String?>(
+                        value: farm.farmId,
+                        child: Text(
+                          farm.farmName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() => _selectedFarmId = value);
+                  },
                 ),
-                selectedColor: x.brand,
-                backgroundColor: x.surface,
-                side: BorderSide(color: x.borderColor),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                avatar: Icon(Icons.agriculture_rounded,
-                    size: 15,
-                    color: _selectedFarmId == null
-                        ? Colors.white
-                        : x.onSurfaceMuted),
               ),
             ),
-            for (final farm in _farms)
-              Padding(
-                padding: const EdgeInsetsDirectional.only(end: 6),
-                child: ChoiceChip(
-                  selected: _selectedFarmId == farm.farmId,
-                  onSelected: (_) =>
-                      setState(() => _selectedFarmId = farm.farmId),
-                  label: Text(
-                    farm.farmName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  labelStyle: TextStyle(
-                    fontSize: 12,
-                    color: _selectedFarmId == farm.farmId
-                        ? Colors.white
-                        : x.onBackground,
-                  ),
-                  selectedColor: x.brand,
-                  backgroundColor: x.surface,
-                  side: BorderSide(color: x.borderColor),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
           ],
         ),
       ),
@@ -874,47 +1057,23 @@ class _AiChatScreenState extends State<AiChatScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [x.brand, x.brandStrong],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: x.brand.withValues(alpha: 0.35),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.support_agent_rounded,
-                color: Colors.white,
-                size: 40,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 104,
+                height: 104,
+                fit: BoxFit.contain,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
             Text(
               loc.aiChatAssistantHeading,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: x.onBackground,
                 fontSize: 21,
                 fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              loc.chatHint,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: x.onSurfaceMuted,
-                fontSize: 14,
-                height: 1.5,
               ),
             ),
           ],
@@ -923,7 +1082,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  Widget _buildMessageList() {
+  Widget _buildMessageList() {  Widget _buildMessageList() {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
@@ -1243,8 +1402,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  Widget _buildFileChip(String name, int index) {
+  Widget _buildFileChip(_PendingFileAttachment attachment, int index) {
     final x = FreshLeafColorsX(context);
+    final failed = attachment.error != null;
     return Padding(
       padding: const EdgeInsetsDirectional.only(end: 8),
       child: Container(
@@ -1252,17 +1412,36 @@ class _AiChatScreenState extends State<AiChatScreen> {
         decoration: BoxDecoration(
           color: x.surface,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: x.borderColor),
+          border: Border.all(
+            color: failed ? x.error.withValues(alpha: 0.55) : x.borderColor,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.attach_file_rounded, color: x.brand, size: 16),
+            if (attachment.uploading)
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  value: attachment.progress > 0 ? attachment.progress : null,
+                  strokeWidth: 2,
+                  color: x.brand,
+                ),
+              )
+            else
+              Icon(
+                failed
+                    ? Icons.error_outline_rounded
+                    : Icons.attach_file_rounded,
+                color: failed ? x.error : x.brand,
+                size: 16,
+              ),
             const SizedBox(width: 6),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 120),
               child: Text(
-                name,
+                attachment.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: x.onBackground, fontSize: 13),
@@ -1280,7 +1459,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  Widget _buildComposer() {
+  Widget _buildComposer() {  Widget _buildComposer() {
     final x = FreshLeafColorsX(context);
     final loc = AppLocalizations.of(context);
     final hasText = _controller.text.trim().isNotEmpty;
