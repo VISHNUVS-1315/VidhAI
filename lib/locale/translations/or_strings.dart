@@ -1,4 +1,7 @@
 const Map<String, String> orStrings = {
+  'india': 'ଭାରତ',
+  'unit': 'ଏକକ',
+  'india_locations_only': 'ଦୟାକରି ଭାରତ ଭିତରର ସ୍ଥାନକୁ ମାତ୍ର ବାଛନ୍ତୁ।',
   'crop_diary': 'ଫସଲ ଡାଏରୀ',
   'crop_diary_desc': 'ପ୍ରତ୍ୟେକ ଫସଲ ଏବଂ ତାହାର ଖର୍ଚ୍ଚକୁ ଏକ ସ୍ଥାନରେ ଟ୍ରାକ୍ କରନ୍ତୁ।',
   'ai_crop_recommend': 'AI ଫସଲ ସୁପାରିଶ',
