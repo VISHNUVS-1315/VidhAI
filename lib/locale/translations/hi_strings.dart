@@ -1,4 +1,7 @@
 const Map<String, String> hiStrings = {
+  'india': 'भारत',
+  'unit': 'इकाई',
+  'india_locations_only': 'कृपया भारत के भीतर का स्थान ही चुनें।',
   'crop_diary': 'फसल डायरी',
   'crop_diary_desc': 'हर फसल और उसके खर्चों को एक ही जगह ट्रैक करें।',
   'ai_crop_recommend': 'AI फसल सिफारिश',
