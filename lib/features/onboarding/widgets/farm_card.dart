@@ -6,7 +6,7 @@ import 'package:vidhai/data/models/farm_profile.dart';
 import 'package:vidhai/data/models/user_profile.dart';
 import 'package:vidhai/services/ai/ai_service.dart';
 import 'package:vidhai/services/location_service.dart';
-import 'package:vidhai/services/voice_service.dart';
+import 'package:vidhai/data/india_location_catalog.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/features/assistant/assistant_field_registry.dart';
 import 'package:vidhai/core/widgets/vidhai_widgets.dart';
@@ -36,6 +36,8 @@ class _FarmCardState extends State<FarmCard> {
   late final TextEditingController _nameController;
   late final TextEditingController _sizeController;
   late final TextEditingController _locationController;
+  late final TextEditingController _stateController;
+  late final TextEditingController _districtController;
   String _sizeUnit = 'Acre';
   String _irrigationType = '';
   String _waterSource = '';
@@ -47,15 +49,17 @@ class _FarmCardState extends State<FarmCard> {
   bool _isSearchingLocation = false;
   bool _isGettingCurrentLocation = false;
   bool _isAnalyzingSoil = false;
+  bool _isLoadingDistricts = false;
   List<AddressSearchResult> _locationSuggestions = [];
-  bool _isListeningName = false;
-  bool _isListeningSize = false;
-  bool _isListeningWater = false;
+  List<String> _stateSuggestions = const [];
+  List<String> _districtSuggestions = const [];
+  List<String> _districtOptions = const [];
+  String? _selectedState;
+  String? _selectedDistrict;
   late final String _farmId;
 
-  final VoiceService _voiceService = VoiceService();
   final LocationService _locationService = LocationService();
-  Map<String, String> _voiceLocation = {};
+  Map<String, String> _assistantLocation = {};
 
   static const _sizeUnits = ['Acre', 'Hectare', 'Cent', 'Bigha'];
   static const _irrigationTypes = [
@@ -108,6 +112,16 @@ class _FarmCardState extends State<FarmCard> {
     _sizeController = TextEditingController(text: d?.farmSize ?? '');
     _locationController =
         TextEditingController(text: d?.farmLocation?.fullAddress ?? '');
+    _stateController =
+        TextEditingController(text: d?.farmLocation?.state ?? '');
+    _districtController =
+        TextEditingController(text: d?.farmLocation?.district ?? '');
+    _selectedState = (d?.farmLocation?.state ?? '').trim().isEmpty
+        ? null
+        : d!.farmLocation!.state!.trim();
+    _selectedDistrict = (d?.farmLocation?.district ?? '').trim().isEmpty
+        ? null
+        : d!.farmLocation!.district!.trim();
     _sizeUnit = d?.farmSizeUnit ?? 'Acre';
     _irrigationType = d?.irrigationType ?? '';
     _waterSource = d?.waterSource ?? '';
@@ -116,8 +130,10 @@ class _FarmCardState extends State<FarmCard> {
     _farmingMethod = d?.farmingMethod ?? '';
     _farmLocation = d?.farmLocation;
     _soilAiResult = d?.soilAiResult;
-    _voiceService.initialize();
     _registerAssistantFields();
+    if (_selectedState != null) {
+      _loadDistricts(_selectedState!);
+    }
   }
 
   /// Exposes this farm form's real fields/actions to the VidhAI Assistant
@@ -226,7 +242,7 @@ class _FarmCardState extends State<FarmCard> {
         AssistantFieldEntry(
           field: 'location_village',
           label: loc.village,
-          read: () => _voiceLocation['village'] ?? '',
+          read: () => _assistantLocation['village'] ?? '',
           set: (v) => _setLocationPart('village', v),
         ));
     registry.registerField(
@@ -234,7 +250,7 @@ class _FarmCardState extends State<FarmCard> {
         AssistantFieldEntry(
           field: 'location_district',
           label: loc.district,
-          read: () => _voiceLocation['district'] ?? '',
+          read: () => _assistantLocation['district'] ?? '',
           set: (v) => _setLocationPart('district', v),
         ));
     registry.registerField(
@@ -242,18 +258,18 @@ class _FarmCardState extends State<FarmCard> {
         AssistantFieldEntry(
           field: 'location_state',
           label: loc.state,
-          read: () => _voiceLocation['state'] ?? '',
+          read: () => _assistantLocation['state'] ?? '',
           set: (v) => _setLocationPart('state', v),
         ));
   }
 
-  /// Builds the location query from voice-provided parts (village, district,
-  /// state) and runs the same real address search the screen uses.
+  /// Builds a location query from Assistant-provided parts and runs the same
+  /// India-only address search used by the form.
   bool _setLocationPart(String key, String value) {
     final clean = value.trim();
     if (clean.isEmpty) return false;
-    final next = {..._voiceLocation, key: clean};
-    _voiceLocation = next;
+    final next = {..._assistantLocation, key: clean};
+    _assistantLocation = next;
     final query = ['village', 'district', 'state']
         .map((k) => next[k] ?? '')
         .where((s) => s.isNotEmpty)
@@ -293,7 +309,8 @@ class _FarmCardState extends State<FarmCard> {
     _nameController.dispose();
     _sizeController.dispose();
     _locationController.dispose();
-    _voiceService.stopListening();
+    _stateController.dispose();
+    _districtController.dispose();
     super.dispose();
   }
 
