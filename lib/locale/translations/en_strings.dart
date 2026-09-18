@@ -1,4 +1,7 @@
 Map<String, String> enStrings = {
+  'india': 'India',
+  'unit': 'Unit',
+  'india_locations_only': 'Please choose a location within India.',
   'crop_diary': 'Crop Diary',
   'crop_diary_desc': 'Track every crop and its expenses in one place.',
   'ai_crop_recommend': 'AI Crop Recommendation',
