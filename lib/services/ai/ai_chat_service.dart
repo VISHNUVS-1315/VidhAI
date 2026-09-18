@@ -171,8 +171,9 @@ class ChatHistoryService {
       final raw = prefs.getString(_storageKey);
       if (raw != null && raw.trim().isNotEmpty) {
         final decoded = jsonDecode(raw);
-        if (decoded is Map<String, dynamic>) {
-          final stored = decoded['sessions'];
+        if (decoded is Map) {
+          final data = Map<String, dynamic>.from(decoded);
+          final stored = data['sessions'];
           if (stored is List) {
             _sessions
               ..clear()
@@ -185,7 +186,7 @@ class ChatHistoryService {
                 }),
               );
           }
-          final activeId = decoded['activeSessionId']?.toString();
+          final activeId = data['activeSessionId']?.toString();
           if (activeId != null && _sessions.containsKey(activeId)) {
             _activeSessionId = activeId;
           } else if (_sessions.isNotEmpty) {
