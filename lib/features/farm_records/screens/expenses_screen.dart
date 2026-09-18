@@ -379,6 +379,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     DateTime selectedDate = expense?.date ?? DateTime.now();
 
     String? selectedCropId = expense?.cropId;
+    if (selectedCropId != null &&
+        !crops.any((crop) => crop.id == selectedCropId)) {
+      selectedCropId = null;
+    }
     if (selectedCropId == null && crops.isNotEmpty) {
       CropRecord? bestMatch;
       for (final crop in crops) {
