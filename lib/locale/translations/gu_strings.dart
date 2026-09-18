@@ -1,4 +1,7 @@
 const Map<String, String> guStrings = {
+  'india': 'ભારત',
+  'unit': 'એકમ',
+  'india_locations_only': 'કૃપા કરીને ભારતની અંદરનું સ્થાન જ પસંદ કરો.',
   'crop_diary': 'પાક ડાયરી',
   'crop_diary_desc': 'દરેક પાક અને તેના ખર્ચને એક જ જગ્યાએ ટ્રેક કરો.',
   'ai_crop_recommend': 'AI પાક ભલામણ',
