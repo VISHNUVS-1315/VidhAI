@@ -1411,33 +1411,224 @@ class _FarmCardState extends State<FarmCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                loc.farmLocation,
+                style: TextStyle(
+                  color: colors.onBackground,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: colors.brandDeep.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '🇮🇳 India',
+                style: TextStyle(
+                  color: colors.brandDeep,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _isGettingCurrentLocation ? null : _useCurrentLocation,
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                vertical: 13,
+                horizontal: 12,
+              ),
+              side: BorderSide(
+                color: colors.brandDeep.withValues(alpha: 0.35),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            icon: _isGettingCurrentLocation
+                ? SizedBox(
+                    width: 17,
+                    height: 17,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colors.brandDeep,
+                    ),
+                  )
+                : Icon(
+                    Icons.my_location_rounded,
+                    size: 17,
+                    color: colors.brandDeep,
+                  ),
+            label: Text(
+              _isGettingCurrentLocation
+                  ? loc.t('getting_location')
+                  : loc.t('use_current_location'),
+              style: TextStyle(
+                color: colors.brandDeep,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // State search. Suggestions appear from the first typed letter.
+        TextFormField(
+          controller: _stateController,
+          textCapitalization: TextCapitalization.words,
+          style: TextStyle(color: colors.onBackground, fontSize: 14),
+          decoration: _inputDecoration(
+            label: loc.state,
+            icon: Icons.map_outlined,
+          ),
+          onTap: () {
+            if (_stateController.text.trim().isEmpty) {
+              setState(() {
+                _stateSuggestions =
+                    IndiaLocationCatalog.states.take(8).toList();
+              });
+            }
+          },
+          onChanged: (value) {
+            setState(() {
+              _selectedState = null;
+              _selectedDistrict = null;
+              _districtController.clear();
+              _districtOptions = const [];
+              _districtSuggestions = const [];
+              _locationController.clear();
+              _locationSuggestions = [];
+              _farmLocation = null;
+              _stateSuggestions =
+                  IndiaLocationCatalog.searchStates(value).take(8).toList();
+            });
+            _emitData();
+          },
+          validator: (_) =>
+              _selectedState == null ? loc.requiredField : null,
+        ),
+        _buildStringSuggestions(
+          values: _stateSuggestions,
+          onTap: _selectState,
+        ),
+        const SizedBox(height: 12),
+
+        // District list is loaded only for the selected state and filtered
+        // locally so one typed letter is enough to show recommendations.
+        TextFormField(
+          controller: _districtController,
+          enabled: _selectedState != null && !_isLoadingDistricts,
+          textCapitalization: TextCapitalization.words,
+          style: TextStyle(color: colors.onBackground, fontSize: 14),
+          decoration: _inputDecoration(
+            label: loc.district,
+            icon: Icons.location_city_outlined,
+            suffixIcon: _isLoadingDistricts
+                ? Padding(
+                    padding: const EdgeInsets.all(13),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colors.brandDeep,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          onTap: () {
+            if (_districtController.text.trim().isEmpty) {
+              setState(() {
+                _districtSuggestions = _districtOptions.take(8).toList();
+              });
+            }
+          },
+          onChanged: (value) {
+            setState(() {
+              _selectedDistrict = null;
+              _locationController.clear();
+              _locationSuggestions = [];
+              _farmLocation = null;
+              _districtSuggestions =
+                  IndiaLocationCatalog.filterDistricts(
+                _districtOptions,
+                value,
+              ).take(8).toList();
+            });
+            _emitData();
+          },
+          validator: (_) =>
+              _selectedDistrict == null ? loc.requiredField : null,
+        ),
+        _buildStringSuggestions(
+          values: _districtSuggestions,
+          onTap: _selectDistrict,
+        ),
+        const SizedBox(height: 12),
+
         TextFormField(
           controller: _locationController,
-          style: TextStyle(color: colors.onBackground, fontSize: 15),
-          onChanged: _searchLocation,
-          validator: (v) {
-            if (v == null || v.trim().isEmpty) return loc.requiredField;
+          enabled: _selectedState != null && _selectedDistrict != null,
+          textCapitalization: TextCapitalization.words,
+          style: TextStyle(color: colors.onBackground, fontSize: 14),
+          onChanged: (value) {
+            _farmLocation = null;
+            _searchLocation(value);
+            _emitData();
+          },
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return loc.requiredField;
+            }
             if (_farmLocation == null || !_farmLocation!.isVerified) {
               return loc.selectFromSuggestions;
+            }
+            if (!_locationService.isIndiaCountry(_farmLocation!.country)) {
+              return loc.t('india_locations_only');
             }
             return null;
           },
           decoration: _inputDecoration(
             label: loc.farmLocation,
-            icon: Icons.location_on_outlined,
-            suffixIcon: _isSearchingLocation || _isGettingCurrentLocation
+            icon: Icons.place_outlined,
+            suffixIcon: _isSearchingLocation
                 ? Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(13),
                     child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: colors.brandDeep)))
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colors.brandDeep,
+                      ),
+                    ),
+                  )
                 : _farmLocation != null && _farmLocation!.isVerified
                     ? Padding(
-                        padding: const EdgeInsetsDirectional.only(end: 12),
-                        child: Icon(Icons.verified,
-                            color: colors.brandDeep, size: 20),
+                        padding:
+                            const EdgeInsetsDirectional.only(end: 12),
+                        child: Icon(
+                          Icons.verified_rounded,
+                          color: colors.brandDeep,
+                          size: 20,
+                        ),
                       )
                     : null,
           ),
@@ -1445,71 +1636,125 @@ class _FarmCardState extends State<FarmCard> {
         if (_locationSuggestions.isNotEmpty) ...[
           const SizedBox(height: 6),
           Container(
-            constraints: const BoxConstraints(maxHeight: 200),
+            constraints: const BoxConstraints(maxHeight: 210),
             decoration: BoxDecoration(
-              color: colors.surface,
-              borderRadius: BorderRadius.circular(12),
+              color: colors.bg,
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: colors.borderColor),
             ),
-            child: ListView.builder(
+            child: ListView.separated(
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(vertical: 4),
               itemCount: _locationSuggestions.length,
-              itemBuilder: (context, i) {
-                final s = _locationSuggestions[i];
+              separatorBuilder: (_, __) =>
+                  Divider(height: 1, color: colors.borderColor),
+              itemBuilder: (context, index) {
+                final suggestion = _locationSuggestions[index];
                 return ListTile(
                   dense: true,
-                  leading: Icon(Icons.location_on_outlined,
-                      color: colors.brandDeep, size: 20),
-                  title: Text(s.displayText,
-                      style:
-                          TextStyle(color: colors.onBackground, fontSize: 13)),
-                  onTap: () => _selectLocation(s),
+                  leading: Icon(
+                    Icons.place_outlined,
+                    color: colors.brandDeep,
+                    size: 19,
+                  ),
+                  title: Text(
+                    suggestion.displayText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.onBackground,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                  onTap: () => _selectLocation(suggestion),
                 );
               },
             ),
           ),
         ],
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _isGettingCurrentLocation ? null : _useCurrentLocation,
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-              side: BorderSide(color: colors.brandDeep.withValues(alpha: 0.35)),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: _isGettingCurrentLocation
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: colors.brandDeep))
-                : Icon(Icons.my_location_rounded,
-                    size: 16, color: colors.brandDeep),
-            label: Text(
-                _isGettingCurrentLocation
-                    ? loc.t('getting_location')
-                    : loc.t('use_current_location'),
-                style: TextStyle(color: colors.brandDeep, fontSize: 13)),
-          ),
-        ),
         if (_farmLocation != null && _farmLocation!.isVerified) ...[
-          const SizedBox(height: 6),
-          Row(children: [
-            Icon(Icons.verified, color: colors.brandDeep, size: 14),
-            const SizedBox(width: 4),
-            Expanded(
-                child: Text(
-              '${_farmLocation!.city ?? ''} ${_farmLocation!.state ?? ''} ${_farmLocation!.country ?? ''}'
-                  .trim(),
-              style: TextStyle(color: colors.onSurfaceMuted, fontSize: 12),
-            )),
-          ]),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: colors.brandDeep.withValues(alpha: 0.055),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colors.brandDeep.withValues(alpha: 0.18),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.verified_rounded,
+                  color: colors.brandDeep,
+                  size: 17,
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    _farmLocation!.fullAddress,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.onSurfaceMuted,
+                      fontSize: 11.5,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ],
+    );
+  }
+
+  Widget _buildStringSuggestions({
+    required List<String> values,
+    required Future<void> Function(String) onTap,
+  }) {
+    if (values.isEmpty) return const SizedBox.shrink();
+    final colors = VidhAIColorsX(context);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      constraints: const BoxConstraints(maxHeight: 190),
+      decoration: BoxDecoration(
+        color: colors.bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.borderColor),
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        itemCount: values.length,
+        separatorBuilder: (_, __) =>
+            Divider(height: 1, color: colors.borderColor),
+        itemBuilder: (_, index) {
+          final value = values[index];
+          return ListTile(
+            dense: true,
+            leading: Icon(
+              Icons.location_on_outlined,
+              color: colors.brandDeep,
+              size: 18,
+            ),
+            title: Text(
+              value,
+              style: TextStyle(
+                color: colors.onBackground,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            onTap: () => onTap(value),
+          );
+        },
+      ),
     );
   }
 
