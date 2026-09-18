@@ -1,4 +1,8 @@
 Map<String, String> enStrings = {
+  'crop_diary': 'Crop Diary',
+  'crop_diary_desc': 'Track every crop and its expenses in one place.',
+  'ai_crop_recommend': 'AI Crop Recommendation',
+  'ai_crop_recommend_desc': 'Get personalized crop suggestions for your farm.',
   'about_description':
       'VidhAI is an AI-powered farming assistant that provides personalized crop recommendations, disease detection, and farm management tools for Indian farmers.',
   'about_section': 'About',
