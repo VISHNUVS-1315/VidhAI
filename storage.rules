@@ -13,6 +13,16 @@ service firebase.storage {
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
+    // AI Chat attachments. Files are private to the signed-in owner.
+    // Keep uploads small enough for a responsive mobile chat experience.
+    match /chat/{userId}/{fileName} {
+      allow read, delete: if request.auth != null
+        && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024;
+    }
+
     // Everything else is denied by default.
     match /{allPaths=**} {
       allow read, write: if false;
