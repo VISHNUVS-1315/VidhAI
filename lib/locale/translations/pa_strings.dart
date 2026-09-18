@@ -1,4 +1,7 @@
 const Map<String, String> paStrings = {
+  'india': 'ਭਾਰਤ',
+  'unit': 'ਇਕਾਈ',
+  'india_locations_only': 'ਕਿਰਪਾ ਕਰਕੇ ਭਾਰਤ ਅੰਦਰਲਾ ਸਥਾਨ ਹੀ ਚੁਣੋ।',
   'crop_diary': 'ਫਸਲ ਡਾਇਰੀ',
   'crop_diary_desc': 'ਹਰ ਫਸਲ ਅਤੇ ਉਸਦੇ ਖਰਚੇ ਇੱਕ ਹੀ ਥਾਂ ਤੇ ਟ੍ਰੈਕ ਕਰੋ।',
   'ai_crop_recommend': 'AI ਫਸਲ ਸਿਫਾਰਸ਼',
