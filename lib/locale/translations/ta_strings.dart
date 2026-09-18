@@ -1,4 +1,7 @@
 const Map<String, String> taStrings = {
+  'india': 'இந்தியா',
+  'unit': 'அலகு',
+  'india_locations_only': 'இந்தியாவிற்குள் உள்ள இடத்தை மட்டும் தேர்ந்தெடுக்கவும்.',
   'crop_diary': 'பயிர் நாட்குறிப்பு',
   'crop_diary_desc': 'ஒவ்வொரு பயிரின் செலவுகளையும் ஒரே இடத்தில் கண்காணிக்கவும்.',
   'ai_crop_recommend': 'AI பயிர் பரிந்துரை',
