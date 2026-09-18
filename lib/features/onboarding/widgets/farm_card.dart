@@ -390,35 +390,16 @@ class _FarmCardState extends State<FarmCard> {
 
   Future<void> _selectDistrict(String district) async {
     final state = _selectedState;
-    if (state == null) return;
+    final cleanDistrict = district.trim();
+    if (state == null || cleanDistrict.isEmpty) return;
 
     setState(() {
-      _selectedDistrict = district;
-      _districtController.text = district;
+      _selectedDistrict = cleanDistrict;
+      _districtController.text = cleanDistrict;
       _districtSuggestions = const [];
       _locationSuggestions = [];
-    });
-
-    final resolved = await _locationService.resolveIndianDistrict(
-      state: state,
-      district: district,
-    );
-    if (!mounted ||
-        _selectedState != state ||
-        _selectedDistrict != district) {
-      return;
-    }
-
-    setState(() {
-      _farmLocation = resolved ??
-          AddressData(
-            fullAddress: '$district, $state, India',
-            district: district,
-            state: state,
-            country: 'India',
-            isVerified: true,
-          );
-      _locationController.text = _farmLocation!.fullAddress;
+      _locationController.clear();
+      _farmLocation = null;
     });
     _emitData();
   }
@@ -1217,7 +1198,7 @@ class _FarmCardState extends State<FarmCard> {
       style: TextStyle(color: colors.onBackground, fontSize: 14),
       dropdownColor: colors.surface,
       decoration: _inputDecoration(
-        label: 'Unit',
+        label: AppLocalizations.of(context).t('unit'),
         icon: Icons.square_foot_rounded,
       ),
       items: _sizeUnits
@@ -1433,7 +1414,7 @@ class _FarmCardState extends State<FarmCard> {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                '🇮🇳 India',
+                '🇮🇳 ${loc.t('india')}',
                 style: TextStyle(
                   color: colors.brandDeep,
                   fontSize: 10.5,
@@ -1573,6 +1554,12 @@ class _FarmCardState extends State<FarmCard> {
               ).take(8).toList();
             });
             _emitData();
+          },
+          onFieldSubmitted: (value) {
+            final clean = value.trim();
+            if (clean.isNotEmpty && _selectedState != null) {
+              _selectDistrict(clean);
+            }
           },
           validator: (_) =>
               _selectedDistrict == null ? loc.requiredField : null,
