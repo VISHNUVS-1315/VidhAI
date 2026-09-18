@@ -585,7 +585,24 @@ ${fileContext.trim()}'''
     final wasActive = _history.activeSession?.id == sessionId;
     _history.deleteSession(sessionId);
     if (wasActive) {
-      setState(() => _messages.clear());
+      final next = _history.activeSession;
+      final stored = next == null
+          ? const <ChatMessage>[]
+          : _history.getHistoryForSession(next.id);
+      setState(() {
+        _messages
+          ..clear()
+          ..addAll(
+            stored.map(
+              (m) => _ChatMessage(
+                text: m.content,
+                isUser: m.role == 'user',
+                timestamp: m.timestamp,
+                fileName: m.metadata?['fileName']?.toString(),
+              ),
+            ),
+          );
+      });
     } else {
       setState(() {});
     }
@@ -1005,8 +1022,8 @@ ${fileContext.trim()}'''
             const SizedBox(width: 8),
             Expanded(
               child: DropdownButtonHideUnderline(
-                child: DropdownButton<String?>(
-                  value: _selectedFarmId,
+                child: DropdownButton<String>(
+                  value: _selectedFarmId ?? '__all__',
                   isExpanded: true,
                   borderRadius: BorderRadius.circular(14),
                   dropdownColor: x.surface,
@@ -1020,12 +1037,12 @@ ${fileContext.trim()}'''
                     fontWeight: FontWeight.w600,
                   ),
                   items: [
-                    DropdownMenuItem<String?>(
-                      value: null,
+                    DropdownMenuItem<String>(
+                      value: '__all__',
                       child: Text(loc.t('chat_all_farms')),
                     ),
                     ..._farms.map(
-                      (farm) => DropdownMenuItem<String?>(
+                      (farm) => DropdownMenuItem<String>(
                         value: farm.farmId,
                         child: Text(
                           farm.farmName,
@@ -1036,7 +1053,9 @@ ${fileContext.trim()}'''
                     ),
                   ],
                   onChanged: (value) {
-                    setState(() => _selectedFarmId = value);
+                    setState(() {
+                      _selectedFarmId = value == '__all__' ? null : value;
+                    });
                   },
                 ),
               ),
@@ -1081,7 +1100,7 @@ ${fileContext.trim()}'''
     );
   }
 
-  Widget _buildMessageList() {  Widget _buildMessageList() {
+  Widget _buildMessageList() {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
@@ -1458,7 +1477,7 @@ ${fileContext.trim()}'''
     );
   }
 
-  Widget _buildComposer() {  Widget _buildComposer() {
+  Widget _buildComposer() {
     final x = FreshLeafColorsX(context);
     final loc = AppLocalizations.of(context);
     final hasText = _controller.text.trim().isNotEmpty;
