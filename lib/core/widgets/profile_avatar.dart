@@ -77,9 +77,8 @@ class ProfileAvatarView extends StatelessWidget {
   }
 
   Widget _fallback() {
-    final text = fallbackText.trim().isEmpty
-        ? 'U'
-        : fallbackText.trim().characters.first.toUpperCase();
+    final clean = fallbackText.trim();
+    final text = clean.isEmpty ? 'U' : clean.substring(0, 1).toUpperCase();
     return Center(
       child: Text(
         text,
