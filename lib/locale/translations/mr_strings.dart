@@ -1,4 +1,8 @@
 const Map<String, String> mrStrings = {
+  'crop_diary': 'पीक डायरी',
+  'crop_diary_desc': 'प्रत्येक पीक आणि त्याचा खर्च एकाच ठिकाणी नोंदवा.',
+  'ai_crop_recommend': 'AI पीक शिफारस',
+  'ai_crop_recommend_desc': 'तुमच्या शेतासाठी वैयक्तिक पीक सूचना मिळवा.',
   'about_description':
       'VidhAI हा AI-आधारित शेती सहाय्यक आहे जो भारतीय शेतकऱ्यांसाठी वैयक्तिकृत पिक शिफारसी, रोग ओळख आणि शेती व्यवस्थापन साधने प्रदान करतो.',
   'about_section': 'बद्दल',
