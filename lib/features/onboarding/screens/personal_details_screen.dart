@@ -254,38 +254,17 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
 
   Future<void> _selectDistrict(String district) async {
     final state = _selectedState;
-    if (state == null) return;
+    final cleanDistrict = district.trim();
+    if (state == null || cleanDistrict.isEmpty) return;
 
     setState(() {
-      _selectedDistrict = district;
-      _districtController.text = district;
+      _selectedDistrict = cleanDistrict;
+      _districtController.text = cleanDistrict;
       _districtSuggestions = const [];
       _addressSuggestions = const [];
+      _addressController.clear();
+      _verifiedAddress = null;
       _locationError = null;
-    });
-
-    final resolved = await _locationService.resolveIndianDistrict(
-      state: state,
-      district: district,
-    );
-    if (!mounted ||
-        _selectedState != state ||
-        _selectedDistrict != district) {
-      return;
-    }
-
-    final address = resolved ??
-        AddressData(
-          fullAddress: '$district, $state, India',
-          district: district,
-          state: state,
-          country: 'India',
-          isVerified: true,
-        );
-
-    setState(() {
-      _verifiedAddress = address;
-      _addressController.text = address.fullAddress;
     });
   }
 
