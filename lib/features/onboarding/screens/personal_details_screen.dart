@@ -401,7 +401,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
       )) {
         if (!mounted) return;
         setState(() {
-          _locationError = 'India locations only';
+          _locationError = loc.t('india_locations_only');
           _gettingLocation = false;
         });
         return;
@@ -1095,6 +1095,12 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                   value,
                 ).take(8).toList();
               });
+            },
+            onFieldSubmitted: (value) {
+              final clean = value.trim();
+              if (clean.isNotEmpty && _selectedState != null) {
+                _selectDistrict(clean);
+              }
             },
             validator: (_) =>
                 _selectedDistrict == null ? loc.requiredField : null,
