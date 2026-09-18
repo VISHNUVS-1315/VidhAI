@@ -52,7 +52,19 @@ class _CropDiaryScreenState extends State<CropDiaryScreen> {
         };
 
         for (final expense in expenses) {
-          final assigned = _bestCropForExpense(expense, crops);
+          CropRecord? assigned;
+
+          final linkedCropId = expense.cropId?.trim() ?? '';
+          if (linkedCropId.isNotEmpty) {
+            for (final crop in crops) {
+              if (crop.id == linkedCropId) {
+                assigned = crop;
+                break;
+              }
+            }
+          }
+
+          assigned ??= _bestCropForExpense(expense, crops);
           if (assigned != null) {
             expensesByCrop[assigned.id]?.add(expense);
           }
