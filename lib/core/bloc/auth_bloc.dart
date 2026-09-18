@@ -67,6 +67,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       // Cache profile locally so it survives even if Firestore fails
       await prefs.setString('user_display_name', event.fullName);
       await prefs.setString('selected_domain', domain);
+      if ((event.avatarUrl ?? '').trim().isNotEmpty) {
+        await prefs.setString('user_avatar_url', event.avatarUrl!.trim());
+      }
 
       try {
         await _authRepository.saveFullProfile(
