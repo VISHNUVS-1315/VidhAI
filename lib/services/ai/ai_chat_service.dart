@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'ai_service.dart';
 import 'domain_services.dart';
@@ -151,6 +154,77 @@ class ChatHistoryService {
   final Map<String, ChatSession> _sessions = {};
   String? _activeSessionId;
 
+  static const String _storageKey = 'vidhai_chat_history_v1';
+  bool _loaded = false;
+  Future<void>? _loading;
+
+  /// Loads persisted chat sessions once. AI Chat awaits this before rendering
+  /// history so conversations survive app restarts.
+  Future<void> init() {
+    if (_loaded) return Future<void>.value();
+    return _loading ??= _loadPersisted();
+  }
+
+  Future<void> _loadPersisted() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_storageKey);
+      if (raw != null && raw.trim().isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) {
+          final stored = decoded['sessions'];
+          if (stored is List) {
+            _sessions
+              ..clear()
+              ..addEntries(
+                stored.whereType<Map>().map((item) {
+                  final session = ChatSession.fromMap(
+                    Map<String, dynamic>.from(item),
+                  );
+                  return MapEntry(session.id, session);
+                }),
+              );
+          }
+          final activeId = decoded['activeSessionId']?.toString();
+          if (activeId != null && _sessions.containsKey(activeId)) {
+            _activeSessionId = activeId;
+          } else if (_sessions.isNotEmpty) {
+            _activeSessionId = sessions.first.id;
+          }
+        }
+      }
+    } catch (_) {
+      // A malformed local cache must never stop AI Chat from opening.
+      _sessions.clear();
+      _activeSessionId = null;
+    } finally {
+      _loaded = true;
+      _loading = null;
+    }
+  }
+
+  /// Persists all chat sessions locally. This keeps history available offline
+  /// and makes the left drawer behave like a normal persistent chat history.
+  Future<void> persist() async {
+    if (!_loaded) await init();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _storageKey,
+        jsonEncode({
+          'activeSessionId': _activeSessionId,
+          'sessions': sessions.map((session) => session.toMap()).toList(),
+        }),
+      );
+    } catch (_) {
+      // Chat must remain usable even when local persistence is unavailable.
+    }
+  }
+
+  void _persistSoon() {
+    if (_loaded) unawaited(persist());
+  }
+
   // ── Session Management ───────────────────────────────────────────────────
 
   /// Creates a new chat session and sets it as active.
@@ -161,6 +235,7 @@ class ChatHistoryService {
     );
     _sessions[session.id] = session;
     _activeSessionId = session.id;
+    _persistSoon();
     return session;
   }
 
@@ -168,6 +243,7 @@ class ChatHistoryService {
   bool setActiveSession(String sessionId) {
     if (_sessions.containsKey(sessionId)) {
       _activeSessionId = sessionId;
+      _persistSoon();
       return true;
     }
     return false;
@@ -195,6 +271,7 @@ class ChatHistoryService {
     if (_activeSessionId == sessionId) {
       _activeSessionId = sessions.isNotEmpty ? sessions.first.id : null;
     }
+    _persistSoon();
   }
 
   // ── Message Management ───────────────────────────────────────────────────
@@ -238,6 +315,7 @@ class ChatHistoryService {
     );
     session.messages.add(assistantMessage);
     session.updatedAt = DateTime.now();
+    _persistSoon();
 
     return assistantMessage;
   }
@@ -274,6 +352,7 @@ class ChatHistoryService {
     );
     session.messages.add(assistantMessage);
     session.updatedAt = DateTime.now();
+    _persistSoon();
 
     return response;
   }
@@ -293,6 +372,7 @@ class ChatHistoryService {
     if (_activeSessionId != null && _sessions.containsKey(_activeSessionId)) {
       _sessions[_activeSessionId]!.messages.clear();
       _sessions[_activeSessionId]!.updatedAt = DateTime.now();
+      _persistSoon();
     }
   }
 
@@ -301,6 +381,7 @@ class ChatHistoryService {
     if (_sessions.containsKey(sessionId)) {
       _sessions[sessionId]!.messages.clear();
       _sessions[sessionId]!.updatedAt = DateTime.now();
+      _persistSoon();
     }
   }
 
@@ -366,5 +447,6 @@ class ChatHistoryService {
   void clearAll() {
     _sessions.clear();
     _activeSessionId = null;
+    _persistSoon();
   }
 }
