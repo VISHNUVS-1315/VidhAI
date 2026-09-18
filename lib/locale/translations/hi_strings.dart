@@ -1,4 +1,8 @@
 const Map<String, String> hiStrings = {
+  'crop_diary': 'फसल डायरी',
+  'crop_diary_desc': 'हर फसल और उसके खर्चों को एक ही जगह ट्रैक करें।',
+  'ai_crop_recommend': 'AI फसल सिफारिश',
+  'ai_crop_recommend_desc': 'अपने खेत के लिए व्यक्तिगत फसल सुझाव प्राप्त करें।',
   'about_description':
       'VidhAI एक AI-संचालित कृषि सहायक है जो भारतीय किसानों के लिए व्यक्तिगत फसल सिफारिशें, रोग पहचान और खेत प्रबंधन उपकरण प्रदान करता है।',
   'about_section': 'के बारे में',

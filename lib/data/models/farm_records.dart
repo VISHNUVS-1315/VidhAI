@@ -2,6 +2,7 @@ class ExpenseRecord {
   final String id;
   final String farmId;
   final String category;
+  final String? cropId;
   final double amount;
   final DateTime date;
   final String description;
@@ -12,6 +13,7 @@ class ExpenseRecord {
     required this.id,
     required this.farmId,
     required this.category,
+    this.cropId,
     required this.amount,
     required this.date,
     required this.description,
@@ -23,6 +25,7 @@ class ExpenseRecord {
         'id': id,
         'farmId': farmId,
         'category': category,
+        'cropId': cropId,
         'amount': amount,
         'date': date.toIso8601String(),
         'description': description,
@@ -34,6 +37,7 @@ class ExpenseRecord {
         id: m['id'] ?? '',
         farmId: m['farmId'] ?? '',
         category: m['category'] ?? '',
+        cropId: m['cropId']?.toString(),
         amount: (m['amount'] ?? 0).toDouble(),
         date: m['date'] != null ? DateTime.parse(m['date']) : DateTime.now(),
         description: m['description'] ?? '',
@@ -43,6 +47,7 @@ class ExpenseRecord {
 
   ExpenseRecord copyWith(
           {String? category,
+          String? cropId,
           double? amount,
           DateTime? date,
           String? description,
@@ -52,6 +57,7 @@ class ExpenseRecord {
           id: id,
           farmId: farmId,
           category: category ?? this.category,
+          cropId: cropId ?? this.cropId,
           amount: amount ?? this.amount,
           date: date ?? this.date,
           description: description ?? this.description,

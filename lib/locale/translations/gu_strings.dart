@@ -1,4 +1,8 @@
 const Map<String, String> guStrings = {
+  'crop_diary': 'પાક ડાયરી',
+  'crop_diary_desc': 'દરેક પાક અને તેના ખર્ચને એક જ જગ્યાએ ટ્રેક કરો.',
+  'ai_crop_recommend': 'AI પાક ભલામણ',
+  'ai_crop_recommend_desc': 'તમારા ખેતર માટે વ્યક્તિગત પાક સૂચનો મેળવો.',
   'about_description':
       'VidhAI એ AI-સંચાલિત ખેતી સહાયક છે જે ભારતીય ખેડૂતો માટે વ્યક્તિગત પાક ભલામણો, રોગ શોધ અને ફાર્મ વ્યવસ્થાપન સાધનો પ્રદાન કરે છે.',
   'about_section': 'વિશે',

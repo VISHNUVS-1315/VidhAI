@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/farm_records.dart';
+import 'package:vidhai/data/models/crop_models.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/core/widgets/vidhai_widgets.dart';
@@ -360,7 +361,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
   }
 
-  void _showExpenseForm({ExpenseRecord? expense}) {
+  Future<void> _showExpenseForm({ExpenseRecord? expense}) async {
+    final crops = await _service.loadCrops(_farmId);
+    if (!mounted) return;
+
     _selectedCategory = expense?.category;
     _receiptFile = null;
     final loc = AppLocalizations.of(context);
@@ -374,7 +378,47 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final vendorCtrl = TextEditingController(text: expense?.vendor ?? '');
     DateTime selectedDate = expense?.date ?? DateTime.now();
 
-    showModalBottomSheet(
+    String? selectedCropId = expense?.cropId;
+    if (selectedCropId != null &&
+        !crops.any((crop) => crop.id == selectedCropId)) {
+      selectedCropId = null;
+    }
+    if (selectedCropId == null && crops.isNotEmpty) {
+      CropRecord? bestMatch;
+      for (final crop in crops) {
+        final expenseDay =
+            DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+        final start = DateTime(
+          crop.plantingDate.year,
+          crop.plantingDate.month,
+          crop.plantingDate.day,
+        );
+        final rawEnd =
+            crop.endDate ?? (crop.isActive ? null : crop.expectedHarvestDate);
+        final end = rawEnd == null
+            ? null
+            : DateTime(rawEnd.year, rawEnd.month, rawEnd.day);
+        final fits = !expenseDay.isBefore(start) &&
+            (end == null || !expenseDay.isAfter(end));
+        if (fits &&
+            (bestMatch == null ||
+                crop.plantingDate.isAfter(bestMatch.plantingDate))) {
+          bestMatch = crop;
+        }
+      }
+      if (bestMatch == null) {
+        for (final crop in crops) {
+          if (crop.isActive) {
+            bestMatch = crop;
+            break;
+          }
+        }
+      }
+      bestMatch ??= crops.first;
+      selectedCropId = bestMatch.id;
+    }
+
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -427,6 +471,62 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (crops.isNotEmpty) ...[
+                          Text(
+                            loc.crop,
+                            style: TextStyle(
+                              color: _colors.onBackground,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: _colors.surface,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: _colors.borderColor,
+                              ),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                value: selectedCropId,
+                                hint: Text(
+                                  loc.crop,
+                                  style: TextStyle(
+                                    color: _colors.onSurfaceMuted,
+                                  ),
+                                ),
+                                dropdownColor: _colors.surface,
+                                style: TextStyle(
+                                  color: _colors.onBackground,
+                                  fontSize: 14,
+                                ),
+                                items: crops
+                                    .map(
+                                      (crop) => DropdownMenuItem<String>(
+                                        value: crop.id,
+                                        child: Text(
+                                          crop.cropName.trim().isEmpty
+                                              ? loc.crop
+                                              : crop.cropName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) => setModalState(
+                                  () => selectedCropId = value,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         Text(
                           loc.category,
                           style: TextStyle(
@@ -780,6 +880,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         if (expense != null) {
                           final updated = expense.copyWith(
                             category: _selectedCategory,
+                            cropId: selectedCropId,
                             amount: amount,
                             date: selectedDate,
                             description: descCtrl.text,
@@ -791,6 +892,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             id: _service.generateId(),
                             farmId: _farmId,
                             category: _selectedCategory!,
+                            cropId: selectedCropId,
                             amount: amount,
                             date: selectedDate,
                             description: descCtrl.text,

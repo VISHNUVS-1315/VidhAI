@@ -1,4 +1,8 @@
 const Map<String, String> urStrings = {
+  'crop_diary': 'فصل ڈائری',
+  'crop_diary_desc': 'ہر فصل اور اس کے اخراجات کو ایک جگہ پر ٹریک کریں۔',
+  'ai_crop_recommend': 'AI فصل کی تجویز',
+  'ai_crop_recommend_desc': 'اپنے کھیت کے لیے ذاتی نوعیت کی فصل تجاویز حاصل کریں۔',
   'about_description':
       'VidhAI ایک AI محرک فارمنگ معاون ہے جو ہندوستان کے کسانوں کے لیے ذاتی فصل کی سفارشات، بیماری کی نشندگی، اور فارم مینجمنٹ کے اوزار فراہم کرتا ہے۔',
   'about_section': 'کے بارے میں',
