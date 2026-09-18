@@ -1,4 +1,7 @@
 const Map<String, String> bnStrings = {
+  'india': 'ভারত',
+  'unit': 'একক',
+  'india_locations_only': 'অনুগ্রহ করে ভারতের ভেতরের একটি স্থানই নির্বাচন করুন।',
   'crop_diary': 'ফসল ডায়েরি',
   'crop_diary_desc': 'প্রতিটি ফসল ও তার খরচ এক জায়গায় ট্র্যাক করুন।',
   'ai_crop_recommend': 'AI ফসল সুপারিশ',
