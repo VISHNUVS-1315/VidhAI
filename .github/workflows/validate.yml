@@ -2,7 +2,7 @@ name: Validate VidhAI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/tools-crop-diary-redesign-20260918]
   workflow_dispatch:
 
 concurrency:
