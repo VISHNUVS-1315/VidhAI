@@ -1296,19 +1296,39 @@ class _FarmCardState extends State<FarmCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          Icon(Icons.terrain_rounded, color: colors.onSurfaceMuted, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-              child: Text(loc.soilType,
-                  style: TextStyle(
-                      color: colors.onSurfaceMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500))),
-          GestureDetector(
+        Row(
+          children: [
+            Icon(
+              Icons.terrain_rounded,
+              color: colors.onSurfaceMuted,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                loc.soilType,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.onSurfaceMuted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
             onTap: _isAnalyzingSoil ? null : _showSoilScanDialog,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 7,
+              ),
               decoration: BoxDecoration(
                 color: _isAnalyzingSoil
                     ? colors.warning.withValues(alpha: 0.15)
@@ -1317,46 +1337,70 @@ class _FarmCardState extends State<FarmCard> {
               ),
               child: _isAnalyzingSoil
                   ? SizedBox(
-                      width: 14,
-                      height: 14,
+                      width: 15,
+                      height: 15,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: colors.warning))
+                        strokeWidth: 2,
+                        color: colors.warning,
+                      ),
+                    )
                   : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.camera_alt_rounded,
-                            color: colors.brandDeep, size: 15),
-                        const SizedBox(width: 4),
-                        Text(
-                          loc.aiSoilScan,
-                          style:
-                              TextStyle(color: colors.brandDeep, fontSize: 12),
+                        Icon(
+                          Icons.camera_alt_rounded,
+                          color: colors.brandDeep,
+                          size: 15,
+                        ),
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            loc.aiSoilScan,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colors.brandDeep,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
             ),
           ),
-        ]),
+        ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           initialValue: _soilType.isEmpty ? null : _soilType,
+          isExpanded: true,
           style: TextStyle(color: colors.onBackground, fontSize: 15),
           dropdownColor: colors.surface,
           decoration: _inputDecoration(
-            label: loc.t('manual_select'),
+            label: loc.manualSelect,
             icon: Icons.terrain_rounded,
           ),
           items: _soilTypes
-              .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+              .map(
+                (soil) => DropdownMenuItem(
+                  value: soil,
+                  child: Text(
+                    soil,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
               .toList(),
-          onChanged: (v) {
-            setState(() => _soilType = v ?? '');
+          onChanged: (value) {
+            setState(() => _soilType = value ?? '');
             _emitData();
           },
         ),
         if (_soilAiResult != null) ...[
           const SizedBox(height: 8),
-          GestureDetector(
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
             onTap: _showSoilResult,
             child: Container(
               width: double.infinity,
@@ -1364,20 +1408,34 @@ class _FarmCardState extends State<FarmCard> {
               decoration: BoxDecoration(
                 color: colors.brandDeep.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(12),
-                border:
-                    Border.all(color: colors.brandDeep.withValues(alpha: 0.25)),
+                border: Border.all(
+                  color: colors.brandDeep.withValues(alpha: 0.25),
+                ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.auto_awesome, color: colors.brandDeep, size: 16),
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    color: colors.brandDeep,
+                    size: 16,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
-                      child: Text(
-                    'AI Result: ${_soilAiResult!.soilType}',
-                    style: TextStyle(color: colors.onBackground, fontSize: 13),
-                  )),
-                  Icon(directionalIcon(context, Icons.chevron_right),
-                      color: colors.onSurfaceMuted, size: 16),
+                    child: Text(
+                      '${loc.aiAnalysisLabel} ${_soilAiResult!.soilType}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.onBackground,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    directionalIcon(context, Icons.chevron_right_rounded),
+                    color: colors.onSurfaceMuted,
+                    size: 17,
+                  ),
                 ],
               ),
             ),
@@ -1414,7 +1472,7 @@ class _FarmCardState extends State<FarmCard> {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                '🇮🇳 ${loc.t('india')}',
+                "🇮🇳 ${loc.t('india')}",
                 style: TextStyle(
                   color: colors.brandDeep,
                   fontSize: 10.5,
