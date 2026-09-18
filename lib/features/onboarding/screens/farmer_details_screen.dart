@@ -5,6 +5,7 @@ import 'package:vidhai/features/onboarding/widgets/farm_card.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/core/widgets/vidhai_widgets.dart';
+import 'package:vidhai/features/assistant/assistant_button.dart';
 
 class FarmerDetailsScreen extends StatefulWidget {
   const FarmerDetailsScreen({super.key});
@@ -244,9 +245,19 @@ class _FarmerDetailsScreenState extends State<FarmerDetailsScreen> {
           title: Text(
             loc.farmDetails,
             style: TextStyle(
-                color: colors.onBackground, fontWeight: FontWeight.w600),
+              color: colors.onBackground,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          centerTitle: true,
+          centerTitle: false,
+          actions: const [
+            VidhAIAssistantButton(
+              screen: 'farmer_details',
+              size: 38,
+              iconSize: 19,
+            ),
+            SizedBox(width: 10),
+          ],
         ),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -411,19 +422,26 @@ class _FarmerDetailsScreenState extends State<FarmerDetailsScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              for (var n = 1; n <= 5; n++) ...[
-                if (n > 1) const SizedBox(width: 8),
-                Expanded(
-                  child: _buildQuickChip(
-                    colors: colors,
-                    count: n,
-                    selected: _numberOfFarms == n,
-                  ),
-                ),
-              ],
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final chipWidth =
+                  constraints.maxWidth < 330 ? 48.0 : 52.0;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (var n = 1; n <= 5; n++)
+                    SizedBox(
+                      width: chipWidth,
+                      child: _buildQuickChip(
+                        colors: colors,
+                        count: n,
+                        selected: _numberOfFarms == n,
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
