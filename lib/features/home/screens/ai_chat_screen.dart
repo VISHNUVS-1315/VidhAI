@@ -732,7 +732,7 @@ ${fileContext.trim()}'''
     );
   }
 
-  Widget _buildNoChats  Widget _buildNoChats(FreshLeafColorsX x, AppLocalizations loc) {
+  Widget _buildNoChats(FreshLeafColorsX x, AppLocalizations loc) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -936,7 +936,6 @@ ${fileContext.trim()}'''
     return 'application/octet-stream';
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────
   // ── Build ──────────────────────────────────────────────────────────────
 
   @override
