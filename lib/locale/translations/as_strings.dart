@@ -1,4 +1,7 @@
 const Map<String, String> asStrings = {
+  'india': 'ভাৰত',
+  'unit': 'একক',
+  'india_locations_only': 'অনুগ্ৰহ কৰি ভাৰতৰ ভিতৰৰ স্থানহে বাছনি কৰক।',
   'crop_diary': 'শস্য ডায়েৰী',
   'crop_diary_desc': 'প্ৰতিটো শস্য আৰু ইয়াৰ খৰচ একে ঠাইতে অনুসৰণ কৰক।',
   'ai_crop_recommend': 'AI শস্য পৰামৰ্শ',
