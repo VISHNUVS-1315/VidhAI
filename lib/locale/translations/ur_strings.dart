@@ -1,4 +1,7 @@
 const Map<String, String> urStrings = {
+  'india': 'بھارت',
+  'unit': 'اکائی',
+  'india_locations_only': 'براہ کرم صرف بھارت کے اندر کی جگہ منتخب کریں۔',
   'crop_diary': 'فصل ڈائری',
   'crop_diary_desc': 'ہر فصل اور اس کے اخراجات کو ایک جگہ پر ٹریک کریں۔',
   'ai_crop_recommend': 'AI فصل کی تجویز',
