@@ -19,6 +19,7 @@ class VoiceTurnRecorder {
   static const double _speechDb = -30;
 
   final List<String> _parts = [];
+  String _partial = '';
   String _language = 'en';
   bool _listening = false;
   bool _done = false;
@@ -27,9 +28,13 @@ class VoiceTurnRecorder {
   DateTime? _lastSpeechAt;
   Timer? _watchdog;
   StreamSubscription<double>? _ampSub;
+  StreamSubscription<String>? _transcriptSub;
 
   /// Live combined transcript (updates as each segment is recognised).
-  String get text => _parts.join(' ').trim();
+  String get text => [
+        ..._parts,
+        if (_partial.trim().isNotEmpty) _partial.trim(),
+      ].join(' ').trim();
 
   bool get isListening => _listening;
 
@@ -47,6 +52,13 @@ class VoiceTurnRecorder {
     _done = false;
     _listening = true;
     _parts.clear();
+    _partial = '';
+    await _transcriptSub?.cancel();
+    _transcriptSub = _speech.onTranscript.listen((partial) {
+      if (_done || !_listening) return;
+      _partial = partial.trim();
+      onText?.call(text);
+    });
     onText?.call('');
     onListening?.call(true);
     final ok = await _startSegment();
@@ -67,6 +79,7 @@ class VoiceTurnRecorder {
     if (!started) return false;
     _clipStarted = DateTime.now();
     _lastSpeechAt = null;
+    _partial = '';
     _clipFinalized = false;
     await _ampSub?.cancel();
     _ampSub = _speech.onAmplitude.listen(_onTick);
@@ -99,10 +112,15 @@ class VoiceTurnRecorder {
     _watchdog = null;
     final result = await _speech.stopAndTranscribe(language: _language);
     if (_done) return;
-    if (result.success && (result.text ?? '').trim().isNotEmpty) {
-      _parts.add(result.text!.trim());
-      onText?.call(text);
+    final finalText = (result.text ?? '').trim();
+    final fallbackPartial = _partial.trim();
+    if (result.success && finalText.isNotEmpty) {
+      _parts.add(finalText);
+    } else if (fallbackPartial.isNotEmpty) {
+      _parts.add(fallbackPartial);
     }
+    _partial = '';
+    onText?.call(text);
     if (_done || !_listening) return;
     await _startSegment();
   }
@@ -117,9 +135,16 @@ class VoiceTurnRecorder {
     _ampSub = null;
     final result = await _speech.stopAndTranscribe(language: _language);
     await inFlight?.cancel();
-    if (result.success && (result.text ?? '').trim().isNotEmpty) {
-      _parts.add(result.text!.trim());
+    final finalText = (result.text ?? '').trim();
+    final fallbackPartial = _partial.trim();
+    if (result.success && finalText.isNotEmpty) {
+      _parts.add(finalText);
+    } else if (fallbackPartial.isNotEmpty) {
+      _parts.add(fallbackPartial);
     }
+    _partial = '';
+    await _transcriptSub?.cancel();
+    _transcriptSub = null;
     _listening = false;
     onText?.call(text);
     onListening?.call(false);
@@ -133,8 +158,11 @@ class VoiceTurnRecorder {
     _watchdog = null;
     await _ampSub?.cancel();
     _ampSub = null;
+    await _transcriptSub?.cancel();
+    _transcriptSub = null;
     await _speech.cancel();
     _parts.clear();
+    _partial = '';
     _listening = false;
     onText?.call('');
     onListening?.call(false);
