@@ -343,49 +343,149 @@ class _FarmCardState extends State<FarmCard> {
     return c;
   }
 
-  Future<void> _searchLocation(String query) async {
-    if (query.length < 3) {
-      setState(() => _locationSuggestions = []);
-      return;
-    }
-    setState(() => _isSearchingLocation = true);
-    final results = await _locationService.searchAddresses(query);
+  Future<void> _loadDistricts(String state) async {
+    if (state.trim().isEmpty) return;
     if (mounted) {
-      setState(() {
-        _locationSuggestions = results;
-        _isSearchingLocation = false;
-      });
+      setState(() => _isLoadingDistricts = true);
     }
+    final districts = await IndiaLocationCatalog.districtsForState(state);
+    if (!mounted || _selectedState != state) return;
+    setState(() {
+      _districtOptions = districts;
+      _isLoadingDistricts = false;
+    });
   }
 
-  void _selectLocation(AddressSearchResult result) {
-    _locationController.text = result.displayText;
-    _farmLocation = result.toAddressData();
-    setState(() => _locationSuggestions = []);
+  Future<void> _selectState(String state) async {
+    setState(() {
+      _selectedState = state;
+      _stateController.text = state;
+      _stateSuggestions = const [];
+      _selectedDistrict = null;
+      _districtController.clear();
+      _districtOptions = const [];
+      _districtSuggestions = const [];
+      _locationSuggestions = [];
+      _locationController.clear();
+      _farmLocation = null;
+      _isLoadingDistricts = true;
+    });
     _emitData();
+    await _loadDistricts(state);
+  }
+
+  Future<void> _selectDistrict(String district) async {
+    final state = _selectedState;
+    if (state == null) return;
+
+    setState(() {
+      _selectedDistrict = district;
+      _districtController.text = district;
+      _districtSuggestions = const [];
+      _locationSuggestions = [];
+    });
+
+    final resolved = await _locationService.resolveIndianDistrict(
+      state: state,
+      district: district,
+    );
+    if (!mounted ||
+        _selectedState != state ||
+        _selectedDistrict != district) {
+      return;
+    }
+
+    setState(() {
+      _farmLocation = resolved ??
+          AddressData(
+            fullAddress: '$district, $state, India',
+            district: district,
+            state: state,
+            country: 'India',
+            isVerified: true,
+          );
+      _locationController.text = _farmLocation!.fullAddress;
+    });
+    _emitData();
+  }
+
+  Future<void> _searchLocation(String query) async {
+    if ((_selectedState ?? '').isEmpty ||
+        (_selectedDistrict ?? '').isEmpty ||
+        query.trim().length < 2) {
+      if (mounted) {
+        setState(() {
+          _locationSuggestions = [];
+          _isSearchingLocation = false;
+        });
+      }
+      return;
+    }
+
+    setState(() => _isSearchingLocation = true);
+    final results = await _locationService.searchIndianAddresses(
+      query,
+      state: _selectedState,
+      district: _selectedDistrict,
+    );
+    if (!mounted) return;
+    setState(() {
+      _locationSuggestions = results;
+      _isSearchingLocation = false;
+    });
+  }
+
+  Future<void> _selectLocation(AddressSearchResult result) async {
+    final state = (result.state ?? _selectedState ?? '').trim();
+    final district =
+        (result.district ?? _selectedDistrict ?? '').trim();
+
+    setState(() {
+      _locationController.text = result.displayText;
+      _farmLocation = result.toAddressData();
+      _locationSuggestions = [];
+      if (state.isNotEmpty) {
+        _selectedState = state;
+        _stateController.text = state;
+      }
+      if (district.isNotEmpty) {
+        _selectedDistrict = district;
+        _districtController.text = district;
+      }
+    });
+    _emitData();
+
+    if (state.isNotEmpty) {
+      final districts =
+          await IndiaLocationCatalog.districtsForState(state);
+      if (!mounted) return;
+      setState(() => _districtOptions = districts);
+    }
   }
 
   Future<void> _useCurrentLocation() async {
     final loc = AppLocalizations.of(context);
     final colors = VidhAIColorsX(context);
     setState(() => _isGettingCurrentLocation = true);
+
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(loc.t('permission_denied_text')),
-                backgroundColor: colors.danger,
-              ),
-            );
-          }
-          setState(() => _isGettingCurrentLocation = false);
-          return;
-        }
       }
+
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.t('permission_denied_text')),
+              backgroundColor: colors.danger,
+            ),
+          );
+        }
+        return;
+      }
+
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -395,14 +495,14 @@ class _FarmCardState extends State<FarmCard> {
               action: SnackBarAction(
                 label: loc.t('settings'),
                 textColor: Colors.white,
-                onPressed: () => Geolocator.openAppSettings(),
+                onPressed: Geolocator.openAppSettings,
               ),
             ),
           );
         }
-        setState(() => _isGettingCurrentLocation = false);
         return;
       }
+
       if (!await Geolocator.isLocationServiceEnabled()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -412,145 +512,114 @@ class _FarmCardState extends State<FarmCard> {
               action: SnackBarAction(
                 label: loc.t('settings'),
                 textColor: Colors.white,
-                onPressed: () => Geolocator.openLocationSettings(),
+                onPressed: Geolocator.openLocationSettings,
               ),
             ),
           );
         }
-        setState(() => _isGettingCurrentLocation = false);
         return;
       }
+
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
           timeLimit: Duration(seconds: 15),
         ),
       );
-      final placemarks = await _locationService.getPlacemarksFromCoordinates(
+
+      final placemarks =
+          await _locationService.getPlacemarksFromCoordinates(
         position.latitude,
         position.longitude,
       );
-      if (placemarks.isNotEmpty) {
-        final pm = placemarks.first;
-        final parts = <String>[
-          if (pm.street != null && pm.street!.isNotEmpty) pm.street!,
-          if (pm.subLocality != null && pm.subLocality!.isNotEmpty)
-            pm.subLocality!,
-          if (pm.locality != null && pm.locality!.isNotEmpty) pm.locality!,
-          if (pm.administrativeArea != null &&
-              pm.administrativeArea!.isNotEmpty)
-            pm.administrativeArea!,
-          if (pm.country != null && pm.country!.isNotEmpty) pm.country!,
-          if (pm.postalCode != null && pm.postalCode!.isNotEmpty)
-            pm.postalCode!,
-        ];
-        final fullAddress =
-            parts.isNotEmpty ? parts.join(', ') : 'Current Location';
+
+      if (placemarks.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.locationDetectionFailed),
+              backgroundColor: colors.danger,
+            ),
+          );
+        }
+        return;
+      }
+
+      final pm = placemarks.first;
+      if (!_locationService.isIndiaCountry(
+        pm.country,
+        isoCode: pm.isoCountryCode,
+      )) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.t('india_locations_only')),
+              backgroundColor: colors.warning,
+            ),
+          );
+        }
+        return;
+      }
+
+      final state = (pm.administrativeArea ?? '').trim();
+      final district =
+          (pm.subAdministrativeArea ?? pm.locality ?? '').trim();
+
+      final parts = <String>[
+        if ((pm.street ?? '').trim().isNotEmpty) pm.street!.trim(),
+        if ((pm.subLocality ?? '').trim().isNotEmpty)
+          pm.subLocality!.trim(),
+        if ((pm.locality ?? '').trim().isNotEmpty) pm.locality!.trim(),
+        if (district.isNotEmpty && district != pm.locality) district,
+        if (state.isNotEmpty) state,
+        'India',
+        if ((pm.postalCode ?? '').trim().isNotEmpty)
+          pm.postalCode!.trim(),
+      ];
+      final fullAddress = parts.toSet().join(', ');
+
+      final districts = state.isEmpty
+          ? const <String>[]
+          : await IndiaLocationCatalog.districtsForState(state);
+
+      if (!mounted) return;
+      setState(() {
+        _selectedState = state.isEmpty ? null : state;
+        _selectedDistrict = district.isEmpty ? null : district;
+        _stateController.text = state;
+        _districtController.text = district;
+        _districtOptions = districts;
+        _stateSuggestions = const [];
+        _districtSuggestions = const [];
+        _locationSuggestions = [];
         _farmLocation = AddressData(
           fullAddress: fullAddress,
           latitude: position.latitude,
           longitude: position.longitude,
           city: pm.locality,
-          district: pm.subAdministrativeArea,
-          state: pm.administrativeArea,
-          country: pm.country,
+          district: district,
+          state: state,
+          country: 'India',
           pincode: pm.postalCode,
           isVerified: true,
         );
         _locationController.text = fullAddress;
-      } else {
-        _farmLocation = AddressData(
-          fullAddress:
-              '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}',
-          latitude: position.latitude,
-          longitude: position.longitude,
-          isVerified: true,
-        );
-        _locationController.text = _farmLocation!.fullAddress;
-      }
+      });
       _emitData();
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        final colors2 = VidhAIColorsX(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Could not get location: $e'),
-              backgroundColor: colors2.danger),
+            content: Text(loc.locationDetectionFailed),
+            backgroundColor: colors.danger,
+          ),
         );
       }
     } finally {
-      if (mounted) setState(() => _isGettingCurrentLocation = false);
-    }
-  }
-
-  Future<void> _startVoiceInput(VoiceField field) async {
-    final loc = AppLocalizations.of(context);
-    final colors = VidhAIColorsX(context);
-    if (_voiceService.isListening) {
-      await _voiceService.stopListening();
-      setState(() {
-        _isListeningName = false;
-        _isListeningSize = false;
-        _isListeningWater = false;
-      });
-      return;
-    }
-    final hasPermission = await _voiceService.initialize();
-    if (!hasPermission) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(loc.t('microphone_permission')),
-              backgroundColor: colors.danger),
-        );
+        setState(() => _isGettingCurrentLocation = false);
       }
-      return;
     }
-    if (field == VoiceField.farmName) {
-      setState(() => _isListeningName = true);
-    } else if (field == VoiceField.farmSize) {
-      setState(() => _isListeningSize = true);
-    } else if (field == VoiceField.waterAvailability) {
-      setState(() => _isListeningWater = true);
-    }
-
-    await _voiceService.startListening(
-      localeId: 'en_US',
-      onResult: (text, confidence) {
-        if (field == VoiceField.farmName) {
-          _nameController.text = text.trim();
-          _emitData();
-        } else if (field == VoiceField.farmSize) {
-          final numMatch = RegExp(r'(\d+)').firstMatch(text);
-          if (numMatch != null) {
-            _sizeController.text = numMatch.group(1)!;
-          } else {
-            _sizeController.text = text.trim();
-          }
-          _emitData();
-        } else if (field == VoiceField.waterAvailability) {
-          final mapped = VoiceService.mapWaterAvailability(text);
-          if (mapped != null) {
-            setState(() => _waterAvailability = mapped);
-            _emitData();
-          }
-        } else if (field == VoiceField.farmingMethod) {
-          final mapped =
-              VoiceService.extractValue(text, VoiceField.farmingMethod);
-          setState(() => _farmingMethod = mapped);
-          _emitData();
-        }
-      },
-      onListeningComplete: () {
-        if (mounted) {
-          setState(() {
-            _isListeningName = false;
-            _isListeningSize = false;
-            _isListeningWater = false;
-          });
-        }
-      },
-    );
   }
 
   void _showSoilScanDialog() {
