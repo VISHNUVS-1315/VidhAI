@@ -1,4 +1,7 @@
 const Map<String, String> teStrings = {
+  'india': 'భారతదేశం',
+  'unit': 'యూనిట్',
+  'india_locations_only': 'దయచేసి భారతదేశంలోని ప్రదేశాన్ని మాత్రమే ఎంచుకోండి.',
   'crop_diary': 'పంట డైరీ',
   'crop_diary_desc': 'ప్రతి పంట మరియు దాని ఖర్చులను ఒకే చోట ట్రాక్ చేయండి.',
   'ai_crop_recommend': 'AI పంట సిఫార్సు',
