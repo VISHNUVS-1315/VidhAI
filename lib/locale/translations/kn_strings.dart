@@ -1,4 +1,7 @@
 const Map<String, String> knStrings = {
+  'india': 'ಭಾರತ',
+  'unit': 'ಘಟಕ',
+  'india_locations_only': 'ದಯವಿಟ್ಟು ಭಾರತದೊಳಗಿನ ಸ್ಥಳವನ್ನು ಮಾತ್ರ ಆಯ್ಕೆಮಾಡಿ.',
   'crop_diary': 'ಬೆಳೆ ಡೈರಿ',
   'crop_diary_desc': 'ಪ್ರತಿ ಬೆಳೆ ಮತ್ತು ಅದರ ವೆಚ್ಚಗಳನ್ನು ಒಂದೇ ಸ್ಥಳದಲ್ಲಿ ಗಮನಿಸಿ.',
   'ai_crop_recommend': 'AI ಬೆಳೆ ಶಿಫಾರಸು',
