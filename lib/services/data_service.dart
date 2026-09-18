@@ -99,6 +99,7 @@ class DataService {
         uid: prefs.getString('user_uid') ?? '',
         email: email,
         displayName: name,
+        avatarUrl: prefs.getString('user_avatar_url'),
         role: prefs.getString('selected_domain') ?? 'farmer',
         isEmailVerified: prefs.getBool('user_is_email_verified') ?? false,
       );
