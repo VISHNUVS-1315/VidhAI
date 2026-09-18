@@ -970,7 +970,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                '🇮🇳 India',
+                "🇮🇳 ${loc.t('india')}",
                 style: TextStyle(
                   color: colors.brandDeep,
                   fontSize: 11,
