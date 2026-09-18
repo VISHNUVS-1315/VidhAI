@@ -922,32 +922,6 @@ class _FarmCardState extends State<FarmCard> {
     );
   }
 
-  Widget _voiceSuffix({
-    required bool isListening,
-    required VoidCallback onTap,
-  }) {
-    final colors = VidhAIColorsX(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 38,
-        height: 38,
-        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        decoration: BoxDecoration(
-          color: isListening
-              ? colors.danger.withValues(alpha: 0.15)
-              : colors.brandDeep.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          isListening ? Icons.mic : Icons.mic_none_rounded,
-          color: isListening ? colors.danger : colors.brandDeep,
-          size: 19,
-        ),
-      ),
-    );
-  }
-
   Widget _sectionHeader(IconData icon, String label) {
     final colors = VidhAIColorsX(context);
     return Padding(
@@ -1096,40 +1070,50 @@ class _FarmCardState extends State<FarmCard> {
             // -- Basic Details --
             _sectionHeader(Icons.landscape_rounded, loc.farmInfo),
 
-            _buildTextFieldWithVoice(
+            _buildTextField(
               controller: _nameController,
               label: loc.farmName,
               icon: Icons.agriculture_rounded,
               onChanged: (_) => _emitData(),
               validator: (v) =>
                   v == null || v.trim().isEmpty ? loc.requiredField : null,
-              isListening: _isListeningName,
-              onVoiceTap: () => _startVoiceInput(VoiceField.farmName),
             ),
             const SizedBox(height: 12),
 
-            // Size + unit
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: _buildTextFieldWithVoice(
-                    controller: _sizeController,
-                    label: loc.farmSize,
-                    icon: Icons.straighten_rounded,
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => _emitData(),
-                    validator: (v) => v == null || v.trim().isEmpty
-                        ? loc.requiredField
-                        : null,
-                    isListening: _isListeningSize,
-                    onVoiceTap: () => _startVoiceInput(VoiceField.farmSize),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(flex: 3, child: _buildUnitDropdown()),
-              ],
+            // Size + unit — stacks on narrow screens to avoid overflow.
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final sizeField = _buildTextField(
+                  controller: _sizeController,
+                  label: loc.farmSize,
+                  icon: Icons.straighten_rounded,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (_) => _emitData(),
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? loc.requiredField
+                      : null,
+                );
+
+                if (constraints.maxWidth < 360) {
+                  return Column(
+                    children: [
+                      sizeField,
+                      const SizedBox(height: 10),
+                      _buildUnitDropdown(),
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 5, child: sizeField),
+                    const SizedBox(width: 10),
+                    Expanded(flex: 3, child: _buildUnitDropdown()),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
 
@@ -1190,15 +1174,13 @@ class _FarmCardState extends State<FarmCard> {
     );
   }
 
-  Widget _buildTextFieldWithVoice({
+  Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
     void Function(String)? onChanged,
-    required bool isListening,
-    required VoidCallback onVoiceTap,
   }) {
     final colors = VidhAIColorsX(context);
     return TextFormField(
@@ -1210,10 +1192,6 @@ class _FarmCardState extends State<FarmCard> {
       decoration: _inputDecoration(
         label: label,
         icon: icon,
-        suffixIcon: _voiceSuffix(
-          isListening: isListening,
-          onTap: onVoiceTap,
-        ),
       ),
     );
   }
@@ -1258,10 +1236,6 @@ class _FarmCardState extends State<FarmCard> {
                       color: colors.onSurfaceMuted,
                       fontSize: 13,
                       fontWeight: FontWeight.w500))),
-          _voiceSuffix(
-            isListening: _isListeningWater,
-            onTap: () => _startVoiceInput(VoiceField.waterAvailability),
-          ),
         ]),
         const SizedBox(height: 8),
         Wrap(
