@@ -12,6 +12,7 @@ import 'package:vidhai/features/account/screens/language_settings_screen.dart';
 import 'package:vidhai/features/assistant/assistant_button.dart';
 import 'package:vidhai/features/notifications/screens/notification_center_screen.dart';
 import 'package:vidhai/core/widgets/vidhai_widgets.dart';
+import 'package:vidhai/core/widgets/profile_avatar.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -164,17 +165,14 @@ class _AccountScreenState extends State<AccountScreen> {
                   children: [
                     const SizedBox(height: 16),
                     Center(
-                      child: CircleAvatar(
-                        radius: 48,
-                        backgroundColor: _cardColor,
-                        child: Text(
-                          _getInitial(),
-                          style: TextStyle(
-                            color: _accent,
-                            fontSize: 40,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                      child: ProfileAvatarView(
+                        avatarValue: _profile?.avatarUrl,
+                        size: 96,
+                        backgroundColor:
+                            _accent.withValues(alpha: 0.08),
+                        borderColor:
+                            _accent.withValues(alpha: 0.22),
+                        fallbackText: _getInitial(),
                       ),
                     ),
                     const SizedBox(height: 16),
