@@ -402,7 +402,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           bestMatch = crop;
         }
       }
-      bestMatch ??= crops.where((crop) => crop.isActive).firstOrNull;
+      if (bestMatch == null) {
+        for (final crop in crops) {
+          if (crop.isActive) {
+            bestMatch = crop;
+            break;
+          }
+        }
+      }
       bestMatch ??= crops.first;
       selectedCropId = bestMatch.id;
     }
