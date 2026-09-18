@@ -1,4 +1,7 @@
 const Map<String, String> mlStrings = {
+  'india': 'ഇന്ത്യ',
+  'unit': 'യൂണിറ്റ്',
+  'india_locations_only': 'ദയവായി ഇന്ത്യയ്ക്കുള്ളിലെ ഒരു സ്ഥലം മാത്രം തിരഞ്ഞെടുക്കുക.',
   'crop_diary': 'വിള ഡയറി',
   'crop_diary_desc': 'ഓരോ വിളയുടെയും ചെലവുകൾ ഒരിടത്ത് പിന്തുടരുക.',
   'ai_crop_recommend': 'AI വിള ശുപാർശ',
