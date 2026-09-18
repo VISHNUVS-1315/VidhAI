@@ -268,18 +268,32 @@ class _FarmCardState extends State<FarmCard> {
   bool _setLocationPart(String key, String value) {
     final clean = value.trim();
     if (clean.isEmpty) return false;
-    final next = {..._assistantLocation, key: clean};
-    _assistantLocation = next;
-    final query = ['village', 'district', 'state']
-        .map((k) => next[k] ?? '')
-        .where((s) => s.isNotEmpty)
-        .join(', ');
-    if (query.isNotEmpty) {
-      _locationController.text = query;
-      _searchLocation(query);
+
+    _assistantLocation = {..._assistantLocation, key: clean};
+
+    if (key == 'state') {
+      final match = IndiaLocationCatalog.states.where(
+        (state) => state.toLowerCase() == clean.toLowerCase(),
+      );
+      if (match.isEmpty) return false;
+      _selectState(match.first);
+      return true;
     }
-    _emitData();
-    return true;
+
+    if (key == 'district') {
+      if (_selectedState == null) return false;
+      _selectDistrict(clean);
+      return true;
+    }
+
+    if (key == 'village') {
+      if (_selectedState == null || _selectedDistrict == null) return false;
+      _locationController.text = clean;
+      _searchLocation(clean);
+      return true;
+    }
+
+    return false;
   }
 
   void _unregisterAssistantFields() {
