@@ -1,4 +1,8 @@
 const Map<String, String> paStrings = {
+  'crop_diary': 'ਫਸਲ ਡਾਇਰੀ',
+  'crop_diary_desc': 'ਹਰ ਫਸਲ ਅਤੇ ਉਸਦੇ ਖਰਚੇ ਇੱਕ ਹੀ ਥਾਂ ਤੇ ਟ੍ਰੈਕ ਕਰੋ।',
+  'ai_crop_recommend': 'AI ਫਸਲ ਸਿਫਾਰਸ਼',
+  'ai_crop_recommend_desc': 'ਆਪਣੇ ਖੇਤ ਲਈ ਨਿੱਜੀ ਫਸਲ ਸੁਝਾਅ ਪ੍ਰਾਪਤ ਕਰੋ।',
   'about_description':
       'VidhAI ਇੱਕ AI-ਅਧਾਰਤ ਖੇਤੀ ਸਹਾਇਕ ਹੈ ਜੋ ਭਾਰਤੀ ਕਿਸਾਨਾਂ ਲਈ ਫ਼ਸਲ ਸਿਫ਼ਾਰਸ਼ਾਂ, ਬਿਮਾਰੀ ਖੋਜ ਅਤੇ ਖੇਤ ਪ੍ਰਬੰਧਨ ਸਾਧਨ ਪ੍ਰਦਾਨ ਕਰਦਾ ਹੈ।',
   'about_section': 'ਸਾਡੇ ਬਾਰੇ',
