@@ -27,6 +27,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
 
   FarmProfile? _profile;
   String _lastCropName = '';
+  String _lastHarvestDate = '';
+  String _landIdleMonths = '';
   String _previousCropSowingDate = '';
   String _previousCropDuration = '';
 
@@ -55,6 +57,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
     'Tree',
     'Leafy',
     'Medicinal',
+    'Commercial/Cash Crops',
     'No preference',
   ];
 
@@ -93,7 +96,7 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
   String _detectSeason() {
     final month = DateTime.now().month;
     if (month >= 6 && month <= 9) return 'Kharif';
-    if (month >= 10 && month <= 3) return 'Rabi';
+    if (month >= 10 || month <= 3) return 'Rabi';
     return 'Zaid';
   }
 
@@ -110,6 +113,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
       final crops = await DataService().loadCrops(widget.farmId);
 
       String lastCropName = '';
+      String lastHarvestDate = '';
+      String landIdleMonths = '';
       String prevSowing = '';
       String prevDuration = '';
       final records = crops.where((c) => c.status != 'active').toList()
@@ -118,7 +123,19 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
         final last = records.first;
         lastCropName = last.cropName;
         prevSowing = _formatDate(last.plantingDate);
-        if (last.expectedHarvestDate != null) {
+
+        final harvestDate = last.endDate ?? last.expectedHarvestDate;
+        if (harvestDate != null) {
+          lastHarvestDate = _formatDate(harvestDate);
+          final idleDays = DateTime.now().difference(harvestDate).inDays;
+          if (idleDays >= 0) {
+            landIdleMonths = (idleDays / 30).floor().toString();
+          }
+          final cropDays = harvestDate.difference(last.plantingDate).inDays;
+          if (cropDays > 0) {
+            prevDuration = cropDays.toString();
+          }
+        } else if (last.expectedHarvestDate != null) {
           prevDuration = last.expectedHarvestDate!
               .difference(last.plantingDate)
               .inDays
@@ -129,6 +146,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
       setState(() {
         _profile = profile;
         _lastCropName = lastCropName;
+        _lastHarvestDate = lastHarvestDate;
+        _landIdleMonths = landIdleMonths;
         _previousCropSowingDate = prevSowing;
         _previousCropDuration = prevDuration;
         if (_waterAvailability.isEmpty && profile.waterAvailability.isNotEmpty) {
@@ -174,6 +193,8 @@ class _CropSetupScreenState extends State<CropSetupScreen> {
       farmerPreference: _farmerPreferenceController.text.trim(),
       // ── Auto-collected farm context ──
       lastCrop: _lastCropName,
+      harvestDate: _lastHarvestDate,
+      landIdleDuration: _landIdleMonths,
       previousCropSowingDate: _previousCropSowingDate,
       previousCropDuration: _previousCropDuration,
       soilType: profile?.soilType ?? '',
