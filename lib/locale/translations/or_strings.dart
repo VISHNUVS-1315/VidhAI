@@ -1329,4 +1329,9 @@ const Map<String, String> orStrings = {
 'nearest_community': 'ମୋ ଅଞ୍ଚଳ',
   'community_interested_empty': 'ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଆଗ୍ରହୀ ଚାଷୀ ନାହିଁ।',
   'community_suppliers_empty': 'ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଯୋଗାଣକାରୀ ନାହିଁ।',
+  'consumer_desk': 'ଉପଭୋକ୍ତା ଡେସ୍କ',
+  'purchase_history': 'କ୍ରୟ ଇତିହାସ',
+  'fertilizer_prices': 'ସାର ଦର',
+  'flower_market': 'ଫୁଲ ବଜାର',
+  'no_purchase_history': 'ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି କ୍ରୟ ନାହିଁ',
 };
