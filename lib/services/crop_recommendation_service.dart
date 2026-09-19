@@ -39,15 +39,27 @@ class CropRecommendationService {
   // ── Context snapshot (single source of truth for the AI layer) ─────────
 
   Future<AiContextSnapshot> _buildSnapshot(FarmProfile farm) async {
+    final language = await _dataService.getSelectedLanguage();
     try {
-      return await _contextBuilder.build(farm: farm);
+      return await _contextBuilder.build(
+        farm: farm,
+        languageCode: language,
+      );
     } catch (e) {
       debugPrint('[CropRecommendationService] context snapshot degraded: $e');
-      return AiContextSnapshot.basic(farm: farm);
+      return AiContextSnapshot.basic(
+        farm: farm,
+        languageCode: language,
+      );
     }
   }
 
-  Map<String, dynamic> recommendationInput(CropSetupQuestionnaire q) => {
+  Map<String, dynamic> recommendationInput(
+    CropSetupQuestionnaire q, {
+    String? language,
+  }) =>
+      {
+        'language': language,
         'waterAvailability': q.waterAvailability,
         'soilType': q.soilType,
         'irrigationSystem': q.irrigationSystem,
@@ -57,7 +69,12 @@ class CropRecommendationService {
         'cropCategoryPreference': q.cropCategoryPreference,
         'budgetInrPerAcre': q.budgetInrPerAcre,
         'lastCrop': q.lastCrop,
+        'harvestDate': q.harvestDate,
         'landIdleDuration': q.landIdleDuration,
+        'previousCropSowingDate': q.previousCropSowingDate,
+        'previousCropDuration': q.previousCropDuration,
+        'waterSource': q.waterSource,
+        'seasonalWaterReliability': q.seasonalWaterReliability,
         'farmingPriority': q.farmingPriority,
         'farmerPreference': q.farmerPreference,
       };
@@ -65,12 +82,12 @@ class CropRecommendationService {
   /// Returns the preferred top-10 crop recommendations for the farm.
   ///
   /// Order of sources:
-  ///   1. Live structured NVIDIA AI via `/crop/ai-recommend` (all farm context +
+  ///   1. Live structured Groq AI via `/crop/ai-recommend` (all farm context +
   ///      the ~6 manual inputs analysed together; strict JSON Schema output).
   ///   2. Live online `/crop/recommend` (backed by the real context bundle).
   ///   3. Cached online results — only when the decision context hash is
   ///      unchanged and within the TTL (never a stale/mismatched fabrication).
-  ///   4. Realtime NVIDIA ranking through the secure backend on
+  ///   4. Realtime Groq ranking through the secure backend on
   ///      top of the engine-verified shortlist — reorders and explains only.
   ///   5. Deterministic local knowledge-base engine.
   Future<List<CropRecommendationResult>> getRecommendations({
@@ -82,49 +99,75 @@ class CropRecommendationService {
         'state=${farm.farmLocation?.state ?? '-'} district=${farm.farmLocation?.district ?? '-'} '
         'acres=${farm.farmSize}${farm.farmSizeUnit} soil=${farm.soilType} '
         'water=${farm.waterAvailability} irrigation=${farm.irrigationType}');
-    debugPrint('[CropRecommendationService] request payload: '
-        '${json.encode(recommendationInput(questionnaire))}');
-
     final snapshot = await _buildSnapshot(farm);
-    final hash = snapshot.contextHash;
+    final input = recommendationInput(
+      questionnaire,
+      language: snapshot.languageCode,
+    );
+    debugPrint('[CropRecommendationService] request payload: '
+        '${json.encode(input)}');
 
-    // 1) Structured NVIDIA AI first: the model reasons over the ENTIRE context
-    //    at once. Falls back silently to the engine on any failure/emptiness.
+    // Recommendation cache identity must include manual decision inputs. This
+    // prevents a Vegetables run from being reused after the farmer selects
+    // Pulses (or changes budget/duration).
+    final decisionHash =
+        '${snapshot.contextHash}:${json.encode(input)}';
+
+    // 1) Structured Groq AI first: the model reasons over the ENTIRE context
+    //    at once. Falls back silently to the verified engine on failure.
     final ai = await CropBackendService.instance.fetchAIRecommendations(
       context: snapshot.toBackendContext(),
-      input: recommendationInput(questionnaire),
+      input: input,
     );
     if (ai != null && ai.isNotEmpty) {
-      debugPrint('[CropRecommendationService] AI recommend: ${ai.length} crops '
-          '(${ai.map((r) => r.cropName).take(10).join(', ')})');
-      return _dedupeTop10(ai);
+      final constrained = _applyCategoryConstraint(ai, questionnaire);
+      if (constrained.isNotEmpty) {
+        debugPrint('[CropRecommendationService] AI recommend: '
+            '${constrained.length} category-valid crops '
+            '(${constrained.map((r) => r.cropName).take(10).join(', ')})');
+        return _dedupeTop10(constrained);
+      }
+      debugPrint('[CropRecommendationService] AI results rejected by '
+          'selected crop type; falling through to verified engine');
     }
     debugPrint('[CropRecommendationService] AI recommend unavailable — '
         'falling through to engine');
 
     final online = await CropBackendService.instance.fetchTop10(
       farm: snapshot.farmMap,
-      input: recommendationInput(questionnaire),
-      contextHash: hash,
+      input: input,
+      contextHash: decisionHash,
     );
     if (online != null) {
       if (online.isEmpty) {
         debugPrint(
             '[CropRecommendationService] online returned 0 crops — falling through to cache/local');
       } else {
-        debugPrint('[CropRecommendationService] online: ${online.length} crops '
-            '(${online.map((r) => r.cropName).take(10).join(', ')})');
-        return _dedupeTop10(online);
+        final constrained = _applyCategoryConstraint(online, questionnaire);
+        if (constrained.isNotEmpty) {
+          debugPrint('[CropRecommendationService] online: '
+              '${constrained.length} category-valid crops '
+              '(${constrained.map((r) => r.cropName).take(10).join(', ')})');
+          return _dedupeTop10(constrained);
+        }
+        debugPrint('[CropRecommendationService] online results rejected by '
+            'selected crop type; falling through');
       }
     } else {
       debugPrint('[CropRecommendationService] online unavailable (offline or error)');
     }
 
     final cached = await CropBackendService.instance
-        .cachedTop10(farm.farmId, contextHash: hash);
+        .cachedTop10(farm.farmId, contextHash: decisionHash);
     if (cached != null) {
-      debugPrint('[CropRecommendationService] cache hit: ${cached.length} crops');
-      return _dedupeTop10(cached);
+      final constrained = _applyCategoryConstraint(cached, questionnaire);
+      if (constrained.isNotEmpty) {
+        debugPrint('[CropRecommendationService] cache hit: '
+            '${constrained.length} category-valid crops');
+        return _dedupeTop10(constrained);
+      }
+      debugPrint('[CropRecommendationService] cached results do not match '
+          'the selected crop type; ignoring cache');
     }
     debugPrint('[CropRecommendationService] cache miss');
 
@@ -141,8 +184,12 @@ class CropRecommendationService {
       snapshot: snapshot,
       language: await _dataService.getSelectedLanguage(),
     );
-    final finalRanked = ranked ?? local;
-    debugPrint('[CropRecommendationService] returning ${finalRanked.length} crops '
+    final finalRanked = _applyCategoryConstraint(
+      ranked ?? local,
+      questionnaire,
+    );
+    debugPrint('[CropRecommendationService] returning '
+        '${finalRanked.length} category-valid crops '
         '(source: ${ranked != null ? 'realtime AI' : 'local'})');
     return finalRanked;
   }
@@ -649,6 +696,72 @@ class CropRecommendationService {
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  String? _canonicalCategory(String value) {
+    final key = value.trim().toLowerCase().replaceAll(RegExp(r'[_-]+'), ' ');
+    if (key.isEmpty ||
+        key == 'no preference' ||
+        key == 'any' ||
+        key == 'other') {
+      return null;
+    }
+    const aliases = <String, String>{
+      'vegetable': 'Vegetables',
+      'vegetables': 'Vegetables',
+      'fruit': 'Fruits',
+      'fruits': 'Fruits',
+      'flower': 'Flowers',
+      'flowers': 'Flowers',
+      'cereal': 'Cereals',
+      'cereals': 'Cereals',
+      'pulse': 'Pulses',
+      'pulses': 'Pulses',
+      'oilseed': 'Oilseeds',
+      'oilseeds': 'Oilseeds',
+      'spice': 'Spices',
+      'spices': 'Spices',
+      'plantation': 'Plantation Crops',
+      'plantation crop': 'Plantation Crops',
+      'plantation crops': 'Plantation Crops',
+      'tree': 'Tree Crops',
+      'tree crop': 'Tree Crops',
+      'tree crops': 'Tree Crops',
+      'leafy': 'Leafy Vegetables',
+      'leafy vegetable': 'Leafy Vegetables',
+      'leafy vegetables': 'Leafy Vegetables',
+      'medicinal': 'Medicinal/Aromatic',
+      'aromatic': 'Medicinal/Aromatic',
+      'medicinal/aromatic': 'Medicinal/Aromatic',
+      'commercial': 'Commercial/Cash Crops',
+      'commercial crop': 'Commercial/Cash Crops',
+      'commercial crops': 'Commercial/Cash Crops',
+      'cash crop': 'Commercial/Cash Crops',
+      'cash crops': 'Commercial/Cash Crops',
+      'commercial/cash crops': 'Commercial/Cash Crops',
+    };
+    return aliases[key] ?? value.trim();
+  }
+
+  List<CropRecommendationResult> _applyCategoryConstraint(
+    List<CropRecommendationResult> results,
+    CropSetupQuestionnaire questionnaire,
+  ) {
+    final requested = _canonicalCategory(
+      questionnaire.cropCategoryPreference,
+    );
+    if (requested == null) return _dedupeTop10(results);
+
+    final filtered = results.where((result) {
+      final actual = _canonicalCategory(result.category);
+      return actual != null &&
+          actual.toLowerCase() == requested.toLowerCase();
+    }).toList();
+
+    return [
+      for (var i = 0; i < filtered.length && i < 10; i++)
+        _withRankAndReason(filtered[i], rank: i + 1),
+    ];
+  }
 
   List<CropRecommendationResult> _dedupeTop10(
       List<CropRecommendationResult> list) {
