@@ -1332,4 +1332,9 @@ const Map<String, String> urStrings = {
 'nearest_community': 'میرا علاقہ',
   'community_interested_empty': 'ابھی کوئی دلچسپی رکھنے والا کسان نہیں۔',
   'community_suppliers_empty': 'ابھی کوئی سپلائر نہیں۔',
+  'consumer_desk': 'صارف ڈیسک',
+  'purchase_history': 'خریداری کی تاریخ',
+  'fertilizer_prices': 'کھاد کی قیمتیں',
+  'flower_market': 'پھول منڈی',
+  'no_purchase_history': 'ابھی تک کوئی خریداری نہیں',
 };
