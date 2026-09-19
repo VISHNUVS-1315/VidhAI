@@ -197,7 +197,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
             .map((f) => f.toMap())
             .toList()
         : farms.map((f) => f.toMap()).toList();
-    final profileMap = profile?.toMap() ?? {};
+    final profileMap = Map<String, dynamic>.from(
+      profile?.toMap() ?? const <String, dynamic>{},
+    );
+    // Force the currently selected console into AI context so Consumer Chat
+    // never inherits a stale farmer role from an older cached profile.
+    profileMap['role'] = console;
+    profileMap['selectedConsole'] = console;
     final lang = await _getLanguage();
     return _chatService.chat(
       input,
