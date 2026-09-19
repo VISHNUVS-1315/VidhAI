@@ -3,10 +3,12 @@ name: Validate VidhAI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: vidhai-main-validation
+  group: vidhai-validation-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

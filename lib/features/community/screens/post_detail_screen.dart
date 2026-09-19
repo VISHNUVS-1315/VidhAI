@@ -1,3 +1,4 @@
+import '../../consumer/screens/consumer_utilities.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -293,6 +294,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       stream: docStream,
       builder: (context, snap) {
         final responded = snap.data?.exists ?? false;
+        final accepted = snap.data?.data()?['status'] == 'accepted';
+        if (isHarvest && accepted && post.status == CommunityStatus.fulfilled) {
+          return Padding(padding: const EdgeInsets.all(16), child: FilledButton.icon(
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: Text(loc.t('consumer_received')),
+            onPressed: _busy ? null : () => _run(() => recordConsumerPurchase(context,
+              postId: post.id, crop: post.cropName, seller: post.authorName)),
+          ));
+        }
+
         final doneLabel =
             isHarvest ? loc.communityInterestedDone : loc.communitySuppliedDone;
         final actionLabel =
@@ -483,6 +494,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               CommunityChip(label: statusText, color: statusColor, filled: true),
             ],
           ),
+          if (!isHarvest && post.status == CommunityStatus.fulfilled &&
+              member.status == CommunityMemberStatus.accepted)
+            TextButton.icon(icon: const Icon(Icons.receipt_long_outlined),
+              label: Text(loc.t('consumer_received')),
+              onPressed: _busy ? null : () => _run(() => recordConsumerPurchase(context,
+                postId: '${post.id}_${member.userId}', crop: post.cropName, seller: member.userName))),
           if (member.note.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
