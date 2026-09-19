@@ -390,6 +390,61 @@ export function parseJsonContent<T extends Record<string, unknown>>(
   }
 }
 
+export async function groqJson<T extends Record<string, unknown>>(
+  messages: NvidiaChatMessage[],
+  opts: {
+    schema?: JsonSchema;
+    language?: string;
+    context?: Record<string, unknown>;
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    reasoningEffort?: 'low' | 'medium' | 'high';
+    timeoutMs?: number;
+  } = {},
+): Promise<NvidiaJsonResult<T>> {
+  const model =
+    opts.model ??
+    process.env.AI_CROP_MODEL ??
+    process.env.AI_CHAT_MODEL ??
+    'openai/gpt-oss-20b';
+  const provider = groqProvider(model);
+  const system = buildSystemPrompt(opts.language, opts.context);
+
+  const body: Record<string, unknown> = {
+    model,
+    messages: [
+      { role: 'system', content: system },
+      ...messages.filter((m) => m.role !== 'system'),
+    ],
+    temperature: opts.temperature ?? 0.25,
+    max_completion_tokens: opts.maxTokens ?? 8192,
+    reasoning_effort: opts.reasoningEffort ?? 'low',
+    response_format: { type: 'json_object' },
+  };
+
+  const data = await llmPost<{
+    choices: Array<{ message?: NvidiaChatMessage }>;
+    usage?: Record<string, number>;
+  }>('/chat/completions', body, provider, {
+    timeout: opts.timeoutMs ?? 45_000,
+  });
+
+  const content = data.choices?.[0]?.message?.content ?? '';
+  if (!content.trim()) {
+    throw new Error('Groq returned an empty JSON response.');
+  }
+
+  const parsed = parseJsonContent<T>(content);
+  void opts.schema;
+
+  return {
+    data: parsed,
+    model,
+    usage: data.usage,
+  };
+}
+
 export async function nvidiaJson<T extends Record<string, unknown>>(
   messages: NvidiaChatMessage[],
   opts: {
