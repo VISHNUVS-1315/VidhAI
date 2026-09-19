@@ -19,11 +19,18 @@ import { scoreCrop, FarmContext } from './cropService';
 
 export interface CropRecommendationAiInput {
   cropCategoryPreference?: string;
+  lastCrop?: string;
   cropDurationPreference?: string;
   budgetInrPerAcre?: number | null;
   waterAvailability?: string;
   farmingPriority?: string;
   farmerPreference?: string;
+  harvestDate?: string;
+  landIdleDuration?: string;
+  previousCropSowingDate?: string;
+  previousCropDuration?: string;
+  waterSource?: string;
+  seasonalWaterReliability?: string;
   language?: string;
 }
 
@@ -32,6 +39,7 @@ export interface AiRecommendedCrop {
   cropName: string;
   localName: string;
   category: string;
+  season: string;
   suitabilityScore: number;
   suitabilityLevel: 'Excellent' | 'Good' | 'Moderate' | 'Poor';
   whySuitable: string[];
@@ -89,6 +97,7 @@ export const cropRecommendationSchema = {
             'cropName',
             'localName',
             'category',
+            'season',
             'suitabilityScore',
             'suitabilityLevel',
             'whySuitable',
@@ -113,6 +122,7 @@ export const cropRecommendationSchema = {
             cropName: { type: 'string' },
             localName: { type: 'string' },
             category: { type: 'string' },
+            season: { type: 'string' },
             suitabilityScore: { type: 'integer' },
             suitabilityLevel: {
               type: 'string',
@@ -349,6 +359,7 @@ export function sanitizeAiRecommendations(
       cropName: entry?.name ?? cropName,
       localName: asString(o['localName']) || (entry ? entry.varieties[0] ?? '' : ''),
       category: entry?.category ?? asString(o['category']),
+      season: asString(o['season']) || (entry ? entry.season : ''),
       suitabilityScore: score,
       suitabilityLevel:
         score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Moderate' : 'Poor',
@@ -398,40 +409,96 @@ function sortRecommended(a: AiRecommendedCrop, b: AiRecommendedCrop): number {
  */
 export function buildContextText(farmContext: Record<string, unknown>): string {
   const s = (v: unknown): string => {
-    if (v === null || v === undefined || v === '' || v === 0 && typeof v === 'number') return '(not provided)';
+    if (v === null || v === undefined || v === '') return '(not provided)';
     return String(v);
   };
+  const object = (v: unknown): Record<string, unknown> =>
+    v && typeof v === 'object' && !Array.isArray(v)
+      ? (v as Record<string, unknown>)
+      : {};
+
+  const location = object(farmContext['location']);
+  const farm = object(farmContext['farm']);
+  const soil = object(farmContext['soil']);
+  const water = object(farmContext['water']);
+  const history = object(farmContext['cropHistory']);
+  const expenses = object(farmContext['expenses']);
+  const weather = object(farmContext['weather']);
+  const language = object(farmContext['language']);
+  const currentCrops = Array.isArray(farmContext['currentCrops'])
+    ? farmContext['currentCrops']
+    : [];
+  const market = Array.isArray(farmContext['marketPrices'])
+    ? farmContext['marketPrices']
+    : [];
+
   const lines: string[] = [];
-  if (farmContext['state']) lines.push(`Farmer/farm state: ${s(farmContext['state'])}`);
-  if (farmContext['district']) lines.push(`District: ${s(farmContext['district'])}`);
-  if (farmContext['place']) lines.push(`Taluk/local area: ${s(farmContext['place'])}`);
-  if (farmContext['latitude'] != null && farmContext['longitude'] != null) {
-    lines.push(`Coordinates: lat ${s(farmContext['latitude'])}, lng ${s(farmContext['longitude'])}`);
+  lines.push(`Selected language: ${s(language['code'])}`);
+  lines.push(`Farm state: ${s(location['state'] ?? farm['state'])}`);
+  lines.push(`District: ${s(location['district'] ?? farm['district'])}`);
+  lines.push(`Local area: ${s(location['place'])}`);
+  if (location['latitude'] != null && location['longitude'] != null) {
+    lines.push(
+      `Coordinates: lat ${s(location['latitude'])}, lng ${s(location['longitude'])}`,
+    );
   }
-  if (farmContext['farmSizeAcres'] != null) {
-    lines.push(`Farm area: ${s(farmContext['farmSizeAcres'])} acre${Number(farmContext['farmSizeAcres']) === 1 ? '' : 's'}`);
+  lines.push(`Farm name: ${s(farm['farmName'])}`);
+  lines.push(`Farm area (acres): ${s(farm['farmSizeAcres'])}`);
+  lines.push(`Soil type: ${s(soil['type'] ?? farm['soilType'])}`);
+  if (soil['aiAnalysis']) {
+    lines.push(`Stored soil analysis: ${s(soil['aiAnalysis'])}`);
   }
-  if (farmContext['soilType']) lines.push(`Soil type: ${s(farmContext['soilType'])}`);
-  if (farmContext['irrigationType']) lines.push(`Irrigation system: ${s(farmContext['irrigationType'])}`);
-  if (farmContext['waterSource']) lines.push(`Water source: ${s(farmContext['waterSource'])}`);
-  if (farmContext['waterAvailability']) lines.push(`Water availability: ${s(farmContext['waterAvailability'])}`);
-  if (farmContext['farmingMethod']) lines.push(`Farming type: ${s(farmContext['farmingMethod'])}`);
-  if (farmContext['season']) lines.push(`Current agricultural season: ${s(farmContext['season'])}`);
-  const month = farmContext['month'];
-  if (typeof month === 'number') lines.push(`Current month: ${month}`);
-  const cropHistory = Array.isArray(farmContext['cropHistory']) ? farmContext['cropHistory'] : undefined;
-  if (cropHistory && cropHistory.length > 0) {
-    lines.push(`Previous crop history: ${JSON.stringify(cropHistory.slice(0, 8))}`);
+  lines.push(
+    `Water availability: ${s(water['availability'] ?? farm['waterAvailability'])}`,
+  );
+  lines.push(`Water source: ${s(water['source'] ?? farm['waterSource'])}`);
+  lines.push(
+    `Irrigation system: ${s(water['irrigation'] ?? farm['irrigationType'])}`,
+  );
+  lines.push(`Farming method: ${s(farm['farmingMethod'])}`);
+  lines.push(`Current agricultural season: ${s(farmContext['season'])}`);
+  lines.push(`Context date: ${s(farmContext['date'])}`);
+
+  if (currentCrops.length > 0) {
+    lines.push(
+      `Currently active crop(s): ${JSON.stringify(currentCrops.slice(0, 3))}`,
+    );
   }
-  const weather = farmContext['weather'];
-  if (weather && typeof weather === 'object') {
-    lines.push(`Current/forecast weather (Open-Meteo): ${JSON.stringify(weather)}`);
+
+  const historyCrops = Array.isArray(history['crops']) ? history['crops'] : [];
+  if (historyCrops.length > 0 || history['lastCrop']) {
+    lines.push(
+      `Previous crop history: ${JSON.stringify({
+        lastCrop: history['lastCrop'] ?? null,
+        count: history['count'] ?? historyCrops.length,
+        crops: historyCrops.slice(0, 8),
+      })}`,
+    );
   }
-  const market = farmContext['market'];
-  if (Array.isArray(market) && market.length > 0) {
-    lines.push(`Recent reported market prices (₹/kg where available): ${JSON.stringify(market.slice(0, 12))}`);
+
+  if (Object.keys(expenses).length > 0) {
+    lines.push(`Farm expense summary: ${JSON.stringify(expenses)}`);
   }
-  return lines.length ? lines.join('\n') : 'No additional farm context was provided.';
+
+  if (Object.keys(weather).length > 0) {
+    lines.push(
+      `Current/forecast weather from Open-Meteo: ${JSON.stringify(weather)}`,
+    );
+  } else {
+    lines.push('Current/forecast weather: (not available)');
+  }
+
+  if (market.length > 0) {
+    lines.push(
+      `Recent reported market prices from AGMARKNET: ${JSON.stringify(
+        market.slice(0, 12),
+      )}`,
+    );
+  } else {
+    lines.push('Recent reported market prices: (not available)');
+  }
+
+  return lines.join('\n');
 }
 
 export async function recommendWithAI(
@@ -486,6 +553,12 @@ export async function recommendWithAI(
     `- Preferred duration: ${input.cropDurationPreference || '(no preference)'}`,
     `- Budget per acre (INR): ${input.budgetInrPerAcre ?? '(not provided)'}`,
     `- Current water availability: ${input.waterAvailability || '(not provided)'}`,
+    `- Water source: ${input.waterSource || '(auto context if available)'}`,
+    `- Previous crop: ${input.lastCrop || '(auto context if available)'}`,
+    `- Last harvest date: ${input.harvestDate || '(not available)'}`,
+    `- Land idle duration (months): ${input.landIdleDuration || '(not available)'}`,
+    `- Previous sowing date: ${input.previousCropSowingDate || '(not available)'}`,
+    `- Previous crop duration (days): ${input.previousCropDuration || '(not available)'}`,
     `- Farming priority: ${input.farmingPriority || 'Balanced'}`,
     `- Optional preference: ${input.farmerPreference || '(none)'}`,
     '',
