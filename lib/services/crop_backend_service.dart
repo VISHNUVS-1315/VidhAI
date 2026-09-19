@@ -59,7 +59,7 @@ class CropBackendService {
     }
   }
 
-  // ── AI recommendation (NVIDIA, structured output) ─────────────────────────
+  // ── AI recommendation (Groq, structured output) ─────────────────────────
 
   /// Structured AI top-10 via the secure backend `/crop/ai-recommend`.
   ///
@@ -84,7 +84,7 @@ class CropBackendService {
       final raw = (body['recommendations'] as List? ?? const []);
       final modelLabel = (body['model'] as String?)?.isNotEmpty == true
           ? '${body['model']} via secure backend'
-          : 'NVIDIA Nemotron via secure backend';
+          : 'Groq GPT-OSS via secure backend';
       final mapped = mapAIRecommendations(raw, dataSourceLabel: modelLabel);
       debugPrint('[CropBackendService] /crop/ai-recommend returned '
           '${mapped.length} crops (model ${body['model'] ?? '?'})');
@@ -101,7 +101,7 @@ class CropBackendService {
   /// [CropRecommendationResult] shape used by the recommendation flow.
   static List<CropRecommendationResult> mapAIRecommendations(
       List<dynamic> raw,
-      {String dataSourceLabel = 'NVIDIA Nemotron via secure backend'}) {
+      {String dataSourceLabel = 'Groq GPT-OSS via secure backend'}) {
     final results = <CropRecommendationResult>[];
     for (final item in raw) {
       if (item is! Map) continue;
@@ -162,8 +162,8 @@ class CropBackendService {
         cropId: '_ai_${(m['cropName'] as String?) ?? ''}',
         cropName: name,
         varieties: [(m['localName'] as String?) ?? ''],
-        category: (m['cropName'] as String?) ?? '',
-        season: '',
+        category: (m['category'] as String?)?.trim() ?? '',
+        season: (m['season'] as String?)?.trim() ?? '',
         durationMin: dur,
         durationMax: dur,
         score: score,
