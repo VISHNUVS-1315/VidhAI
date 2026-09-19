@@ -1319,4 +1319,9 @@ const Map<String, String> paStrings = {
 'nearest_community': 'ਮੇਰਾ ਇਲਾਕਾ',
   'community_interested_empty': 'ਅਜੇ ਕੋਈ ਦਿਲਚਸਪੀ ਰੱਖਣ ਵਾਲਾ ਕਿਸਾਨ ਨਹੀਂ।',
   'community_suppliers_empty': 'ਅਜੇ ਕੋਈ ਸਪਲਾਇਰ ਨਹੀਂ।',
+  'consumer_desk': 'ਖਪਤਕਾਰ ਡੈਸਕ',
+  'purchase_history': 'ਖਰੀਦ ਇਤਿਹਾਸ',
+  'fertilizer_prices': 'ਖਾਦ ਦੀਆਂ ਕੀਮਤਾਂ',
+  'flower_market': 'ਫੁੱਲ ਮਾਰਕੀਟ',
+  'no_purchase_history': 'ਹਾਲੇ ਕੋਈ ਖਰੀਦ ਨਹੀਂ',
 };
