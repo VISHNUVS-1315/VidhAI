@@ -2,7 +2,7 @@ name: Validate VidhAI
 
 on:
   push:
-    branches: [main, feature/onboarding-profile-farm-redesign-20260918]
+    branches: [main, feature/onboarding-profile-farm-redesign-20260918, feature/ai-crop-type-recommendation-20260919]
   workflow_dispatch:
 
 concurrency:
@@ -21,6 +21,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Build backend
+        working-directory: functions
+        run: npm run build
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
