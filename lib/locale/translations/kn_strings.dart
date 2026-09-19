@@ -1347,4 +1347,9 @@ const Map<String, String> knStrings = {
 'nearest_community': 'ನನ್ನ ಪ್ರದೇಶ',
   'community_interested_empty': 'ಇನ್ನೂ ಆಸಕ್ತಿ ರೈತರಿಲ್ಲ.',
   'community_suppliers_empty': 'ಇನ್ನೂ ಸರಬರಾಜುದಾರರಿಲ್ಲ.',
+  'consumer_desk': 'ಗ್ರಾಹಕರ ಡೆಸ್ಕ್',
+  'purchase_history': 'ಖರೀದಿ ಇತಿಹಾಸ',
+  'fertilizer_prices': 'ರಸಗೊಬ್ಬರ ಬೆಲೆಗಳು',
+  'flower_market': 'ಹೂ ಮಾರುಕಟ್ಟೆ',
+  'no_purchase_history': 'ಇನ್ನೂ ಯಾವುದೇ ಖರೀದಿಗಳಿಲ್ಲ',
 };
