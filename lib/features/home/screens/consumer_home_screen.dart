@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:vidhai/core/routing/main_shell_controller.dart';
 import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/market_price_models.dart';
-import 'package:vidhai/features/tools/screens/market_prices_screen.dart';
+import 'package:vidhai/features/tools/screens/consumer_market_prices_screen.dart';
+import 'package:vidhai/features/assistant/assistant_button.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/services/market_price_service.dart';
@@ -111,33 +111,7 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
               ),
               const SizedBox(height: 24),
               _buildConsumerDesk(colors, loc),
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildFeatureCard(
-                      colors: colors,
-                      icon: Icons.groups_2_rounded,
-                      title: loc.community,
-                      subtitle: loc.communityDesc,
-                      onTap: () =>
-                          MainShellController.instance.switchTab(1),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildFeatureCard(
-                      colors: colors,
-                      icon: Icons.auto_awesome_rounded,
-                      title: loc.aiChat,
-                      subtitle: loc.askAiDesc,
-                      onTap: () =>
-                          MainShellController.instance.switchTab(2),
-                    ),
-                  ),
-                ],
-              ),
+
             ],
           ),
         ),
@@ -147,7 +121,6 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
 
   Widget _buildBrandHeader(VidhAIColorsX colors, AppLocalizations loc) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(9),
@@ -159,14 +132,33 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
           ),
         ),
         const SizedBox(width: 9),
-        Text(
-          loc.appName,
-          style: TextStyle(
-            color: colors.onBackground,
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.2,
+        Expanded(
+          child: Text(
+            loc.t('consumer_desk'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.onBackground,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
           ),
+        ),
+        IconButton(
+          tooltip: loc.notificationCenterTitle,
+          onPressed: () =>
+              Navigator.of(context).pushNamed('/notification_center'),
+          icon: Icon(
+            Icons.notifications_none_rounded,
+            color: colors.onBackground,
+          ),
+        ),
+        const SizedBox(width: 4),
+        const VidhAIAssistantButton(
+          screen: 'consumer_home',
+          size: 40,
+          iconSize: 20,
         ),
       ],
     );
@@ -182,7 +174,7 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const MarketPricesScreen()),
+          MaterialPageRoute(builder: (_) => const ConsumerMarketPricesScreen()),
         ),
         child: Container(
           width: double.infinity,
@@ -348,13 +340,7 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
     );
   }
 
-  Widget _buildFeatureCard({
-    required VidhAIColorsX colors,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
+) {
     return Material(
       color: colors.surface,
       borderRadius: BorderRadius.circular(20),
