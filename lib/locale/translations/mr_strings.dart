@@ -1322,4 +1322,9 @@ const Map<String, String> mrStrings = {
 'nearest_community': 'माझा परिसर',
   'community_interested_empty': 'अजून कोणताही इच्छुक शेतकरी नाही.',
   'community_suppliers_empty': 'अजून कोणताही पुरवठादार नाही.',
+  'consumer_desk': 'ग्राहक डेस्क',
+  'purchase_history': 'खरेदी इतिहास',
+  'fertilizer_prices': 'खतांच्या किंमती',
+  'flower_market': 'फूल बाजार',
+  'no_purchase_history': 'अजून कोणतीही खरेदी नाही',
 };
