@@ -409,7 +409,15 @@ export async function groqJson<T extends Record<string, unknown>>(
     process.env.AI_CHAT_MODEL ??
     'openai/gpt-oss-20b';
   const provider = groqProvider(model);
-  const system = buildSystemPrompt(opts.language, opts.context);
+  const baseSystem = buildSystemPrompt(opts.language, opts.context);
+  const callerSystem = messages
+    .filter((message) => message.role === 'system')
+    .map((message) => message.content.trim())
+    .filter(Boolean)
+    .join('\n\n');
+  const system = callerSystem
+    ? `${baseSystem}\n\nTask-specific instructions:\n${callerSystem}`
+    : baseSystem;
 
   const body: Record<string, unknown> = {
     model,
