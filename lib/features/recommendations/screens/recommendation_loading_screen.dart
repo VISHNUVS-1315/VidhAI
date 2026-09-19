@@ -262,7 +262,7 @@ class _RecommendationLoadingScreenState
         ),
         const SizedBox(height: 8),
         Text(
-          loc.t('error_try_again'),
+          loc.errorFallback,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: colors.onSurfaceMuted,
