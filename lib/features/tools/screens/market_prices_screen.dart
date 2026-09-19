@@ -24,11 +24,13 @@ class MarketPricesScreen extends StatefulWidget {
   final String? initialState;
   final String? initialDistrict;
   final String? initialCommodity;
+  final String? titleOverride;
   const MarketPricesScreen({
     super.key,
     this.initialState,
     this.initialDistrict,
     this.initialCommodity,
+    this.titleOverride,
   });
 
   @override
@@ -80,10 +82,22 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
               _district = d.isEmpty ? null : d;
             });
           }
+        } else {
+          // Consumer accounts may not have farms. Fall back to the saved
+          // personal-profile location so Consumer Desk opens locally.
+          final profile = await DataService().loadProfile();
+          final st = profile?.address?.state?.trim() ?? '';
+          final d = profile?.address?.district?.trim() ?? '';
+          if (mounted && st.isNotEmpty) {
+            setState(() {
+              _state = st;
+              _district = d.isEmpty ? null : d;
+            });
+          }
         }
       }
     } catch (_) {
-      // Farm reads must never block the market dashboard.
+      // Location reads must never block the market dashboard.
     }
     if (mounted) await _loadInitial();
   }
@@ -262,7 +276,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          loc.marketPrices,
+          widget.titleOverride ?? loc.marketPrices,
           style: TextStyle(
               color: colors.onBackground,
               fontSize: 18,

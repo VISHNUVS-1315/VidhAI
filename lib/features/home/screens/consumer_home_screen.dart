@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:vidhai/core/routing/main_shell_controller.dart';
+import 'package:vidhai/core/theme/vidhai_theme.dart';
+import 'package:vidhai/data/models/market_price_models.dart';
+import 'package:vidhai/features/tools/screens/market_prices_screen.dart';
+import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/services/market_price_service.dart';
-import 'package:vidhai/data/models/market_price_models.dart';
-import 'package:vidhai/features/schemes/screens/government_schemes_screen.dart';
-import 'package:vidhai/features/tools/screens/crop_search_screen.dart';
-import 'package:vidhai/features/tools/screens/market_prices_screen.dart';
-import 'package:vidhai/features/home/screens/ai_chat_screen.dart';
-import 'package:vidhai/features/assistant/assistant_button.dart';
-import 'package:vidhai/locale/locale.dart';
-import 'package:vidhai/core/theme/vidhai_theme.dart';
 
 class ConsumerHomeScreen extends StatefulWidget {
   const ConsumerHomeScreen({super.key});
@@ -18,34 +15,50 @@ class ConsumerHomeScreen extends StatefulWidget {
 }
 
 class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
+  final DataService _dataService = DataService();
+  final MarketPriceService _marketService = MarketPriceService.instance;
+
   String _userName = '';
-  List<MarketPriceRecord> _topPrices = [];
-  bool _isLoadingPrices = true;
+  List<MarketPriceRecord> _topPrices = const [];
+  bool _loadingPrices = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadConsumerHome();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadConsumerHome() async {
+    String? state;
+    String? district;
+
     try {
-      final profile = await DataService().loadProfile();
-      if (profile != null && profile.displayName.isNotEmpty) {
-        _userName = profile.displayName;
+      final profile = await _dataService.loadProfile();
+      if (profile != null) {
+        _userName = profile.displayName.trim();
+        state = profile.address?.state?.trim();
+        district = profile.address?.district?.trim();
       }
     } catch (_) {}
 
     try {
-      final payload = await MarketPriceService.instance.fetchPrices();
-      if (mounted) {
-        setState(() {
-          _topPrices = payload.prices.take(5).toList();
-          _isLoadingPrices = false;
-        });
-      }
+      final hasState = state != null && state.isNotEmpty;
+      final payload = hasState
+          ? await _marketService.fetchPrices(
+              state: state,
+              district:
+                  district != null && district.isNotEmpty ? district : null,
+            )
+          : await _marketService.fetchSummary();
+
+      if (!mounted) return;
+      setState(() {
+        _topPrices = payload.prices.take(3).toList();
+        _loadingPrices = false;
+      });
     } catch (_) {
-      if (mounted) setState(() => _isLoadingPrices = false);
+      if (!mounted) return;
+      setState(() => _loadingPrices = false);
     }
 
     if (mounted) setState(() {});
@@ -53,140 +66,78 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context);
     final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    final displayName =
+        _userName.isEmpty ? loc.defaultUserNameConsumer : _userName;
 
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        loc.helloNamed.replaceFirst(
-                            '{name}',
-                            _userName.isEmpty
-                                ? loc.defaultUserNameConsumer
-                                : _userName),
-                        style: TextStyle(
-                          color: colors.onBackground,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        loc.discoverFresh,
-                        style: TextStyle(
-                          color: colors.onSurfaceMuted,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Row(
-                  children: [
-                    const VidhAIAssistantButton(screen: 'consumer_home'),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: colors.warning.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(Icons.shopping_cart_rounded,
-                          color: colors.warning, size: 22),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-            _buildQuickActions(loc),
-            const SizedBox(height: 24),
-            _buildSectionHeader(loc.liveMarketPrices,
-                trailing: loc.t('view_all'), onTrailing: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const MarketPricesScreen()));
-            }),
-            const SizedBox(height: 12),
-            _buildMarketPrices(loc),
-            const SizedBox(height: 24),
-            _buildSectionHeader(loc.explore),
-            const SizedBox(height: 12),
-            _buildExploreGrid(loc),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(AppLocalizations loc) {
-    final colors = VidhAIColorsX(context);
-    return Row(
-      children: [
-        _quickAction(Icons.search_rounded, loc.cropSearch, colors.info, () {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const CropSearchScreen()));
-        }),
-        const SizedBox(width: 12),
-        _quickAction(
-            Icons.account_balance_rounded, loc.govtSchemes, colors.brandDeep,
-            () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const GovernmentSchemesScreen()));
-        }),
-        const SizedBox(width: 12),
-        _quickAction(Icons.auto_awesome, loc.aiChat, const Color(0xFF9C27B0),
-            () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const AiChatScreen(source: 'consumer_home')));
-        }),
-        const SizedBox(width: 12),
-        _quickAction(
-            Icons.trending_up_rounded, loc.marketPrices, colors.warning, () {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const MarketPricesScreen()));
-        }),
-      ],
-    );
-  }
-
-  Widget _quickAction(
-      IconData icon, String label, Color color, VoidCallback onTap) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
-          ),
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: _loadConsumerHome,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
             children: [
-              Icon(icon, color: color, size: 22),
-              const SizedBox(height: 6),
-              Text(label,
-                  style: TextStyle(
-                      color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+              _buildBrandHeader(colors, loc),
+              const SizedBox(height: 24),
+              Text(
+                loc.welcomeBack,
+                style: TextStyle(
+                  color: colors.onSurfaceMuted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                displayName,
+                style: TextStyle(
+                  color: colors.onBackground,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  height: 1.1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                loc.consumerDescription,
+                style: TextStyle(
+                  color: colors.onSurfaceMuted,
+                  fontSize: 13.5,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildConsumerDesk(colors, loc),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildFeatureCard(
+                      colors: colors,
+                      icon: Icons.groups_2_rounded,
+                      title: loc.community,
+                      subtitle: loc.communityDesc,
+                      onTap: () =>
+                          MainShellController.instance.switchTab(1),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildFeatureCard(
+                      colors: colors,
+                      icon: Icons.auto_awesome_rounded,
+                      title: loc.aiChat,
+                      subtitle: loc.askAiDesc,
+                      onTap: () =>
+                          MainShellController.instance.switchTab(2),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -194,182 +145,265 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title,
-      {String? trailing, VoidCallback? onTrailing}) {
-    final colors = VidhAIColorsX(context);
+  Widget _buildBrandHeader(VidhAIColorsX colors, AppLocalizations loc) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(title,
-            style: TextStyle(
-                color: colors.onBackground,
-                fontSize: 17,
-                fontWeight: FontWeight.w600)),
-        if (trailing != null)
-          GestureDetector(
-            onTap: onTrailing,
-            child: Text(trailing,
-                style: TextStyle(color: colors.onSurfaceMuted, fontSize: 13)),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(9),
+          child: Image.asset(
+            'assets/images/logo.png',
+            width: 34,
+            height: 34,
+            fit: BoxFit.contain,
           ),
+        ),
+        const SizedBox(width: 9),
+        Text(
+          loc.appName,
+          style: TextStyle(
+            color: colors.onBackground,
+            fontSize: 21,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildMarketPrices(AppLocalizations loc) {
-    final colors = VidhAIColorsX(context);
-    if (_isLoadingPrices) {
-      return Container(
-        height: 120,
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(14),
+  Widget _buildConsumerDesk(
+    VidhAIColorsX colors,
+    AppLocalizations loc,
+  ) {
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const MarketPricesScreen()),
         ),
-        child: Center(
-            child: CircularProgressIndicator(
-                color: colors.warning, strokeWidth: 2)),
-      );
-    }
-
-    if (_topPrices.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.store_rounded, color: colors.onSurfaceMuted, size: 32),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                loc.marketPricesEmpty,
-                style: TextStyle(color: colors.onSurfaceMuted, fontSize: 13),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: colors.borderColor),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: colors.brandDeep.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.storefront_rounded,
+                      color: colors.brandDeep,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          loc.t('consumer_desk'),
+                          style: TextStyle(
+                            color: colors.onBackground,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          loc.liveMarketPrices,
+                          style: TextStyle(
+                            color: colors.onSurfaceMuted,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: colors.onSurfaceMuted,
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              if (_loadingPrices)
+                SizedBox(
+                  height: 74,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: colors.brandDeep,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                )
+              else if (_topPrices.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Text(
+                    loc.marketPricesEmpty,
+                    style: TextStyle(
+                      color: colors.onSurfaceMuted,
+                      fontSize: 13,
+                    ),
+                  ),
+                )
+              else
+                ..._topPrices.map(
+                  (price) => _buildPriceRow(colors, loc, price),
+                ),
+              if (!_loadingPrices) ...[
+                const SizedBox(height: 4),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Text(
+                    loc.t('view_all'),
+                    style: TextStyle(
+                      color: colors.brandDeep,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
-      );
+      ),
+    );
+  }
+
+  Widget _buildPriceRow(
+    VidhAIColorsX colors,
+    AppLocalizations loc,
+    MarketPriceRecord price,
+  ) {
+    final String value;
+    if (price.hasReliablePerKg) {
+      value =
+          '₹${price.normalizedPricePerKg!.toStringAsFixed(2)}/${loc.t('community_kg_unit')}';
+    } else if (price.modalPrice != null && price.modalPrice! > 0) {
+      final unit = price.unitLabel.trim().isEmpty
+          ? price.originalUnit
+          : price.unitLabel;
+      value = '₹${price.modalPrice!.toStringAsFixed(0)} / $unit';
+    } else {
+      value = '--';
     }
 
-    return Column(
-      children: _topPrices
-          .map((p) => Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: colors.warning.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.grass_rounded,
-                          color: colors.warning, size: 18),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(p.commodity,
-                              style: TextStyle(
-                                  color: colors.onBackground,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500)),
-                          const SizedBox(height: 2),
-                          Text(p.market,
-                              style: TextStyle(
-                                  color: colors.onSurfaceMuted, fontSize: 11)),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      '₹${(p.modalPrice ?? 0) > 0 ? (p.modalPrice ?? 0).toStringAsFixed(0) : '--'}',
-                      style: TextStyle(
-                          color: colors.brandDeep,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-              ))
-          .toList(),
-    );
-  }
-
-  Widget _buildExploreGrid(AppLocalizations loc) {
-    final colors = VidhAIColorsX(context);
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.3,
-      children: [
-        _exploreCard(Icons.eco_rounded, loc.cropGuide, loc.cropGuideDesc,
-            colors.brandDeep, () {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const CropSearchScreen()));
-        }),
-        _exploreCard(Icons.account_balance_rounded, loc.govtSchemes,
-            loc.govtSchemesDesc, colors.info, () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const GovernmentSchemesScreen()));
-        }),
-        _exploreCard(Icons.trending_up_rounded, loc.priceTrends,
-            loc.priceTrendsDesc, colors.warning, () {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const MarketPricesScreen()));
-        }),
-        _exploreCard(Icons.auto_awesome, loc.askAi, loc.askAiDesc,
-            const Color(0xFF9C27B0), () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const AiChatScreen(source: 'consumer_home')));
-        }),
-      ],
-    );
-  }
-
-  Widget _exploreCard(IconData icon, String title, String subtitle, Color color,
-      VoidCallback onTap) {
-    final colors = VidhAIColorsX(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: colors.borderColor),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 10),
-            Text(title,
-                style: TextStyle(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  price.commodity,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
                     color: colors.onBackground,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 3),
-            Text(subtitle,
-                style: TextStyle(color: colors.onSurfaceMuted, fontSize: 11)),
-          ],
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  price.market,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.onSurfaceMuted,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            value,
+            style: TextStyle(
+              color: colors.brandDeep,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard({
+    required VidhAIColorsX colors,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 150),
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: colors.borderColor),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: colors.brandDeep.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(icon, color: colors.brandDeep, size: 23),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.onBackground,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.onSurfaceMuted,
+                  fontSize: 11.5,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

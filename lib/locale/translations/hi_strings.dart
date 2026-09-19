@@ -1326,4 +1326,9 @@ const Map<String, String> hiStrings = {
 'nearest_community': 'मेरा क्षेत्र',
   'community_interested_empty': 'अभी कोई इच्छुक किसान नहीं।',
   'community_suppliers_empty': 'अभी कोई आपूर्तिकर्ता नहीं।',
+  'consumer_desk': 'उपभोक्ता डेस्क',
+  'purchase_history': 'खरीद इतिहास',
+  'fertilizer_prices': 'उर्वरक कीमतें',
+  'flower_market': 'फूल बाजार',
+  'no_purchase_history': 'अभी तक कोई खरीदारी नहीं',
 };

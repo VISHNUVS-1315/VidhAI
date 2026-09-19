@@ -1324,4 +1324,9 @@ const Map<String, String> asStrings = {
 'nearest_community': 'মোৰ এলেকা',
   'community_interested_empty': 'এতিয়াও কোনো আগ্ৰহী খেতিয়ক নাই।',
   'community_suppliers_empty': 'এতিয়াও কোনো যোগানকাৰী নাই।',
+  'consumer_desk': 'গ্ৰাহক ডেস্ক',
+  'purchase_history': 'ক্ৰয় ইতিহাস',
+  'fertilizer_prices': 'সাৰৰ দাম',
+  'flower_market': 'ফুলৰ বজাৰ',
+  'no_purchase_history': 'এতিয়ালৈ কোনো ক্ৰয় নাই',
 };

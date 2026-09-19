@@ -1324,4 +1324,9 @@ const Map<String, String> guStrings = {
 'nearest_community': 'મારો વિસ્તાર',
   'community_interested_empty': 'હજી કોઈ રસ ધરાવતા ખેડૂત નથી.',
   'community_suppliers_empty': 'હજી કોઈ પુરવઠાકાર નથી.',
+  'consumer_desk': 'ગ્રાહક ડેસ્ક',
+  'purchase_history': 'ખરીદી ઇતિહાસ',
+  'fertilizer_prices': 'ખાતરના ભાવ',
+  'flower_market': 'ફૂલ બજાર',
+  'no_purchase_history': 'હજુ સુધી કોઈ ખરીદી નથી',
 };

@@ -1355,4 +1355,9 @@ const Map<String, String> mlStrings = {
 'nearest_community': 'എന്റെ പ്രദേശം',
   'community_interested_empty': 'ഇതുവരെ താൽപ്പര്യമുള്ള കർഷകരില്ല.',
   'community_suppliers_empty': 'ഇതുവരെ വിതരണക്കാരില്ല.',
+  'consumer_desk': 'ഉപഭോക്തൃ ഡെസ്ക്',
+  'purchase_history': 'വാങ്ങൽ ചരിത്രം',
+  'fertilizer_prices': 'വളങ്ങളുടെ വില',
+  'flower_market': 'പുഷ്പ വിപണി',
+  'no_purchase_history': 'ഇതുവരെ വാങ്ങലുകളൊന്നുമില്ല',
 };

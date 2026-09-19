@@ -1344,4 +1344,9 @@ const Map<String, String> teStrings = {
 'nearest_community': 'నా ప్రాంతం',
   'community_interested_empty': 'ఇంకా ఆసక్తి గల రైతులు లేరు.',
   'community_suppliers_empty': 'ఇంకా సరఫరాదారులు లేరు.',
+  'consumer_desk': 'వినియోగదారుల డెస్క్',
+  'purchase_history': 'కొనుగోలు చరిత్ర',
+  'fertilizer_prices': 'ఎరువుల ధరలు',
+  'flower_market': 'పూల మార్కెట్',
+  'no_purchase_history': 'ఇంకా కొనుగోళ్లు లేవు',
 };

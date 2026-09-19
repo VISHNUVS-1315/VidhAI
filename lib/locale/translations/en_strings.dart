@@ -1324,4 +1324,9 @@ Map<String, String> enStrings = {
 'nearest_community': 'My Area',
   'community_interested_empty': 'No interested farmers yet.',
   'community_suppliers_empty': 'No suppliers yet.',
+  'consumer_desk': 'Consumer Desk',
+  'purchase_history': 'Purchase History',
+  'fertilizer_prices': 'Fertilizer Prices',
+  'flower_market': 'Flower Market',
+  'no_purchase_history': 'No purchases yet',
 };
