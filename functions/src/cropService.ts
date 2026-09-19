@@ -145,6 +145,53 @@ function normalize(value: string | undefined | null): string {
   return (value ?? '').trim().toLowerCase();
 }
 
+function canonicalCategoryPreference(value: string | undefined | null): string | null {
+  const key = normalize(value).replace(/[_-]+/g, ' ');
+  if (!key || key === 'no preference' || key === 'any' || key === 'other') {
+    return null;
+  }
+  const aliases: Record<string, string> = {
+    vegetable: 'Vegetables',
+    vegetables: 'Vegetables',
+    fruit: 'Fruits',
+    fruits: 'Fruits',
+    flower: 'Flowers',
+    flowers: 'Flowers',
+    cereal: 'Cereals',
+    cereals: 'Cereals',
+    pulse: 'Pulses',
+    pulses: 'Pulses',
+    oilseed: 'Oilseeds',
+    oilseeds: 'Oilseeds',
+    spice: 'Spices',
+    spices: 'Spices',
+    plantation: 'Plantation Crops',
+    'plantation crop': 'Plantation Crops',
+    'plantation crops': 'Plantation Crops',
+    tree: 'Tree Crops',
+    'tree crop': 'Tree Crops',
+    'tree crops': 'Tree Crops',
+    leafy: 'Leafy Vegetables',
+    'leafy vegetable': 'Leafy Vegetables',
+    'leafy vegetables': 'Leafy Vegetables',
+    medicinal: 'Medicinal/Aromatic',
+    aromatic: 'Medicinal/Aromatic',
+    'medicinal/aromatic': 'Medicinal/Aromatic',
+    commercial: 'Commercial/Cash Crops',
+    'commercial crop': 'Commercial/Cash Crops',
+    'commercial crops': 'Commercial/Cash Crops',
+    'cash crop': 'Commercial/Cash Crops',
+    'cash crops': 'Commercial/Cash Crops',
+    'commercial/cash crops': 'Commercial/Cash Crops',
+  };
+  return aliases[key] ?? value!.trim();
+}
+
+function categoryMatches(entry: CropKnowledgeEntry, requested: string | null): boolean {
+  if (!requested) return true;
+  return normalize(entry.category) === normalize(requested);
+}
+
 // ── Pool ─────────────────────────────────────────────────────────────────────
 
 export function stateKnown(crop: CropKnowledgeEntry, state: string | undefined): boolean {
@@ -193,8 +240,13 @@ function waterFit(entry: CropKnowledgeEntry, ctx: FarmContext): { score: number;
   // Farm water availability -> numeric 0..1 scale
   const availScore: Record<string, number> = {
     abundant: 1,
-    moderate: 0.6,
+    high: 1,
+    moderate: 0.65,
+    medium: 0.65,
     limited: 0.35,
+    low: 0.35,
+    'very low': 0.2,
+    'no water': 0.05,
     rainfed: 0.5,
     '': 0.6,
   };
@@ -203,7 +255,7 @@ function waterFit(entry: CropKnowledgeEntry, ctx: FarmContext): { score: number;
   const n = needScore[need] ?? 0.6;
   let score = Math.min(1, a + n > 1 ? 1 : Math.max(0, a + n - 0.35));
   let notes = '';
-  if (avail === 'limited' && need === 'high') {
+  if ((avail === 'limited' || avail === 'low' || avail === 'very low' || avail === 'no water') && need === 'high') {
     score = 0.2;
     notes = 'Assured high water supply is a precondition; limited water is a serious constraint.';
   } else if (need === 'high') {
@@ -262,11 +314,20 @@ function durationPrefFit(entry: CropKnowledgeEntry, pref: string | undefined): n
   const mid = (entry.durationDaysMin + entry.durationDaysMax) / 2;
   switch (pref.toLowerCase()) {
     case 'short':
+    case 'short-term':
+    case 'short term':
       return mid <= 100 ? 1 : mid <= 150 ? 0.7 : 0.35;
     case 'medium':
+    case 'medium-term':
+    case 'medium term':
       return mid > 100 && mid <= 200 ? 1 : 0.7;
     case 'long':
+    case 'long-term':
+    case 'long term':
       return mid > 200 ? 1 : 0.6;
+    case 'no preference':
+    case 'any':
+      return 0.75;
     default:
       return 0.75;
   }
@@ -604,9 +665,22 @@ function moneyFor(entry: CropKnowledgeEntry): CropSuitability['money'] {
 // ── Top-10 ranking ───────────────────────────────────────────────────────────
 
 export function recommend(ctx: FarmContext, input: RecommendationInput): RecommendResponse {
-  const pool = selectCandidatePool(SHIPPED_CROP_KNOWLEDGE, ctx);
-  const scored = pool.map((c) => scoreCrop(c, ctx));
-  scored.sort((a, b) => b.score - a.score || (a.entry.durationDaysMin - b.entry.durationDaysMin));
+  const requestedCategory =
+    canonicalCategoryPreference(input.cropCategoryPreference) ??
+    canonicalCategoryPreference(ctx.categoryPreferences?.[0]);
+  let pool = selectCandidatePool(SHIPPED_CROP_KNOWLEDGE, ctx);
+
+  // Crop type is a hard constraint. Never pad the list with another category.
+  if (requestedCategory) {
+    pool = pool.filter((entry) => categoryMatches(entry, requestedCategory));
+  }
+
+  const scored = pool.map((crop) => scoreCrop(crop, ctx));
+  scored.sort(
+    (a, b) =>
+      b.score - a.score ||
+      a.entry.durationDaysMin - b.entry.durationDaysMin,
+  );
   const limited = scored.length < 10;
   const top10 = scored.slice(0, 10).map((s, i) => ({
     ...s,
