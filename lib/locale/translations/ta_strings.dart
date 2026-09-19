@@ -1363,4 +1363,9 @@ const Map<String, String> taStrings = {
 'nearest_community': 'என் பகுதி',
   'community_interested_empty': 'இன்னும் ஆர்வமுள்ள விவசாயிகள் இல்லை.',
   'community_suppliers_empty': 'இன்னும் வழங்குநர்கள் இல்லை.',
+  'consumer_desk': 'நுகர்வோர் டெஸ்க்',
+  'purchase_history': 'கொள்முதல் வரலாறு',
+  'fertilizer_prices': 'உர விலைகள்',
+  'flower_market': 'மலர் சந்தை',
+  'no_purchase_history': 'இன்னும் கொள்முதல் பதிவுகள் இல்லை',
 };
