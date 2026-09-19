@@ -9,7 +9,7 @@ void main() {
         {
           'cropName': 'Tomato',
           'localName': 'टमाटर',
-          'category': 'Vegetable',
+          'category': 'Vegetables',
           'confidence': 92,
           'suitabilityScore': 88,
           'riskLevel': 'Low',
@@ -65,6 +65,7 @@ void main() {
       expect(tomato.cropName, 'Tomato');
       expect(tomato.cropId, '_ai_Tomato');
       expect(tomato.score, 88);
+      expect(tomato.category, 'Vegetables');
       expect(tomato.confidence, 'High');
       expect(tomato.confidencePct, 92.0);
       expect(tomato.durationMin, 110);
@@ -85,7 +86,7 @@ void main() {
       expect(tomato.marketDemand, 'Strong kharif demand');
       expect(tomato.riskLevel, 'Low');
       expect(tomato.estimatedLabel, isTrue);
-      expect(tomato.dataSources, ['NVIDIA Nemotron via secure backend']);
+      expect(tomato.dataSources, ['Groq GPT-OSS via secure backend']);
 
       final wheat = results[1];
       expect(wheat.rank, 2);
