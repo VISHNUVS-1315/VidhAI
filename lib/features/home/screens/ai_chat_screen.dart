@@ -129,6 +129,16 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   Future<void> _loadFarms() async {
     try {
+      final console = await _dataService.getSelectedConsole();
+      if (console == 'consumer') {
+        if (!mounted) return;
+        setState(() {
+          _farms = const [];
+          _selectedFarmId = null;
+        });
+        return;
+      }
+
       final farms = await _dataService.loadFarms();
       if (!mounted) return;
       setState(() {
@@ -175,9 +185,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
     // refreshes farms in the background; until that completes, use the local
     // offline-first cache so the Groq request can start immediately.
     final profile = await _dataService.loadCachedProfile();
-    final farms =
-        _farms.isNotEmpty ? _farms : await _dataService.loadCachedFarms();
-    final selId = _selectedFarmId;
+    final console = await _dataService.getSelectedConsole();
+    final farms = console == 'consumer'
+        ? const <FarmProfile>[]
+        : (_farms.isNotEmpty ? _farms : await _dataService.loadCachedFarms());
+    final selId = console == 'consumer' ? null : _selectedFarmId;
     final farmMaps = selId != null
         ? farms
             .where((f) => f.farmId == selId)
