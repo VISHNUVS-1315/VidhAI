@@ -7,9 +7,11 @@ import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/features/home/screens/farmer_home_screen.dart';
 import 'package:vidhai/features/home/screens/consumer_home_screen.dart';
 import 'package:vidhai/features/farm/screens/farm_screen.dart';
+import 'package:vidhai/features/community/screens/community_feed_screen.dart';
 import 'package:vidhai/services/notification_service.dart';
 import 'package:vidhai/services/data_service.dart';
 import 'package:vidhai/features/home/screens/tools_screen.dart';
+import 'package:vidhai/features/home/screens/consumer_tools_screen.dart';
 import 'package:vidhai/features/home/screens/account_screen.dart';
 import 'package:vidhai/features/home/screens/ai_chat_screen.dart';
 import 'package:vidhai/features/assistant/assistant_session.dart';
@@ -81,11 +83,15 @@ class _MainShellScreenState extends State<MainShellScreen> {
             ? const FarmerHomeScreen()
             : const ConsumerHomeScreen();
       case 1:
-        return const FarmScreen();
+        return _selectedConsole == 'farmer'
+            ? const FarmScreen()
+            : const CommunityFeedScreen();
       case 2:
         return const AiChatScreen(source: 'shell');
       case 3:
-        return const ToolsScreen();
+        return _selectedConsole == 'farmer'
+            ? const ToolsScreen()
+            : const ConsumerToolsScreen();
       case 4:
         return const AccountScreen();
       default:
@@ -129,8 +135,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
             children: [
               _buildNavItem(0, Icons.home_rounded, loc.home,
                   badge: _unreadCount),
-              _buildNavItem(1, Icons.landscape_rounded, loc.farm),
-              _buildCenterButton(),
+              _selectedConsole == 'farmer'
+                  ? _buildNavItem(1, Icons.landscape_rounded, loc.farm)
+                  : _buildNavItem(1, Icons.groups_2_rounded, loc.community),
+              _buildCenterButton(showLabel: _selectedConsole != 'farmer'),
               _buildNavItem(3, Icons.build_rounded, loc.tools),
               _buildNavItem(4, Icons.person_rounded, loc.account),
             ],
@@ -201,34 +209,64 @@ class _MainShellScreenState extends State<MainShellScreen> {
     );
   }
 
-  Widget _buildCenterButton() {
+  Widget _buildCenterButton({bool showLabel = false}) {
     final colors = VidhAIColorsX(context);
+    final loc = AppLocalizations.of(context);
+    final selected = _shell.currentIndex == MainShellController.indexAi;
+
+    Widget button(double size) => Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [colors.brand, colors.brandDeep],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: colors.brand.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(
+            Icons.auto_awesome,
+            color: colors.isDark ? Colors.white : colors.bg,
+            size: showLabel ? 20 : 22,
+          ),
+        );
+
     return GestureDetector(
       onTap: () => _shell.switchTab(MainShellController.indexAi),
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [colors.brand, colors.brandDeep],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: colors.brand.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(
-          Icons.auto_awesome,
-          color: colors.isDark ? Colors.white : colors.bg,
-          size: 22,
-        ),
-      ),
+      behavior: HitTestBehavior.opaque,
+      child: showLabel
+          ? SizedBox(
+              width: 64,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  button(42),
+                  const SizedBox(height: 2),
+                  Text(
+                    loc.aiChat,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: selected
+                          ? colors.brandDeep
+                          : colors.onSurfaceMuted,
+                      fontSize: 10,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : button(48),
     );
   }
 }
