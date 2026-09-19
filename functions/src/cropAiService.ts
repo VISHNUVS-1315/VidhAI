@@ -1,7 +1,7 @@
 /**
  * VidhAI AI crop recommendation service (Structured Outputs).
  *
- * NVIDIA Nemotron reasons
+ * Groq GPT-OSS reasons
  * over ALL of the provided farm context at once — location, soil, water,
  * irrigation, crop history/rotation, current season, live/forecast weather,
  * recent market prices, farm size, budget, duration/category preference,
@@ -13,7 +13,7 @@
  * Financial figures are labelled estimates by the client.
  */
 
-import { nvidiaJson, NvidiaChatMessage } from './nvidia';
+import { groqJson, NvidiaChatMessage } from './nvidia';
 import { SHIPPED_CROP_KNOWLEDGE, CropKnowledgeEntry } from './cropData';
 import { scoreCrop, FarmContext } from './cropService';
 
@@ -31,6 +31,7 @@ export interface AiRecommendedCrop {
   rank: number;
   cropName: string;
   localName: string;
+  category: string;
   suitabilityScore: number;
   suitabilityLevel: 'Excellent' | 'Good' | 'Moderate' | 'Poor';
   whySuitable: string[];
@@ -87,6 +88,7 @@ export const cropRecommendationSchema = {
             'rank',
             'cropName',
             'localName',
+            'category',
             'suitabilityScore',
             'suitabilityLevel',
             'whySuitable',
@@ -110,6 +112,7 @@ export const cropRecommendationSchema = {
             rank: { type: 'integer' },
             cropName: { type: 'string' },
             localName: { type: 'string' },
+            category: { type: 'string' },
             suitabilityScore: { type: 'integer' },
             suitabilityLevel: {
               type: 'string',
@@ -166,6 +169,51 @@ function normalizeName(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '').trim();
 }
 
+function canonicalCategoryPreference(value: string | undefined): string | null {
+  const key = (value ?? '').trim().toLowerCase().replace(/[_-]+/g, ' ');
+  if (!key || key === 'no preference' || key === 'any' || key === 'other') {
+    return null;
+  }
+  const aliases: Record<string, string> = {
+    vegetable: 'Vegetables',
+    vegetables: 'Vegetables',
+    fruit: 'Fruits',
+    fruits: 'Fruits',
+    flower: 'Flowers',
+    flowers: 'Flowers',
+    cereal: 'Cereals',
+    cereals: 'Cereals',
+    pulse: 'Pulses',
+    pulses: 'Pulses',
+    oilseed: 'Oilseeds',
+    oilseeds: 'Oilseeds',
+    spice: 'Spices',
+    spices: 'Spices',
+    plantation: 'Plantation Crops',
+    'plantation crop': 'Plantation Crops',
+    'plantation crops': 'Plantation Crops',
+    tree: 'Tree Crops',
+    'tree crop': 'Tree Crops',
+    'tree crops': 'Tree Crops',
+    leafy: 'Leafy Vegetables',
+    'leafy vegetable': 'Leafy Vegetables',
+    'leafy vegetables': 'Leafy Vegetables',
+    medicinal: 'Medicinal/Aromatic',
+    aromatic: 'Medicinal/Aromatic',
+    'medicinal/aromatic': 'Medicinal/Aromatic',
+    'commercial/cash crops': 'Commercial/Cash Crops',
+    'commercial crops': 'Commercial/Cash Crops',
+    'cash crops': 'Commercial/Cash Crops',
+    commercial: 'Commercial/Cash Crops',
+  };
+  return aliases[key] ?? value!.trim();
+}
+
+function categoryMatches(entry: CropKnowledgeEntry, requested: string | null): boolean {
+  if (!requested) return true;
+  return entry.category.trim().toLowerCase() === requested.trim().toLowerCase();
+}
+
 /** Matches a model-reported crop name against the shipped deterministic catalog. */
 function catalogFor(name: string): CropKnowledgeEntry | null {
   const q = normalizeName(name);
@@ -210,6 +258,7 @@ function clampMoney(
 export function sanitizeAiRecommendations(
   raw: unknown,
   ctx?: Record<string, unknown>,
+  requestedCategory?: string,
 ): AiRecommendedCrop[] {
   if (!raw || typeof raw !== 'object') return [];
   const list = (raw as Record<string, unknown>)['recommendations'];
@@ -226,6 +275,13 @@ export function sanitizeAiRecommendations(
     seen.add(cropName.toLowerCase());
 
     const entry = catalogFor(cropName);
+    const categoryConstraint = canonicalCategoryPreference(requestedCategory);
+    // With a selected crop type, only verified catalog crops in that exact
+    // category are allowed. Unknown model names are discarded instead of
+    // widening the farmer's request.
+    if (categoryConstraint && (!entry || !categoryMatches(entry, categoryConstraint))) {
+      continue;
+    }
     // Dedupe semantic twins (e.g. "Ragi" vs "Finger Millet", variety variants).
     if (entry && seenCatalogIds.has(entry.id)) continue;
     if (entry) seenCatalogIds.add(entry.id);
@@ -290,8 +346,9 @@ export function sanitizeAiRecommendations(
 
     out.push({
       rank: out.length + 1,
-      cropName,
+      cropName: entry?.name ?? cropName,
       localName: asString(o['localName']) || (entry ? entry.varieties[0] ?? '' : ''),
+      category: entry?.category ?? asString(o['category']),
       suitabilityScore: score,
       suitabilityLevel:
         score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Moderate' : 'Poor',
@@ -383,11 +440,40 @@ export async function recommendWithAI(
 ): Promise<AiRecommendationResult> {
   const language = input.language || 'en';
   const contextText = buildContextText(farmContext);
+  const requestedCategory =
+    canonicalCategoryPreference(input.cropCategoryPreference);
+  const allowedCandidates = requestedCategory
+    ? SHIPPED_CROP_KNOWLEDGE.filter((entry) =>
+        categoryMatches(entry, requestedCategory),
+      )
+    : SHIPPED_CROP_KNOWLEDGE;
+
+  if (requestedCategory && allowedCandidates.length === 0) {
+    return {
+      analysisSummary:
+        `No verified ${requestedCategory} crops are currently available in the server catalogue; the app should use its verified local fallback for this crop type.`,
+      model:
+        process.env.AI_CROP_MODEL ??
+        process.env.AI_CHAT_MODEL ??
+        'openai/gpt-oss-20b',
+      recommendations: [],
+    };
+  }
+
+  const candidateText = allowedCandidates
+    .slice(0, 40)
+    .map(
+      (entry) =>
+        `${entry.name} [${entry.category}; ${entry.season}; ${entry.durationDaysMin}-${entry.durationDaysMax} days; water ${entry.waterRequirement}]`,
+    )
+    .join('\n');
 
   const system = [
     'You are VidhAI, an expert agronomist for Indian farms.',
     'Analyse ALL of the provided farm context together: location, soil, water, irrigation, crop rotation/history, current season, live or forecast weather, recent reported market prices, farm size, budget, crop duration and category preference, water availability and farming priority.',
-    'Do NOT recommend a crop merely because it belongs to the requested category.',
+    'The selected crop type/category is a HARD FILTER, not a soft preference.',
+    'If a crop type is selected, NEVER return a crop from another category even if it scores well on other factors.',
+    'Do NOT recommend a crop merely because it belongs to the requested category; rank only category-valid crops after analysing soil, water, season, rotation, budget, duration, weather and location.',
     'Only use facts that were provided. If live market prices or weather were not provided, state that in marketOutlook/seasonMatch and never invent numbers.',
     'Every recommendation must have an understandable reason for its ranking.',
     'Financial figures (investment, revenue, profit) are rough estimates in INR; use a modest, realistic range and never guarantee prices.',
@@ -406,7 +492,15 @@ export async function recommendWithAI(
     'Automatically collected farm context:',
     contextText,
     '',
-    'Return the top 10 ranked suitable crops in the strict JSON schema.',
+    requestedCategory
+      ? `HARD CROP TYPE CONSTRAINT: ${requestedCategory}. Return ONLY crops in this category.`
+      : 'Crop type constraint: none (all verified categories may be considered).',
+    '',
+    'Verified candidate catalogue for this request:',
+    candidateText,
+    '',
+    'Choose only from the verified candidate catalogue above.',
+    'Return up to 10 ranked suitable crops in the strict JSON schema. If fewer than 10 verified category-valid crops are suitable, return fewer; never pad with another category.',
   ].join('\n');
 
   const messages: NvidiaChatMessage[] = [
@@ -414,13 +508,23 @@ export async function recommendWithAI(
     { role: 'user', content: user },
   ];
 
-  const result = await nvidiaJson<Record<string, unknown>>(messages, {
+  const result = await groqJson<Record<string, unknown>>(messages, {
     schema: cropRecommendationSchema,
     language,
-    temperature: 0.3,
-    maxTokens: 16384,
+    model:
+      process.env.AI_CROP_MODEL ??
+      process.env.AI_CHAT_MODEL ??
+      'openai/gpt-oss-20b',
+    temperature: 0.25,
+    maxTokens: 10000,
+    reasoningEffort: 'low',
+    timeoutMs: 45_000,
   });
-  const recommendations = sanitizeAiRecommendations(result.data, farmContext).sort(sortRecommended);
+  const recommendations = sanitizeAiRecommendations(
+    result.data,
+    farmContext,
+    requestedCategory ?? undefined,
+  ).sort(sortRecommended);
   const analysisSummary =
     asString((result.data as Record<string, unknown>)['analysisSummary']) ||
     'Ranked top crops for your farm based on the available data.';
