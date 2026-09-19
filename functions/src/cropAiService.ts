@@ -21,6 +21,8 @@ export interface CropRecommendationAiInput {
   cropCategoryPreference?: string;
   lastCrop?: string;
   cropDurationPreference?: string;
+  currentSeason?: string;
+  irrigationSystem?: string;
   budgetInrPerAcre?: number | null;
   waterAvailability?: string;
   farmingPriority?: string;
@@ -224,6 +226,92 @@ function categoryMatches(entry: CropKnowledgeEntry, requested: string | null): b
   return entry.category.trim().toLowerCase() === requested.trim().toLowerCase();
 }
 
+function toScoringContext(
+  farmContext: Record<string, unknown>,
+  input: CropRecommendationAiInput,
+): FarmContext {
+  const object = (value: unknown): Record<string, unknown> =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+
+  const location = object(farmContext['location']);
+  const farm = object(farmContext['farm']);
+  const soil = object(farmContext['soil']);
+  const water = object(farmContext['water']);
+  const history = object(farmContext['cropHistory']);
+  const marketRaw = Array.isArray(farmContext['marketPrices'])
+    ? farmContext['marketPrices']
+    : [];
+
+  const date = String(farmContext['date'] ?? '');
+  const parsedDate = /^\d{4}-(\d{2})-\d{2}$/.exec(date);
+  const month = parsedDate ? Number(parsedDate[1]) : new Date().getMonth() + 1;
+
+  const farmSize = Number(farm['farmSizeAcres']);
+  const fallowMonths = Number(input.landIdleDuration);
+  const market = marketRaw
+    .filter(
+      (row): row is Record<string, unknown> =>
+        row != null && typeof row === 'object' && !Array.isArray(row),
+    )
+    .map((row) => ({
+      commodity: String(row['commodity'] ?? ''),
+      normalizedPricePerKg: Number(
+        row['pricePerKg'] ?? row['normalizedPricePerKg'] ?? 0,
+      ),
+      state: String(row['state'] ?? location['state'] ?? ''),
+      date: String(row['date'] ?? ''),
+      source: String(row['source'] ?? 'AGMARKNET'),
+    }))
+    .filter(
+      (row) =>
+        row.commodity.trim().length > 0 &&
+        Number.isFinite(row.normalizedPricePerKg) &&
+        row.normalizedPricePerKg > 0,
+    );
+
+  return {
+    state: String(location['state'] ?? farm['state'] ?? ''),
+    district: String(location['district'] ?? farm['district'] ?? ''),
+    soilType: String(soil['type'] ?? farm['soilType'] ?? ''),
+    irrigationType: String(
+      input.irrigationSystem ??
+        water['irrigation'] ??
+        farm['irrigationType'] ??
+        '',
+    ),
+    waterAvailability: String(
+      input.waterAvailability ??
+        water['availability'] ??
+        farm['waterAvailability'] ??
+        '',
+    ),
+    farmingMethod: String(farm['farmingMethod'] ?? ''),
+    farmSizeAcres: Number.isFinite(farmSize) && farmSize > 0 ? farmSize : undefined,
+    season: String(input.currentSeason ?? farmContext['season'] ?? ''),
+    month,
+    budgetInrPerAcre:
+      typeof input.budgetInrPerAcre === 'number' && input.budgetInrPerAcre > 0
+        ? input.budgetInrPerAcre
+        : undefined,
+    durationPreference: input.cropDurationPreference,
+    categoryPreferences: input.cropCategoryPreference
+      ? [input.cropCategoryPreference]
+      : undefined,
+    fallowMonths:
+      Number.isFinite(fallowMonths) && fallowMonths >= 0
+        ? fallowMonths
+        : undefined,
+    lastCrop:
+      input.lastCrop ||
+      (typeof history['lastCrop'] === 'string'
+        ? history['lastCrop']
+        : undefined),
+    market,
+  };
+}
+
 /** Matches a model-reported crop name against the shipped deterministic catalog. */
 function catalogFor(name: string): CropKnowledgeEntry | null {
   const q = normalizeName(name);
@@ -269,6 +357,7 @@ export function sanitizeAiRecommendations(
   raw: unknown,
   ctx?: Record<string, unknown>,
   requestedCategory?: string,
+  scoringContext?: FarmContext,
 ): AiRecommendedCrop[] {
   if (!raw || typeof raw !== 'object') return [];
   const list = (raw as Record<string, unknown>)['recommendations'];
@@ -300,11 +389,14 @@ export function sanitizeAiRecommendations(
       rawDuration || (entry ? clampInt(entry.durationDaysMin, 1, 730) : 0);
 
     const modelScore = clampInt(o['suitabilityScore'], 0, 100);
+    // For verified catalog crops the visible numeric score always comes from
+    // VidhAI's documented weighted engine, never an arbitrary model number.
+    // Groq still selects/explains the candidates using the full farm context.
     const score =
-      modelScore ||
-      (entry && ctx
-        ? clampInt(scoreCrop(entry, ctx as unknown as FarmContext).score, 0, 100)
+      (entry && scoringContext
+        ? clampInt(scoreCrop(entry, scoringContext).score, 0, 100)
         : 0) ||
+      modelScore ||
       Math.max(50, 95 - (out.length + 1) * 5);
 
     const zero = { min: 0, max: 0, currency: 'INR' };
@@ -507,6 +599,7 @@ export async function recommendWithAI(
 ): Promise<AiRecommendationResult> {
   const language = input.language || 'en';
   const contextText = buildContextText(farmContext);
+  const scoringContext = toScoringContext(farmContext, input);
   const requestedCategory =
     canonicalCategoryPreference(input.cropCategoryPreference);
   const allowedCandidates = requestedCategory
@@ -600,6 +693,7 @@ export async function recommendWithAI(
     result.data,
     farmContext,
     requestedCategory ?? undefined,
+    scoringContext,
   ).sort(sortRecommended);
   const analysisSummary =
     asString((result.data as Record<string, unknown>)['analysisSummary']) ||
