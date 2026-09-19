@@ -318,7 +318,7 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
                   style: TextStyle(
                     color: colors.onBackground,
                     fontSize: 13.5,
-                    fontWeight: FontWeight.w650,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 2),
