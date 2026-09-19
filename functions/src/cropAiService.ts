@@ -544,6 +544,9 @@ export async function recommendWithAI(
     'Only use facts that were provided. If live market prices or weather were not provided, state that in marketOutlook/seasonMatch and never invent numbers.',
     'Every recommendation must have an understandable reason for its ranking.',
     'Financial figures (investment, revenue, profit) are rough estimates in INR; use a modest, realistic range and never guarantee prices.',
+    'Return one JSON object with keys analysisSummary and recommendations.',
+    'Each recommendation must contain: cropName, localName, category, season, suitabilityScore, suitabilityLevel, whySuitable, soilMatch, waterMatch, seasonMatch, rotationMatch, marketOutlook, estimatedDurationDays, estimatedInvestment {min,max,currency}, estimatedRevenue {min,max,currency}, estimatedProfit {min,max,currency}, sowingWindow, estimatedHarvestWindow, waterRequirement, riskLevel, majorRisks, confidence.',
+    'Use INR as currency and arrays for whySuitable and majorRisks.',
     `Respond in the requested language: ${language}.`,
   ].join('\n');
 
