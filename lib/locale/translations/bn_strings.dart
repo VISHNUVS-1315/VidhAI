@@ -1337,4 +1337,9 @@ const Map<String, String> bnStrings = {
 'nearest_community': 'আমার এলাকা',
   'community_interested_empty': 'এখনও আগ্রহী কৃষক নেই।',
   'community_suppliers_empty': 'এখনও সরবরাহকারী নেই।',
+  'consumer_desk': 'ভোক্তা ডেস্ক',
+  'purchase_history': 'ক্রয় ইতিহাস',
+  'fertilizer_prices': 'সারের দাম',
+  'flower_market': 'ফুলের বাজার',
+  'no_purchase_history': 'এখনও কোনো কেনাকাটা নেই',
 };
