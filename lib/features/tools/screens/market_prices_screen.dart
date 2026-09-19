@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import '../../../data/models/market_selection.dart';
+import 'market_filter_sheet.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/vidhai_theme.dart';
@@ -49,6 +50,10 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
   MarketPricePayload _payload = const MarketPricePayload(prices: []);
   List<String> _districts = [];
   String _searchQuery = '';
+  String _category = 'all';
+  MarketSelection? _selection;
+  int _requestId = 0;
+  final _searchController = TextEditingController();
   bool _isLoading = true;
   String? _error;
 
@@ -64,6 +69,25 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
     _prepare();
   }
 
+  @override
+  void dispose() { _requestId++; _searchController.dispose(); super.dispose(); }
+
+  Future<void> _openFilters() async {
+    final selection = await showModalBottomSheet<MarketSelection>(
+      context: context, isScrollControlled: true, useSafeArea: true,
+      builder: (_) => MarketFilterSheet(states: _knownStates,
+        initial: _selection ?? MarketSelection({if (_state != null) _state!: {if (_district != null) _district!}})),
+    );
+    if (selection == null || !mounted) return;
+    setState(() {
+      _selection = selection.regions.isEmpty ? null : selection;
+      _state = selection.regions.length == 1 ? selection.regions.keys.first : null;
+      final ds = _state == null ? null : selection.regions[_state];
+      _district = ds?.length == 1 ? ds!.first : null;
+    });
+    await _load(refresh: true);
+  }
+
   bool get _isStateUt => _state != null && _isUtByState[_state] == true;
 
   /// When the screen is opened without a farm suggestion (e.g. from the tools
@@ -71,30 +95,17 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
   Future<void> _prepare() async {
     try {
       if (_state == null || _state!.isEmpty) {
-        final farms = await DataService().loadFarms();
-        if (mounted && farms.isNotEmpty) {
-          final location = farms.first.farmLocation;
-          final st = location?.state ?? '';
-          if (st.isNotEmpty) {
-            setState(() {
-              _state = st;
-              final d = location?.district ?? '';
-              _district = d.isEmpty ? null : d;
-            });
-          }
-        } else {
-          // Consumer accounts may not have farms. Fall back to the saved
-          // personal-profile location so Consumer Desk opens locally.
-          final profile = await DataService().loadProfile();
-          final st = profile?.address?.state?.trim() ?? '';
-          final d = profile?.address?.district?.trim() ?? '';
-          if (mounted && st.isNotEmpty) {
-            setState(() {
-              _state = st;
-              _district = d.isEmpty ? null : d;
-            });
+        final profile = await DataService().loadProfile();
+        var st = profile?.address?.state?.trim() ?? '';
+        var d = profile?.address?.district?.trim() ?? '';
+        if (st.isEmpty) {
+          final farms = await DataService().loadFarms();
+          if (farms.isNotEmpty) {
+            st = farms.first.farmLocation?.state ?? '';
+            d = farms.first.farmLocation?.district ?? '';
           }
         }
+        if (mounted && st.isNotEmpty) setState(() { _state = st; _district = d.isEmpty ? null : d; });
       }
     } catch (_) {
       // Location reads must never block the market dashboard.
@@ -109,73 +120,31 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
     _isUtByState
       ..clear()
       ..addEntries(states.map((s) => MapEntry(s.name, s.ut)));
-    if (mounted) await _load();
+    if (mounted) await _load(refresh: true);
   }
 
   bool get _isIndia => _state == null || _state!.isEmpty;
 
   Future<void> _load({bool refresh = false}) async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-      _insight = null;
-    });
+    final requestId = ++_requestId;
+    setState(() { _isLoading = true; _error = null; _insight = null; _insightLoading = false; });
+    final st = _state;
+    final district = _district;
     try {
-      final st = _state;
-      final district = _district;
-      final commodity = _commodity;
-      MarketPricePayload payload;
-      if (commodity != null && commodity.isNotEmpty) {
-        payload = await _service.fetchPrices(
-          state: st,
-          district: district,
-          commodity: commodity,
-          refresh: refresh,
-        );
-      } else if (district != null && district.isNotEmpty) {
-        payload = await _service.fetchPrices(
-          state: st,
-          district: district,
-          refresh: refresh,
-        );
-      } else {
-        payload = await _service.fetchSummary(
-          state: st,
-          commodity: commodity,
-        );
-      }
-      if (!mounted) return;
-      setState(() {
-        _payload = payload;
-        _isLoading = false;
-      });
-      await _loadDistricts();
-      if (mounted) _maybeLoadInsight();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadDistricts() async {
-    if (_isIndia) {
-      if (_districts.isNotEmpty) setState(() => _districts = []);
-      return;
-    }
-    final fromData = _payload.prices
-        .map((p) => p.district)
-        .where((d) => d.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
-    if (fromData.isEmpty) {
-      final fetched = await _service.fetchDistricts(_state!);
-      if (mounted) setState(() => _districts = fetched);
-    } else if (!listEquals(fromData, _districts)) {
-      if (mounted) setState(() => _districts = fromData);
+      final selection = _selection ?? MarketSelection({if (st != null) st: {if (district != null) district}});
+      final payload = await _service.fetchSelection(selection, commodity: _commodity, refresh: refresh);
+      if (!mounted || requestId != _requestId) return;
+      setState(() { _payload = payload; _isLoading = false; });
+      // Load the full reference list, never derive districts from sparse prices.
+      if (st != null) {
+        final districts = await _service.fetchDistricts(st);
+        if (!mounted || requestId != _requestId) return;
+        setState(() => _districts = districts);
+      } else { _districts = []; }
+      if (_selection == null) _maybeLoadInsight();
+    } catch (_) {
+      if (!mounted || requestId != _requestId) return;
+      setState(() { _error = AppLocalizations.of(context).t('consumer_load_error'); _isLoading = false; });
     }
   }
 
@@ -186,6 +155,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
 
   Future<void> _loadInsight() async {
     if (_insightLoading) return;
+    final requestId = _requestId;
     final loc = AppLocalizations.of(context);
     setState(() => _insightLoading = true);
     final insight = await _service.fetchInsight(
@@ -194,7 +164,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
       commodity: _commodity,
       language: loc.languageCode,
     );
-    if (!mounted) return;
+    if (!mounted || requestId != _requestId) return;
     setState(() {
       _insight = insight;
       _insightLoading = false;
@@ -205,38 +175,46 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
 
   void _goIndia() {
     setState(() {
+      _selection = null;
       _state = null;
       _district = null;
       _commodity = null;
       _searchQuery = '';
+      _searchController.clear();
     });
     _load();
   }
 
   void _goState() {
     setState(() {
+      _selection = null;
       _district = null;
       _commodity = null;
       _searchQuery = '';
+      _searchController.clear();
     });
     _load();
   }
 
   void _selectState(String name) {
     setState(() {
+      _selection = null;
       _state = name;
       _district = null;
       _commodity = null;
       _searchQuery = '';
+      _searchController.clear();
     });
     _load();
   }
 
   void _selectDistrict(String name) {
     setState(() {
+      _selection = null;
       _district = name;
       _commodity = null;
       _searchQuery = '';
+      _searchController.clear();
     });
     _load();
   }
@@ -245,6 +223,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
     setState(() {
       _commodity = name;
       _searchQuery = '';
+      _searchController.clear();
     });
     _load();
   }
@@ -252,6 +231,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
   // ── filtering ─────────────────────────────────────────────────────────────
 
   bool _matchesRecord(MarketPriceRecord r) {
+    if (_category != 'all' && marketCategory(r.commodity) != _category) return false;
     final q = _searchQuery.trim().toLowerCase();
     if (q.isEmpty) return true;
     return r.commodity.toLowerCase().contains(q) ||
@@ -284,10 +264,11 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
         ),
         centerTitle: true,
         actions: [
+          IconButton(tooltip: loc.t('filter_by_location'), icon: const Icon(Icons.filter_list_rounded), onPressed: _isLoading ? null : _openFilters),
           IconButton(
             icon: Icon(Icons.refresh_rounded,
                 color: colors.onBackground, size: 22),
-            onPressed: () => _load(refresh: true),
+            onPressed: _isLoading ? null : () => _load(refresh: true),
           ),
           const VidhAIAssistantButton(
               screen: 'market_prices', size: 36, iconSize: 18),
@@ -299,8 +280,14 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: TextField(
+              controller: _searchController,
               style: TextStyle(color: colors.onBackground, fontSize: 15),
               onChanged: (val) => setState(() => _searchQuery = val),
+              textInputAction: TextInputAction.search,
+              onSubmitted: (val) {
+                setState(() => _commodity = val.trim().isEmpty ? null : val.trim());
+                _load(refresh: true);
+              },
               decoration: InputDecoration(
                 hintText: loc.marketSearchHint,
                 hintStyle: TextStyle(color: colors.onSurfaceMuted),
@@ -310,7 +297,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
                     ? IconButton(
                         icon: Icon(Icons.close_rounded,
                             color: colors.onSurfaceMuted, size: 20),
-                        onPressed: () => setState(() => _searchQuery = ''),
+                        onPressed: () { setState(() { _searchQuery = ''; _commodity = null; _searchController.clear(); }); _load(); },
                       )
                     : null,
                 filled: true,
@@ -332,9 +319,22 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          if (_payload.stale || _payload.fromCache)
-            _OfflineBanner(text: loc.marketOfflineBanner),
+          SizedBox(height: 48, child: ListView(scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16), children: [
+              for (final category in ['all', 'vegetable', 'fruit', 'cereal', 'pulse', 'spice', 'flower', 'other'])
+                Padding(padding: const EdgeInsetsDirectional.only(end: 6), child: ChoiceChip(
+                  label: Text(loc.t(category == 'all' ? 'all' : category == 'other' ? 'consumer_other' : 'crop_category_$category')),
+                  selected: _category == category, onSelected: (_) => setState(() => _category = category))),
+            ])),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Text(loc.t('consumer_market_scope'), style: TextStyle(fontSize: 11, color: colors.onSurfaceMuted))),
+          if (_selection != null && _selection!.regions.isNotEmpty)
+            SizedBox(height: 36, child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), children: [
+              for (final entry in _selection!.regions.entries)
+                Padding(padding: const EdgeInsetsDirectional.only(end: 6), child: Chip(label: Text('${entry.key}${entry.value.isEmpty ? '' : ': ${entry.value.join(', ')}'}'))),
+            ])),
+          if (_payload.stale)
+            _OfflineBanner(text: loc.t('consumer_market_partial')),
           const SizedBox(height: 4),
           _ModeTrail(
             state: _state,
@@ -343,7 +343,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
             onIndia: _goIndia,
             onState: _goState,
           ),
-          if (!_isIndia) ...[
+          if (!_isIndia && _selection == null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
               child: _InsightCard(
@@ -398,11 +398,25 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
     if (_error != null && _payload.prices.isEmpty) {
       return _ErrorView(error: _error!, onRetry: _load);
     }
+    if (_isIndia && _selection == null && _payload.prices.isEmpty) {
+      return ListView(children: [for (final state in _knownStates)
+        ListTile(title: Text(state), trailing: const Icon(Icons.chevron_right),
+          onTap: () => _selectState(state))]);
+    }
     if (_payload.prices.isEmpty) {
       return _EmptyView();
     }
 
     final records = _payload.prices.where(_matchesRecord).toList();
+    if (records.isEmpty) return _EmptyView();
+    if (_selection != null || _category != 'all' || _searchQuery.isNotEmpty) {
+      return RefreshIndicator(onRefresh: () => _load(refresh: true), child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16),
+        itemCount: records.length, separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (_, i) => _PriceRow(record: records[i], showRegion: true, onTap: () => _openDetail(records[i])),
+      ));
+    }
+
 
     if (_isIndia && _commodity == null) {
       return _IndiaOverview(

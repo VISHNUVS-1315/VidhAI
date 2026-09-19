@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/models/market_price_models.dart';
+import '../data/models/market_selection.dart';
 import 'ai/secure_api_client.dart';
 
 /// Secure market-price access for VidhAI.
@@ -214,17 +215,45 @@ class MarketPriceService {
           stale: true,
         );
       }
-      return const MarketPricePayload(prices: []);
+      return const MarketPricePayload(prices: [], stale: true);
     }
+  }
+
+  Future<MarketPricePayload> fetchSelection(MarketSelection selection, {
+    String? commodity, bool refresh = false,
+  }) async {
+    final queries = selection.queries;
+    if (queries.isEmpty) return fetchPrices(commodity: commodity, refresh: refresh);
+    final payloads = <MarketPricePayload>[];
+    // Three concurrent requests at most; avoid flooding the API on multi-select.
+    for (var offset = 0; offset < queries.length; offset += 3) {
+      final batch = queries.skip(offset).take(3);
+      payloads.addAll(await Future.wait(batch.map((q) => fetchPrices(
+        state: q.state, district: q.district, commodity: commodity, refresh: refresh))));
+    }
+    final prices = mergeMarketRecords(payloads);
+    return MarketPricePayload(prices: prices,
+      statesWithData: prices.map((p) => p.state).toSet().toList(),
+      commodities: prices.map((p) => p.commodity).toSet().toList(),
+      totalPriceRecords: prices.length,
+      pricePerKgAvailable: prices.where((p) => p.hasReliablePerKg).length,
+      latestDate: prices.isEmpty ? null : prices.first.date,
+      stale: payloads.any((p) => p.stale),
+      fromCache: payloads.any((p) => p.fromCache),
+      source: payloads.map((p) => p.source).where((s) => s.isNotEmpty).toSet().join(', '),
+      fetchedAt: payloads.map((p) => p.fetchedAt).where((s) => s.isNotEmpty).fold<String>('', (a, b) => a.isEmpty || b.compareTo(a) < 0 ? b : a),
+    );
   }
 
   Future<MarketPricePayload> fetchSummary({
     String? state,
     String? commodity,
+    bool refresh = false,
   }) {
     return fetchPrices(
       state: state,
       commodity: commodity,
+      refresh: refresh,
     );
   }
 

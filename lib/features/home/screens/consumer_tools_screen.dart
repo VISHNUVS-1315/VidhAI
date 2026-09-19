@@ -1,3 +1,4 @@
+import '../../consumer/screens/consumer_utilities.dart';
 import 'package:flutter/material.dart';
 import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/features/tools/screens/fertilizer_guide_screen.dart';
@@ -38,7 +39,7 @@ class ConsumerToolsScreen extends StatelessWidget {
             emphasized: true,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => const _PurchaseHistoryScreen(),
+                builder: (_) => const ConsumerPurchaseHistoryScreen(),
               ),
             ),
           ),
@@ -68,17 +69,15 @@ class ConsumerToolsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _ConsumerToolCard(
-            colors: colors,
-            icon: Icons.local_florist_rounded,
-            title: loc.t('flower_market'),
-            subtitle: loc.priceTrendsDesc,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => MarketPricesScreen(
-                  titleOverride: loc.t('flower_market'),
-                ),
-              ),
-            ),
+            colors: colors, icon: Icons.calculate_outlined,
+            title: loc.t('consumer_calculator'), subtitle: loc.t('consumer_calculator'),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConsumerCalculatorScreen())),
+          ),
+          const SizedBox(height: 10),
+          _ConsumerToolCard(
+            colors: colors, icon: Icons.note_alt_outlined,
+            title: loc.t('consumer_notes'), subtitle: loc.t('consumer_notes_local'),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConsumerNotesScreen())),
           ),
         ],
       ),
@@ -172,64 +171,6 @@ class _ConsumerToolCard extends StatelessWidget {
               Icon(
                 Icons.chevron_right_rounded,
                 color: colors.onSurfaceMuted,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PurchaseHistoryScreen extends StatelessWidget {
-  const _PurchaseHistoryScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = VidhAIColorsX(context);
-    final loc = AppLocalizations.of(context);
-
-    return Scaffold(
-      backgroundColor: colors.bg,
-      appBar: AppBar(
-        backgroundColor: colors.bg,
-        elevation: 0,
-        title: Text(
-          loc.t('purchase_history'),
-          style: TextStyle(
-            color: colors.onBackground,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 76,
-                height: 76,
-                decoration: BoxDecoration(
-                  color: colors.brandDeep.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Icon(
-                  Icons.receipt_long_outlined,
-                  color: colors.brandDeep,
-                  size: 34,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                loc.t('no_purchase_history'),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: colors.onBackground,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
               ),
             ],
           ),

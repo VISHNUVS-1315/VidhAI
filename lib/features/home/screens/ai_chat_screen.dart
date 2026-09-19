@@ -197,7 +197,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             .map((f) => f.toMap())
             .toList()
         : farms.map((f) => f.toMap()).toList();
-    final profileMap = profile?.toMap() ?? {};
+    final profileMap = {...?profile?.toMap(), 'role': console};
     final lang = await _getLanguage();
     return _chatService.chat(
       input,

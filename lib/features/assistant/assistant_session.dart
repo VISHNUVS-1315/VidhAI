@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../../core/connectivity/connectivity_service.dart';
 import '../../locale/locale.dart';
 import '../../models/ai/ai_message.dart';
+import '../../data/models/farm_profile.dart';
 import '../../models/ai/ai_tool_call.dart';
 import '../../services/data_service.dart';
 import '../../services/ai/ai_chat_brain.dart';
@@ -224,6 +225,7 @@ class AssistantSession extends ChangeNotifier {
 
   Future<String> _greetingFor() async {
     final loc = AppLocalizations(_language);
+    if (await _data.getSelectedConsole() == 'consumer') return loc.t('consumer_ai_welcome');
     if (_welcomeBack) {
       try {
         final profile = await _data.loadCachedProfile();
@@ -283,8 +285,9 @@ class AssistantSession extends ChangeNotifier {
       return false;
     }
 
-    final profileMap = (await _data.loadCachedProfile())?.toMap() ?? const {};
-    final farms = (await _data.loadFarms()).take(5).toList();
+    final console = await _data.getSelectedConsole();
+    final profileMap = {...?(await _data.loadCachedProfile())?.toMap(), 'role': console};
+    final farms = console == 'consumer' ? <FarmProfile>[] : (await _data.loadFarms()).take(5).toList();
     final farmsMap = farms.map((f) => f.toMap()).toList();
 
     final targetFarmId =
@@ -300,6 +303,7 @@ class AssistantSession extends ChangeNotifier {
 
     final contextJson = {
       'userProfile': profileMap,
+      'console': console,
       'farms': farmsMap,
       'source': 'assistant',
       'currentScreen': _screenName,
