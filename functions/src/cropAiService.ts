@@ -15,7 +15,7 @@
 
 import { groqJson, NvidiaChatMessage } from './nvidia';
 import { SHIPPED_CROP_KNOWLEDGE, CropKnowledgeEntry } from './cropData';
-import { scoreCrop, FarmContext } from './cropService';
+import { scoreCrop, selectCandidatePool, FarmContext } from './cropService';
 
 export interface CropRecommendationAiInput {
   cropCategoryPreference?: string;
@@ -602,11 +602,15 @@ export async function recommendWithAI(
   const scoringContext = toScoringContext(farmContext, input);
   const requestedCategory =
     canonicalCategoryPreference(input.cropCategoryPreference);
+  const regionalPool = selectCandidatePool(
+    SHIPPED_CROP_KNOWLEDGE,
+    scoringContext,
+  );
   const allowedCandidates = requestedCategory
-    ? SHIPPED_CROP_KNOWLEDGE.filter((entry) =>
+    ? regionalPool.filter((entry) =>
         categoryMatches(entry, requestedCategory),
       )
-    : SHIPPED_CROP_KNOWLEDGE;
+    : regionalPool;
 
   if (requestedCategory && allowedCandidates.length === 0) {
     return {
