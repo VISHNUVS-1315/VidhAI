@@ -19,7 +19,6 @@ import 'package:vidhai/services/ai/nvidia_service.dart';
 import 'package:vidhai/services/ai/nvidia_vision_service.dart';
 import 'package:vidhai/services/ai/tts_service.dart';
 import 'package:vidhai/services/data_service.dart';
-import 'package:vidhai/core/widgets/vidhai_widgets.dart';
 
 class _ChatMessage {
   String text;
@@ -51,9 +50,8 @@ class _PendingFileAttachment {
 
   _PendingFileAttachment({
     required this.file,
-    this.progress = 0,
-    this.uploading = true,
-  });
+  })  : progress = 0,
+        uploading = true;
 
   String get name => file.name;
 }
@@ -1737,19 +1735,6 @@ ${fileContext.trim()}'''
     return '$h:$m';
   }
 
-  String _formatListTime(DateTime t) {
-    final now = DateTime.now();
-    final sameDay =
-        t.year == now.year && t.month == now.month && t.day == now.day;
-    if (sameDay) {
-      final h = t.hour.toString().padLeft(2, '0');
-      final m = t.minute.toString().padLeft(2, '0');
-      return '$h:$m';
-    }
-    final d = t.day.toString().padLeft(2, '0');
-    final mo = t.month.toString().padLeft(2, '0');
-    return '$d/$mo';
-  }
 }
 
 class _AnimatedMessageText extends StatefulWidget {

@@ -200,59 +200,65 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
   }
 
   Widget _buildLanguageTile(
-      VidhAIColorsX colors, Map<String, String> lang, bool isSelected) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      decoration: BoxDecoration(
+    VidhAIColorsX colors,
+    Map<String, String> lang,
+    bool isSelected,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Material(
         color: isSelected
             ? colors.brandDeep.withValues(alpha: 0.1)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        onTap: () => _changeLanguage(lang['code']!),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isSelected
-                ? colors.brandDeep.withValues(alpha: 0.2)
-                : colors.surface,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            lang['native']![0],
-            style: TextStyle(
-              color: isSelected ? colors.brandDeep : colors.onSurfaceMuted,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: () => _changeLanguage(lang['code']!),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          leading: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? colors.brandDeep.withValues(alpha: 0.2)
+                  : colors.surface,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              lang['native']![0],
+              style: TextStyle(
+                color: isSelected ? colors.brandDeep : colors.onSurfaceMuted,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
-        title: Text(
-          lang['name']!,
-          style: TextStyle(
-            color: isSelected ? colors.brandDeep : colors.onBackground,
-            fontSize: 15,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          title: Text(
+            lang['name']!,
+            style: TextStyle(
+              color: isSelected ? colors.brandDeep : colors.onBackground,
+              fontSize: 15,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            ),
           ),
-        ),
-        subtitle: Text(
-          lang['native']!,
-          style: TextStyle(
-            color: isSelected
-                ? colors.brandDeep.withValues(alpha: 0.7)
-                : colors.onSurfaceMuted,
-            fontSize: 13,
+          subtitle: Text(
+            lang['native']!,
+            style: TextStyle(
+              color: isSelected
+                  ? colors.brandDeep.withValues(alpha: 0.7)
+                  : colors.onSurfaceMuted,
+              fontSize: 13,
+            ),
           ),
-        ),
-        trailing: Radio<String>(
-          value: lang['code']!,
-          activeColor: colors.brandDeep,
+          trailing: Radio<String>(
+            value: lang['code']!,
+            activeColor: colors.brandDeep,
+          ),
         ),
       ),
     );
   }
+
 }
