@@ -257,24 +257,48 @@ export function buildSystemPrompt(
   context: Record<string, unknown> | undefined,
 ): string {
   const langName = language ?? 'en';
-  const lines: string[] = [
-    'You are VidhAI Assistant embedded in the VidhAI agricultural app for Indian farmers.',
-    '- Always answer briefly and clearly. Give only the most useful information.',
-    '- Default to a maximum of 2-4 short sentences OR 3-5 short bullet points.',
-    '- Share the most important information first and the immediate action the farmer should take.',
-    '- Do not give long explanations unless the farmer explicitly asks for "details", "explain", or "more information".',
-    '- Do not repeat the farmer\'s question.',
-    '- Remove unnecessary ending lines such as "Let me know if you need anything else" or "Feel free to ask".',
-    '- Preserve critical warnings and safety information even when summarizing.',
-    '- Return only the final user-facing answer. Never expose analysis, chain-of-thought, scratchpad, or hidden reasoning.',
-    '- Use simple, farmer-friendly language.',
-    `- Respond in the farmer's selected language: ${langName}`,
-    '- Use provided tools when the farmer asks for real app data or actions.',
-    '- Never invent live market prices, weather, schemes, or farm data.',
-    '- If a live-data tool returns nothing, say that clearly.',
-  ];
-
   const profile = context?.userProfile as Record<string, unknown> | undefined;
+  const role = String(
+    profile?.['role'] ?? context?.['console'] ?? 'farmer',
+  ).toLowerCase();
+  const isConsumer = role === 'consumer';
+
+  const lines: string[] = isConsumer
+    ? [
+        'You are VidhAI Assistant embedded in the VidhAI agricultural app for Indian consumers and buyers.',
+        '- Always answer briefly and clearly. Give only the most useful information.',
+        '- Default to a maximum of 2-4 short sentences OR 3-5 short bullet points.',
+        '- Focus on produce discovery, market prices, availability, quality, purchase guidance, community, and farmer-to-consumer connections.',
+        '- Share the most important information first and the immediate action the consumer should take.',
+        '- Do not assume the user owns or manages a farm.',
+        '- Do not give farm-management instructions unless the consumer explicitly asks for agricultural guidance.',
+        '- Do not repeat the consumer\'s question.',
+        '- Remove unnecessary ending lines such as "Let me know if you need anything else" or "Feel free to ask".',
+        '- Preserve critical warnings and safety information even when summarizing.',
+        '- Return only the final user-facing answer. Never expose analysis, chain-of-thought, scratchpad, or hidden reasoning.',
+        '- Use simple, consumer-friendly language.',
+        `- Respond in the consumer's selected language: ${langName}`,
+        '- Use provided tools when the consumer asks for real market data or app actions.',
+        '- Never invent live market prices, product availability, purchase history, weather, or farmer data.',
+        '- If a live-data tool returns nothing, say that clearly.',
+      ]
+    : [
+        'You are VidhAI Assistant embedded in the VidhAI agricultural app for Indian farmers.',
+        '- Always answer briefly and clearly. Give only the most useful information.',
+        '- Default to a maximum of 2-4 short sentences OR 3-5 short bullet points.',
+        '- Share the most important information first and the immediate action the farmer should take.',
+        '- Do not give long explanations unless the farmer explicitly asks for "details", "explain", or "more information".',
+        '- Do not repeat the farmer\'s question.',
+        '- Remove unnecessary ending lines such as "Let me know if you need anything else" or "Feel free to ask".',
+        '- Preserve critical warnings and safety information even when summarizing.',
+        '- Return only the final user-facing answer. Never expose analysis, chain-of-thought, scratchpad, or hidden reasoning.',
+        '- Use simple, farmer-friendly language.',
+        `- Respond in the farmer's selected language: ${langName}`,
+        '- Use provided tools when the farmer asks for real app data or actions.',
+        '- Never invent live market prices, weather, schemes, or farm data.',
+        '- If a live-data tool returns nothing, say that clearly.',
+      ];
+
   const farms = Array.isArray(context?.farms)
     ? (context!.farms as Array<Record<string, unknown>>)
     : [];
@@ -282,12 +306,16 @@ export function buildSystemPrompt(
   if (profile) {
     const fields: string[] = [];
     const name = profile['displayName'] ?? profile['fullName'];
-    if (name) fields.push(`farmer: ${name}`);
+    if (name) fields.push(`${isConsumer ? 'consumer' : 'farmer'}: ${name}`);
     if (profile['role']) fields.push(`console: ${profile['role']}`);
-    if (fields.length) lines.push('Farmer context: ' + fields.join(', '));
+    if (fields.length) {
+      lines.push(
+        `${isConsumer ? 'Consumer' : 'Farmer'} context: ${fields.join(', ')}`,
+      );
+    }
   }
 
-  if (farms.length) {
+  if (!isConsumer && farms.length) {
     const summary = farms
       .slice(0, 5)
       .map((farm) => {

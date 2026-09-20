@@ -26,7 +26,7 @@ class MainShellScreen extends StatefulWidget {
 
 class _MainShellScreenState extends State<MainShellScreen> {
   final MainShellController _shell = MainShellController.instance;
-  String _selectedConsole = 'farmer';
+  String? _selectedConsole;
   int _unreadCount = 0;
 
   @override
@@ -104,6 +104,24 @@ class _MainShellScreenState extends State<MainShellScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = VidhAIColorsX(context);
+
+    // Wait for the persisted console selection before mounting console-specific
+    // screens. This prevents consumer users from briefly seeing farmer UI.
+    if (_selectedConsole == null) {
+      return PopScope(
+        canPop: false,
+        child: Scaffold(
+          backgroundColor: colors.bg,
+          body: Center(
+            child: CircularProgressIndicator(
+              color: colors.brandDeep,
+              strokeWidth: 2.5,
+            ),
+          ),
+        ),
+      );
+    }
+
     return PopScope(
       canPop: false,
       child: Scaffold(

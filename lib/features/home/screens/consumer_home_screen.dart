@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:vidhai/core/routing/main_shell_controller.dart';
+import 'package:vidhai/features/assistant/assistant_button.dart';
+import 'package:vidhai/features/notifications/screens/notification_center_screen.dart';
 import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/data/models/market_price_models.dart';
 import 'package:vidhai/features/tools/screens/market_prices_screen.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/services/data_service.dart';
+import 'package:vidhai/services/notification_service.dart';
 import 'package:vidhai/services/market_price_service.dart';
 
 class ConsumerHomeScreen extends StatefulWidget {
@@ -21,11 +23,13 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
   String _userName = '';
   List<MarketPriceRecord> _topPrices = const [];
   bool _loadingPrices = true;
+  int _unreadCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadConsumerHome();
+    _loadUnreadCount();
   }
 
   Future<void> _loadConsumerHome() async {
@@ -62,6 +66,15 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
     }
 
     if (mounted) setState(() {});
+  }
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final count = await NotificationService().getUnreadCount();
+      if (mounted) setState(() => _unreadCount = count);
+    } catch (_) {
+      // Notification state must not block the consumer home screen.
+    }
   }
 
   @override
@@ -111,33 +124,6 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
               ),
               const SizedBox(height: 24),
               _buildConsumerDesk(colors, loc),
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildFeatureCard(
-                      colors: colors,
-                      icon: Icons.groups_2_rounded,
-                      title: loc.community,
-                      subtitle: loc.communityDesc,
-                      onTap: () =>
-                          MainShellController.instance.switchTab(1),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildFeatureCard(
-                      colors: colors,
-                      icon: Icons.auto_awesome_rounded,
-                      title: loc.aiChat,
-                      subtitle: loc.askAiDesc,
-                      onTap: () =>
-                          MainShellController.instance.switchTab(2),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
@@ -147,28 +133,91 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
 
   Widget _buildBrandHeader(VidhAIColorsX colors, AppLocalizations loc) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(10),
           child: Image.asset(
             'assets/images/logo.png',
-            width: 34,
-            height: 34,
+            width: 40,
+            height: 40,
             fit: BoxFit.contain,
           ),
         ),
-        const SizedBox(width: 9),
+        const SizedBox(width: 10),
         Text(
           loc.appName,
           style: TextStyle(
             color: colors.onBackground,
-            fontSize: 21,
+            fontSize: 22,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.2,
           ),
         ),
+        const Spacer(),
+        const VidhAIAssistantButton(screen: 'consumer_home'),
+        const SizedBox(width: 10),
+        _buildNotificationBell(colors),
       ],
+    );
+  }
+
+  Widget _buildNotificationBell(VidhAIColorsX colors) {
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const NotificationCenterScreen(),
+          ),
+        );
+        await _loadUnreadCount();
+      },
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.brandDeep.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.notifications_outlined,
+              color: colors.onBackground,
+              size: 20,
+            ),
+          ),
+          if (_unreadCount > 0)
+            PositionedDirectional(
+              end: -2,
+              top: -2,
+              child: Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: colors.danger,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  _unreadCount > 99 ? '99+' : '$_unreadCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -344,67 +393,6 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureCard({
-    required VidhAIColorsX colors,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 150),
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: colors.borderColor),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: colors.brandDeep.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(icon, color: colors.brandDeep, size: 23),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.onBackground,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.onSurfaceMuted,
-                  fontSize: 11.5,
-                  height: 1.35,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

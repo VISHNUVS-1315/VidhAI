@@ -336,10 +336,10 @@ function trimHistory(
 
 /** Extra system instruction for the fast tier: brevity without losing intent. */
 const FAST_BRIEF_PROMPT =
-  '\nKeep answers brief and farmer-friendly: default to a maximum of 2-4 short ' +
+  '\nKeep answers brief and user-friendly: default to a maximum of 2-4 short ' +
   'sentences or 3-5 short bullet points. Give the key fact and the immediate ' +
   'action first. Do not repeat the question and do not add closing filler ' +
-  'lines. Go into more detail only when the farmer explicitly asks for it.';
+  'lines. Go into more detail only when the user explicitly asks for it.';
 
 function buildChatMessages(
   opts: ChatRouterOptions,
