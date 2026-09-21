@@ -16,6 +16,7 @@ import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/services/ai/ai_chat_service.dart';
 import 'package:vidhai/services/ai/domain_services.dart';
 import 'package:vidhai/services/ai/nvidia_service.dart';
+import 'package:vidhai/services/ai/secure_api_client.dart';
 import 'package:vidhai/services/ai/nvidia_vision_service.dart';
 import 'package:vidhai/services/ai/tts_service.dart';
 import 'package:vidhai/services/data_service.dart';
@@ -100,6 +101,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
   void initState() {
     super.initState();
     _tts.addListener(_onTtsChanged);
+    unawaited(SecureApiClient.instance.warmUp());
     _loadFarms();
     unawaited(_loadChatHistory());
   }
