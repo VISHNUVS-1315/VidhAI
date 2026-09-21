@@ -10,6 +10,7 @@ import 'package:vidhai/features/farm/screens/farm_screen.dart';
 import 'package:vidhai/features/community/screens/community_feed_screen.dart';
 import 'package:vidhai/services/notification_service.dart';
 import 'package:vidhai/services/data_service.dart';
+import 'package:vidhai/services/ai/secure_api_client.dart';
 import 'package:vidhai/features/home/screens/tools_screen.dart';
 import 'package:vidhai/features/home/screens/consumer_tools_screen.dart';
 import 'package:vidhai/features/home/screens/account_screen.dart';
@@ -35,6 +36,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _shell.addListener(_onShellChanged);
     _loadConsole();
     _loadUnreadCount();
+    unawaited(SecureApiClient.instance.warmUp());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeWelcome();
       // Non-blocking: welcome once, schedule reminders, weather pass.
