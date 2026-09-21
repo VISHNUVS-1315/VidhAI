@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git grep -nE 'gsk_[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|GROQ_API_KEY=[^[:space:]#]+|NVIDIA_API_KEY=[^[:space:]#]+|DATA_GOV_API_KEY=[^[:space:]#]+' -- . ':!functions/.env.example'; then
+          if git grep -nE 'gsk_[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|GROQ_API_KEY=[^[:space:]#]+|NVIDIA_API_KEY=[^[:space:]#]+|DATA_GOV_API_KEY=[^[:space:]#]+' -- . ':(exclude).github/workflows/validate.yml' ':(exclude)functions/.env.example'; then
             echo "Potential secret found in tracked source."
             exit 1
           fi
