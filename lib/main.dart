@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
@@ -25,6 +26,7 @@ import 'package:vidhai/services/notification_service.dart';
 import 'package:vidhai/services/background_work.dart';
 import 'package:vidhai/features/home/screens/tasks_screen.dart';
 import 'package:vidhai/services/ai/ai_service.dart';
+import 'package:vidhai/services/ai/secure_api_client.dart';
 import 'package:vidhai/services/ai/ai_config.dart';
 import 'package:vidhai/features/notifications/screens/notification_center_screen.dart';
 import 'package:vidhai/features/farm/screens/farm_details_screen.dart';
@@ -96,6 +98,7 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await _connectToFirebaseEmulators();
+  unawaited(SecureApiClient.instance.warmUp());
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await NotificationService().initialize();
   await registerWeatherWorker();
