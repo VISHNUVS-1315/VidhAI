@@ -1,4 +1,5 @@
 import axios from 'axios';
+import https from 'https';
 import { Readable } from 'stream';
 
 export const NVIDIA_BASE =
@@ -84,6 +85,13 @@ export function groqProvider(
 
 const LLM_TIMEOUT_MS = 240_000;
 
+const providerHttpsAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 30_000,
+  maxSockets: 32,
+  maxFreeSockets: 8,
+});
+
 export async function llmPost<T>(
   path: string,
   body: Record<string, unknown>,
@@ -103,6 +111,7 @@ export async function llmPost<T>(
         'Content-Type': 'application/json',
       },
       timeout: opts.timeout ?? LLM_TIMEOUT_MS,
+      httpsAgent: providerHttpsAgent,
       maxBodyLength: opts.maxBodyLength ?? 150 * 1024 * 1024,
       maxContentLength: opts.maxContentLength ?? 150 * 1024 * 1024,
     },
@@ -150,6 +159,7 @@ export async function llmPostStream(
       },
       responseType: 'stream',
       timeout: opts.timeout ?? LLM_TIMEOUT_MS,
+      httpsAgent: providerHttpsAgent,
     },
   );
 
