@@ -14,6 +14,11 @@ import cors from 'cors';
 
 import { corsOrigins, appVersion, serviceName } from './config/env';
 import { logger } from './config/logger';
+import {
+  consumeUserRateLimit,
+  sanitizeJsonBody,
+  securityHeaders,
+} from './security';
 import { ensureFirebaseAdmin } from './config/firebase';
 import { NvidiaChatMessage, ToolSpec } from './nvidia';
 import {
@@ -44,8 +49,10 @@ ensureFirebaseAdmin();
 
 const app = express();
 app.disable('x-powered-by');
+app.use(securityHeaders);
 app.use(cors({ origin: corsOrigins() }));
-app.use(express.json({ limit: '30mb' }));
+app.use(express.json({ limit: '30mb', strict: true }));
+app.use(sanitizeJsonBody);
 
 /**
  * GET /health
@@ -77,6 +84,11 @@ function requireAuth(req: AuthedRequest, res: express.Response, next: express.Ne
     .auth()
     .verifyIdToken(token)
     .then((decoded) => {
+      if (!decoded.uid) {
+        res.status(401).json({ success: false, error: 'Invalid authentication token.' });
+        return;
+      }
+      if (!consumeUserRateLimit(decoded.uid, req.path, res)) return;
       req.firebaseUid = decoded.uid;
       next();
     })
