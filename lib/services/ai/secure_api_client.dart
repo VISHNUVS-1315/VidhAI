@@ -78,11 +78,9 @@ class SecureApiClient {
     }
 
     if (debugTag != null) {
+      // Never print response bodies: they can contain user data or backend
+      // diagnostics. Status-only logging is enough for client troubleshooting.
       debugPrint('[SecureApiClient:$debugTag] HTTP ${response.statusCode}');
-      if (response.body.isNotEmpty) {
-        debugPrint(
-            '[SecureApiClient:$debugTag] body: ${response.body.length > 600 ? response.body.substring(0, 600) : response.body}');
-      }
     }
 
     final decoded = _decode(response);
