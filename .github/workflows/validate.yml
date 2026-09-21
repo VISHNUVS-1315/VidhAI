@@ -3,16 +3,44 @@ name: Validate VidhAI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: vidhai-main-validation
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
+  backend:
+    name: Backend TypeScript build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: functions
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install backend dependencies
+        run: npm install
+
+      - name: Type-check backend
+        run: npm run lint
+
+      - name: Build backend
+        run: npm run build
+
   flutter:
     name: Flutter analyze, build and test
     runs-on: ubuntu-latest

@@ -14,6 +14,13 @@ import cors from 'cors';
 
 import { corsOrigins, appVersion, serviceName } from './config/env';
 import { logger } from './config/logger';
+import {
+  perUserAiRateLimit,
+  perUserRateLimit,
+  safeClientError,
+  sanitizeRequestBody,
+  securityHeaders,
+} from './security';
 import { ensureFirebaseAdmin } from './config/firebase';
 import { NvidiaChatMessage, ToolSpec } from './nvidia';
 import {
@@ -45,7 +52,8 @@ ensureFirebaseAdmin();
 const app = express();
 app.disable('x-powered-by');
 app.use(cors({ origin: corsOrigins() }));
-app.use(express.json({ limit: '30mb' }));
+app.use(securityHeaders);
+app.use(express.json({ limit: '16mb', strict: true }));
 
 /**
  * GET /health
@@ -90,6 +98,13 @@ function requireAuth(req: AuthedRequest, res: express.Response, next: express.Ne
     });
 }
 
+// All routes declared below this point require a verified Firebase user.
+// Rate limiting is keyed by verified uid, not spoofable IP/header values.
+app.use(requireAuth);
+app.use(perUserRateLimit);
+app.use(sanitizeRequestBody);
+app.use(['/ai', '/crop/ai-recommend', '/market/insight'], perUserAiRateLimit);
+
 const APP_TIERS = new Set(['main', 'general', 'fast', 'creative']);
 
 /**
@@ -99,7 +114,7 @@ const APP_TIERS = new Set(['main', 'general', 'fast', 'creative']);
  * App text chat is served by Groq GPT-OSS 20B for low-latency streaming.
  * Crop AI, vision and safety routes remain on NVIDIA.
  */
-app.post('/ai/chat', requireAuth, async (req, res) => {
+app.post('/ai/chat', async (req, res) => {
   try {
     const body = req.body ?? {};
     const messages = Array.isArray(body.messages)
@@ -142,9 +157,8 @@ app.post('/ai/chat', requireAuth, async (req, res) => {
     });
   } catch (e) {
     const status = e instanceof AiGatewayError ? httpStatusFor(e) : 500;
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('chat failed', e);
-    res.status(status).json({ success: false, error: message });
+        logger.error('chat failed', e);
+    res.status(status).json({ success: false, error: safeClientError(e, status) });
   }
 });
 
@@ -156,7 +170,7 @@ app.post('/ai/chat', requireAuth, async (req, res) => {
  * Events (data: {delta} ... data: {done|error}). The client falls back to the
  * non-streaming /ai/chat when this endpoint is unavailable.
  */
-app.post('/ai/chat/stream', requireAuth, async (req, res) => {
+app.post('/ai/chat/stream', async (req, res) => {
   try {
     const body = req.body ?? {};
     const messages = Array.isArray(body.messages)
@@ -215,13 +229,12 @@ app.post('/ai/chat/stream', requireAuth, async (req, res) => {
     res.end();
   } catch (e) {
     const status = e instanceof AiGatewayError ? httpStatusFor(e) : 500;
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('chat stream failed', e);
+        logger.error('chat stream failed', e);
     if (res.headersSent) {
-      res.write(`data: ${JSON.stringify({ error: message, status })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: safeClientError(e, status), status })}\n\n`);
       res.end();
     } else {
-      res.status(status).json({ success: false, error: message });
+      res.status(status).json({ success: false, error: safeClientError(e, status) });
     }
   }
 });
@@ -231,7 +244,7 @@ app.post('/ai/chat/stream', requireAuth, async (req, res) => {
  * body: { text, language?, useModel?, label? }
  * Classifies user intent into a tier for downstream routing.
  */
-app.post('/ai/classify', requireAuth, async (req, res) => {
+app.post('/ai/classify', async (req, res) => {
   try {
     const body = req.body ?? {};
     const text = typeof body.text === 'string' ? body.text : '';
@@ -248,9 +261,8 @@ app.post('/ai/classify', requireAuth, async (req, res) => {
     res.json({ success: true, ...result });
   } catch (e) {
     const status = e instanceof AiGatewayError ? httpStatusFor(e) : 500;
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('classify failed', e);
-    res.status(status).json({ success: false, error: message });
+        logger.error('classify failed', e);
+    res.status(status).json({ success: false, error: safeClientError(e, status) });
   }
 });
 
@@ -259,7 +271,7 @@ app.post('/ai/classify', requireAuth, async (req, res) => {
  * body: { text, language? }
  * Content-safety classification via the NVIDIA safety model (fail-open).
  */
-app.post('/ai/moderate', requireAuth, async (req, res) => {
+app.post('/ai/moderate', async (req, res) => {
   try {
     const body = req.body ?? {};
     const result = await moderateText(
@@ -268,9 +280,8 @@ app.post('/ai/moderate', requireAuth, async (req, res) => {
     res.json({ success: true, ...result });
   } catch (e) {
     const status = e instanceof AiGatewayError ? httpStatusFor(e) : 500;
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('moderate failed', e);
-    res.status(status).json({ success: false, error: message });
+        logger.error('moderate failed', e);
+    res.status(status).json({ success: false, error: safeClientError(e, status) });
   }
 });
 
@@ -279,7 +290,7 @@ app.post('/ai/moderate', requireAuth, async (req, res) => {
  * body: { prompt, language?, images: [{ base64, mimeType }] }
  * Image analysis is served only by the NVIDIA vision tier.
  */
-app.post('/ai/image', requireAuth, async (req, res) => {
+app.post('/ai/image', async (req, res) => {
   try {
     const body = req.body ?? {};
     const prompt = String(body.prompt ?? 'Analyze this crop image and provide guidance.');
@@ -303,9 +314,8 @@ app.post('/ai/image', requireAuth, async (req, res) => {
     });
   } catch (e) {
     const status = e instanceof AiGatewayError ? httpStatusFor(e) : 500;
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('vision failed', e);
-    res.status(status).json({ success: false, error: message });
+        logger.error('vision failed', e);
+    res.status(status).json({ success: false, error: safeClientError(e, status) });
   }
 });
 
@@ -315,7 +325,7 @@ app.post('/ai/image', requireAuth, async (req, res) => {
  * Real reported daily averages (AGMARKNET) for a supported commodity+state.
  * Returns [] when no history exists — never fabricated.
  */
-app.post('/market/history', requireAuth, async (req, res) => {
+app.post('/market/history', async (req, res) => {
   try {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const commodity = String(body.commodity ?? '').trim();
@@ -328,9 +338,8 @@ app.post('/market/history', requireAuth, async (req, res) => {
     const history = await marketService.getHistoricalPrices({ state, commodity, days });
     res.json({ success: true, commodity, state: state ?? null, days, history });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('market history failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('market history failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -344,7 +353,7 @@ const marketService = new MarketService();
  * recommendations (or fewer only when the state+season pool is smaller).
  * All money/yield figures are labelled estimates by the client.
  */
-app.post('/crop/recommend', requireAuth, async (req, res) => {
+app.post('/crop/recommend', async (req, res) => {
   try {
     const pool = await resolvePool();
     const farm = (req.body?.farm ?? {}) as FarmContext;
@@ -364,9 +373,8 @@ app.post('/crop/recommend', requireAuth, async (req, res) => {
     const result = recommend(ctx, input);
     res.json({ ...result, poolSize: pool.length });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('crop recommend failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('crop recommend failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -381,16 +389,15 @@ app.post('/crop/recommend', requireAuth, async (req, res) => {
  * and the response is validated + normalized against the shipped catalog.
  * body: { context, input }
  */
-app.post('/crop/ai-recommend', requireAuth, async (req, res) => {
+app.post('/crop/ai-recommend', async (req, res) => {
   try {
     const context = (req.body?.context ?? {}) as Record<string, unknown>;
     const input = (req.body?.input ?? {}) as CropRecommendationAiInput;
     const result = await recommendWithAI(context, input);
     res.json({ success: true, ...result });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('crop ai-recommend failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('crop ai-recommend failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -398,7 +405,7 @@ app.post('/crop/ai-recommend', requireAuth, async (req, res) => {
  * POST /crop/check
  * body: { query: { cropName, variety? }, farm: FarmContext }
  */
-app.post('/crop/check', requireAuth, async (req, res) => {
+app.post('/crop/check', async (req, res) => {
   try {
     const farm = (req.body?.farm ?? {}) as FarmContext;
     const query = (req.body?.query ?? {}) as CheckQuery;
@@ -409,9 +416,8 @@ app.post('/crop/check', requireAuth, async (req, res) => {
     const result = checkCrop(farm, { cropName: query.cropName.trim(), variety: query.variety });
     res.json({ ...result });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('crop check failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('crop check failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -421,7 +427,7 @@ app.post('/crop/check', requireAuth, async (req, res) => {
  * Returns catalog summaries for a location-aware pool (no financial estimates;
  * the client enriches selected crops via /crop/check).
  */
-app.post('/crop/search', requireAuth, async (req, res) => {
+app.post('/crop/search', async (req, res) => {
   try {
     const pool = await resolvePool();
     const q = String(req.body?.query ?? '').trim().toLowerCase();
@@ -456,9 +462,8 @@ app.post('/crop/search', requireAuth, async (req, res) => {
     }));
     res.json({ success: true, total: results.length, returned: summaries.length, crops: summaries });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('crop search failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('crop search failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -473,7 +478,7 @@ const marketFilter = (body: Record<string, unknown>) => ({
  * POST /market/states
  * Administrative States/UTs dataset (no external call, no pricing).
  */
-app.post('/market/states', requireAuth, async (_req, res) => {
+app.post('/market/states', async (_req, res) => {
   try {
     res.json({
       success: true,
@@ -482,9 +487,8 @@ app.post('/market/states', requireAuth, async (_req, res) => {
       source: 'Govt. of India administrative reference',
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('market states failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('market states failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -492,7 +496,7 @@ app.post('/market/states', requireAuth, async (_req, res) => {
  * POST /market/districts
  * body: { state }
  */
-app.post('/market/districts', requireAuth, async (req, res) => {
+app.post('/market/districts', async (req, res) => {
   try {
     const state = String(req.body?.state ?? '').trim();
     if (!state) {
@@ -502,9 +506,8 @@ app.post('/market/districts', requireAuth, async (req, res) => {
     const districts = marketService.getDistricts(state);
     res.json({ success: true, state, districts, count: districts.length });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('market districts failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('market districts failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -512,15 +515,14 @@ app.post('/market/districts', requireAuth, async (req, res) => {
  * POST /market/commodities
  * body: { state? }  (provider-backed with reference fallback)
  */
-app.post('/market/commodities', requireAuth, async (req, res) => {
+app.post('/market/commodities', async (req, res) => {
   try {
     const state = String(req.body?.state ?? '').trim() || undefined;
     const commodities = await marketService.getCommodities(state);
     res.json({ success: true, state: state ?? null, commodities, count: commodities.length });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('market commodities failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('market commodities failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -530,16 +532,15 @@ app.post('/market/commodities', requireAuth, async (req, res) => {
  * Returns normalised ₹/kg records (original unit + conversion always included).
  * Offline-capable: provider failure while a snapshot exists returns `stale: true`.
  */
-app.post('/market/prices', requireAuth, async (req, res) => {
+app.post('/market/prices', async (req, res) => {
   try {
     const query = marketFilter((req.body ?? {}) as Record<string, unknown>);
     const refresh = req.body?.refresh === true;
     const result = await marketService.getLatestPrices(query, { refresh });
     res.json({ success: true, ...result, query: { ...query, refresh } });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('market prices failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('market prices failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -547,16 +548,15 @@ app.post('/market/prices', requireAuth, async (req, res) => {
  * POST /market/summary
  * Overview aggregates derived only from actually reported records.
  */
-app.post('/market/summary', requireAuth, async (req, res) => {
+app.post('/market/summary', async (req, res) => {
   try {
     const query = marketFilter((req.body ?? {}) as Record<string, unknown>);
     const result = await marketService.getLatestPrices(query, { refresh: req.body?.refresh === true });
     const summary = marketService.summarize(result.prices);
     res.json({ success: true, ...summary, fromCache: result.fromCache, stale: result.stale, source: result.source });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('market summary failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('market summary failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -564,7 +564,7 @@ app.post('/market/summary', requireAuth, async (req, res) => {
  * POST /market/insight
  * body: { state?, district?, commodity?, language?, farmContext?, refresh? }
  */
-app.post('/market/insight', requireAuth, async (req, res) => {
+app.post('/market/insight', async (req, res) => {
   try {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const query = marketFilter(body);
@@ -585,9 +585,8 @@ app.post('/market/insight', requireAuth, async (req, res) => {
       source: result.source,
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('market insight failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('market insight failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 
@@ -600,7 +599,7 @@ app.post('/market/insight', requireAuth, async (req, res) => {
  * it, so a client can never spoof another farmer's or another district's
  * broadcast. The FCM server credential never reaches the app.
  */
-app.post('/community/notify', requireAuth, async (req: AuthedRequest, res) => {
+app.post('/community/notify', async (req: AuthedRequest, res) => {
   try {
     const postId = typeof req.body?.postId === 'string' ? req.body.postId : '';
     if (!postId) {
@@ -669,9 +668,8 @@ app.post('/community/notify', requireAuth, async (req: AuthedRequest, res) => {
 
     res.json({ success: true, topic, type });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('community notify failed', e);
-    res.status(500).json({ success: false, error: message });
+        logger.error('community notify failed', e);
+    res.status(500).json({ success: false, error: safeClientError(e, 500) });
   }
 });
 

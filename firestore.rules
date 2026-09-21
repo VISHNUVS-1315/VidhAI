@@ -37,7 +37,20 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create: if signedIn()
         && request.resource.data.authorId == me();
-      allow update: if signedIn();
+      // The post owner may edit their own post. Other members may only
+      // update aggregate interaction counters used by the existing client;
+      // they cannot change author, crop, price, location, content, or type.
+      allow update: if signedIn()
+        && (
+          resource.data.authorId == me()
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'likeCount',
+            'commentCount',
+            'interestedCount',
+            'supplierCount',
+            'updatedAt'
+          ])
+        );
       allow delete: if signedIn() && resource.data.authorId == me();
 
       match /comments/{commentId} {

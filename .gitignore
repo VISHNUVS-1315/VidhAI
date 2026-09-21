@@ -61,11 +61,24 @@ Thumbs.db
 # Web
 /web/lib/generated_plugin_registrant.dart
 
-# Environment/Secrets
+# Environment / secrets — never commit real values
 .env
-.env.local
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
 *.pem
 *.key
+*.p12
+*.pfx
+*.keystore
+**/*service-account*.json
+**/*service_account*.json
+**/serviceAccount*.json
+**/credentials*.json
+**/secrets*.json
+**/.secret.local
 
 # Logs
 *.log
