@@ -1,9 +1,8 @@
 # Render Blueprint for the VidhAI backend.
 #
-# VidhAI app text chat uses Groq; crop AI, vision and safety use NVIDIA NIM.
-# Live market prices come from data.gov.in / AGMARKNET.
-# Firebase remains on the Spark plan for Auth/Firestore; Render verifies
-# Firebase ID tokens with FIREBASE_SERVICE_ACCOUNT_JSON.
+# Secret values are never stored in this file. Add them only in Render's
+# Environment dashboard. sync:false prevents Blueprint sync from requiring
+# or exposing their values.
 
 services:
   - type: web
@@ -33,6 +32,10 @@ services:
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false
 
-      # Non-secret configuration.
+      # Non-secret security/runtime configuration.
+      - key: RATE_LIMIT_REQUESTS_PER_MINUTE
+        value: "60"
+      - key: AI_RATE_LIMIT_REQUESTS_PER_MINUTE
+        value: "20"
       - key: CORS_ORIGINS
         value: "*"
