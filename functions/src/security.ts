@@ -1,0 +1,229 @@
+import type { NextFunction, Request, Response } from 'express';
+
+interface RateBucket {
+  count: number;
+  resetAt: number;
+}
+
+const rateBuckets = new Map<string, RateBucket>();
+let lastCleanupAt = 0;
+
+function envInt(
+  name: string,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  const parsed = Number(process.env[name] ?? fallback);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(parsed)));
+}
+
+function rateLimitConfig(path: string): {
+  bucket: 'ai' | 'api';
+  maxRequests: number;
+  windowMs: number;
+} {
+  const windowMs = envInt('RATE_LIMIT_WINDOW_MS', 60_000, 1_000, 3_600_000);
+  const isAi =
+    path.startsWith('/ai/') ||
+    path.startsWith('/crop/ai-') ||
+    path === '/market/insight';
+
+  return {
+    bucket: isAi ? 'ai' : 'api',
+    maxRequests: isAi
+      ? envInt('AI_RATE_LIMIT_MAX_REQUESTS', 30, 1, 1_000)
+      : envInt('RATE_LIMIT_MAX_REQUESTS', 120, 1, 10_000),
+    windowMs,
+  };
+}
+
+function cleanupExpiredBuckets(now: number, windowMs: number): void {
+  if (
+    rateBuckets.size < 10_000 &&
+    now - lastCleanupAt < Math.max(windowMs, 60_000)
+  ) {
+    return;
+  }
+
+  for (const [key, bucket] of rateBuckets.entries()) {
+    if (bucket.resetAt <= now) rateBuckets.delete(key);
+  }
+  lastCleanupAt = now;
+}
+
+/**
+ * Per-authenticated-user fixed-window limiter.
+ *
+ * This intentionally runs after Firebase token verification, so callers cannot
+ * spoof another user's bucket. It is dependency-free and safe for the current
+ * single-instance Render deployment. If VidhAI later scales to multiple
+ * backend instances, replace this store with a shared Redis/Firestore counter.
+ */
+export function consumeUserRateLimit(
+  uid: string,
+  path: string,
+  res: Response,
+): boolean {
+  const now = Date.now();
+  const { bucket, maxRequests, windowMs } = rateLimitConfig(path);
+  cleanupExpiredBuckets(now, windowMs);
+
+  const key = `${uid}:${bucket}`;
+  let entry = rateBuckets.get(key);
+  if (!entry || entry.resetAt <= now) {
+    entry = { count: 0, resetAt: now + windowMs };
+    rateBuckets.set(key, entry);
+  }
+
+  const retryAfterSeconds = Math.max(
+    1,
+    Math.ceil((entry.resetAt - now) / 1_000),
+  );
+
+  res.setHeader('RateLimit-Limit', String(maxRequests));
+  res.setHeader(
+    'RateLimit-Remaining',
+    String(Math.max(0, maxRequests - entry.count - 1)),
+  );
+  res.setHeader('RateLimit-Reset', String(Math.ceil(entry.resetAt / 1_000)));
+
+  if (entry.count >= maxRequests) {
+    res.setHeader('Retry-After', String(retryAfterSeconds));
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests. Please try again shortly.',
+      retryAfterSeconds,
+    });
+    return false;
+  }
+
+  entry.count += 1;
+  return true;
+}
+
+class InputValidationError extends Error {}
+
+const blockedObjectKeys = new Set(['__proto__', 'prototype', 'constructor']);
+const controlChars = /[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/g;
+
+interface SanitizeState {
+  nodes: number;
+}
+
+function sanitizedString(value: string, key: string): string {
+  const cleaned = value.replace(controlChars, '');
+  const isEncodedMedia = /(^|_)(base64|imageData|audioData|fileData)$/i.test(key);
+  const maxLength = isEncodedMedia ? 20_000_000 : 250_000;
+
+  if (cleaned.length > maxLength) {
+    throw new InputValidationError('Input field is too large.');
+  }
+  return cleaned;
+}
+
+function sanitizeValue(
+  value: unknown,
+  key: string,
+  depth: number,
+  state: SanitizeState,
+): unknown {
+  if (depth > 16) {
+    throw new InputValidationError('Input is nested too deeply.');
+  }
+
+  state.nodes += 1;
+  if (state.nodes > 10_000) {
+    throw new InputValidationError('Input contains too many values.');
+  }
+
+  if (typeof value === 'string') return sanitizedString(value, key);
+  if (
+    value === null ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length > 2_000) {
+      throw new InputValidationError('Input array is too large.');
+    }
+    return value.map((item) =>
+      sanitizeValue(item, key, depth + 1, state),
+    );
+  }
+
+  if (typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [childKey, childValue] of Object.entries(
+      value as Record<string, unknown>,
+    )) {
+      if (blockedObjectKeys.has(childKey)) {
+        throw new InputValidationError('Input contains a blocked field.');
+      }
+      if (childKey.length > 128) {
+        throw new InputValidationError('Input field name is too long.');
+      }
+      out[childKey] = sanitizeValue(
+        childValue,
+        childKey,
+        depth + 1,
+        state,
+      );
+    }
+    return out;
+  }
+
+  throw new InputValidationError('Unsupported input value.');
+}
+
+/**
+ * Defensive JSON sanitization.
+ *
+ * It removes unsafe control characters and rejects prototype-pollution keys,
+ * pathological nesting, or oversized structures. It deliberately does NOT
+ * strip HTML/Markdown because AI chat text may legitimately contain code or
+ * markup; output escaping belongs at the rendering boundary.
+ */
+export function sanitizeJsonBody(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (req.body === undefined || req.body === null) {
+    next();
+    return;
+  }
+
+  if (typeof req.body !== 'object') {
+    res.status(400).json({ success: false, error: 'Invalid JSON body.' });
+    return;
+  }
+
+  try {
+    req.body = sanitizeValue(req.body, 'body', 0, { nodes: 0 });
+    next();
+  } catch (error) {
+    const message =
+      error instanceof InputValidationError
+        ? error.message
+        : 'Invalid request body.';
+    res.status(400).json({ success: false, error: message });
+  }
+}
+
+export function securityHeaders(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+}

@@ -88,3 +88,17 @@ build/
 /*.json
 # Report with embedded key material
 FINAL_REPORT.md
+
+
+# Deep secret-file protection
+**/.env
+**/.env.*
+!**/.env.example
+**/service-account*.json
+**/*serviceAccount*.json
+**/credentials*.json
+**/secrets*.json
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore

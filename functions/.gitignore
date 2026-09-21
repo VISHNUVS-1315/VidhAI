@@ -5,3 +5,17 @@ lib/
 service-account.json
 .gcloudignore
 .secret.local
+
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+service-account*.json
+*serviceAccount*.json
+credentials*.json
+secrets*.json
+*.pem
+*.key
+*.p12
+*.pfx

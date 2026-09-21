@@ -36,3 +36,9 @@ services:
       # Non-secret configuration.
       - key: CORS_ORIGINS
         value: "*"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "120"
+      - key: AI_RATE_LIMIT_MAX_REQUESTS
+        value: "30"

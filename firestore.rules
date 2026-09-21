@@ -4,23 +4,115 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
+
     function me() {
       return request.auth.uid;
     }
 
-    // Private user profile, farms, crops and community activity.
+    function validPostCreate() {
+      return request.resource.data.keys().hasAll([
+          'authorId',
+          'type',
+          'status',
+          'createdAt',
+          'likeCount',
+          'commentCount',
+          'interestedCount',
+          'supplierCount'
+        ])
+        && request.resource.data.authorId == me()
+        && request.resource.data.type in ['experience', 'harvest', 'demand']
+        && request.resource.data.status == 'active'
+        && request.resource.data.likeCount == 0
+        && request.resource.data.commentCount == 0
+        && request.resource.data.interestedCount == 0
+        && request.resource.data.supplierCount == 0;
+    }
+
+    function postImmutableFieldsUnchanged() {
+      return request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function validCounterUpdate() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.hasOnly([
+          'likeCount',
+          'commentCount',
+          'interestedCount',
+          'supplierCount',
+          'updatedAt'
+        ])
+        && request.resource.data.likeCount is int
+        && request.resource.data.commentCount is int
+        && request.resource.data.interestedCount is int
+        && request.resource.data.supplierCount is int
+        && request.resource.data.likeCount >= 0
+        && request.resource.data.commentCount >= 0
+        && request.resource.data.interestedCount >= 0
+        && request.resource.data.supplierCount >= 0
+        && request.resource.data.likeCount >= resource.data.likeCount - 1
+        && request.resource.data.likeCount <= resource.data.likeCount + 1
+        && request.resource.data.commentCount >= resource.data.commentCount - 1
+        && request.resource.data.commentCount <= resource.data.commentCount + 1
+        && request.resource.data.interestedCount >= resource.data.interestedCount - 1
+        && request.resource.data.interestedCount <= resource.data.interestedCount + 1
+        && request.resource.data.supplierCount >= resource.data.supplierCount - 1
+        && request.resource.data.supplierCount <= resource.data.supplierCount + 1;
+    }
+
+    function validMemberCreate(postId, memberId) {
+      return memberId == me()
+        && request.resource.data.userId == me()
+        && request.resource.data.postAuthorId ==
+          get(/databases/$(database)/documents/community_posts/$(postId)).data.authorId
+        && request.resource.data.status == 'interested';
+    }
+
+    function validMemberUpdate(memberId) {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let immutable =
+        request.resource.data.userId == resource.data.userId
+        && request.resource.data.postAuthorId == resource.data.postAuthorId;
+
+      return immutable && (
+        (
+          memberId == me()
+          && request.resource.data.status == 'interested'
+          && changed.hasOnly([
+            'userName',
+            'userPhoto',
+            'note',
+            'status',
+            'updatedAt'
+          ])
+        )
+        ||
+        (
+          resource.data.postAuthorId == me()
+          && changed.hasOnly(['status', 'updatedAt'])
+          && request.resource.data.status in [
+            'interested',
+            'accepted',
+            'declined'
+          ]
+        )
+      );
+    }
+
+    // Private user profile, farms, crops and account-owned data.
     match /users/{userId} {
       allow read, write: if signedIn() && me() == userId;
 
-      // Activity inbox drives the Community badge. Any signed-in member may
-      // create a notification in another member's inbox ONLY when they are the
-      // recorded actor (interest/comment/status change). Only the owner of the
-      // inbox may read, mark read, or delete.
+      // Community activity inbox: owner can manage it; other signed-in users
+      // may only create an unread activity where they are the recorded actor.
       match /community_activity/{activityId} {
         allow read, update, delete: if signedIn() && me() == userId;
         allow create: if signedIn()
           && request.resource.data.ownerId == userId
-          && request.resource.data.actorId == me();
+          && request.resource.data.actorId == me()
+          && request.resource.data.read == false;
       }
 
       match /{document=**} {
@@ -28,51 +120,68 @@ service cloud.firestore {
       }
     }
 
-    // Community posts: one collection shared by experience / harvest / demand.
-    // Posts are visible to every signed-in farmer; a post is always created
-    // under the author's own uid. Counter fields (likeCount, commentCount,
-    // interestedCount, supplierCount) are updated by other members reacting to
-    // the post, so updates are allowed for signed-in users.
+    // Shared Community collection.
     match /community_posts/{postId} {
       allow read: if signedIn();
-      allow create: if signedIn()
-        && request.resource.data.authorId == me();
-      allow update: if signedIn();
+      allow create: if signedIn() && validPostCreate();
+
+      // The post owner may edit their post but cannot change authorship, type,
+      // or creation time. Other users may only adjust reaction counters by one
+      // as part of the app's transactional like/comment/interest flows.
+      allow update: if signedIn()
+        && postImmutableFieldsUnchanged()
+        && (
+          resource.data.authorId == me()
+          || validCounterUpdate()
+        );
+
       allow delete: if signedIn() && resource.data.authorId == me();
 
       match /comments/{commentId} {
         allow read: if signedIn();
         allow create: if signedIn()
-          && request.resource.data.authorId == me();
-        allow update, delete: if signedIn()
-          && resource.data.authorId == me();
+          && request.resource.data.authorId == me()
+          && request.resource.data.postId == postId
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 4000;
+        allow update: if signedIn()
+          && resource.data.authorId == me()
+          && request.resource.data.authorId == resource.data.authorId
+          && request.resource.data.postId == resource.data.postId
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['text']);
+        allow delete: if signedIn() && resource.data.authorId == me();
       }
 
       match /likes/{likeId} {
         allow read: if signedIn();
-        allow create, delete: if signedIn() && likeId == me();
+        allow create: if signedIn()
+          && likeId == me()
+          && request.resource.data.userId == me();
+        allow delete: if signedIn() && likeId == me();
+        allow update: if false;
       }
 
-      // Interest (harvest) and supplier (demand) records. The sender may
-      // withdraw; the post owner may accept/decline.
       match /interests/{memberId} {
         allow read: if signedIn();
-        allow create: if signedIn()
-          && memberId == me()
-          && request.resource.data.userId == me();
-        allow update, delete: if signedIn()
-          && (resource.data.userId == me()
-            || resource.data.postAuthorId == me());
+        allow create: if signedIn() && validMemberCreate(postId, memberId);
+        allow update: if signedIn() && validMemberUpdate(memberId);
+        allow delete: if signedIn()
+          && (
+            resource.data.userId == me()
+            || resource.data.postAuthorId == me()
+          );
       }
 
       match /suppliers/{memberId} {
         allow read: if signedIn();
-        allow create: if signedIn()
-          && memberId == me()
-          && request.resource.data.userId == me();
-        allow update, delete: if signedIn()
-          && (resource.data.userId == me()
-            || resource.data.postAuthorId == me());
+        allow create: if signedIn() && validMemberCreate(postId, memberId);
+        allow update: if signedIn() && validMemberUpdate(memberId);
+        allow delete: if signedIn()
+          && (
+            resource.data.userId == me()
+            || resource.data.postAuthorId == me()
+          );
       }
     }
   }
