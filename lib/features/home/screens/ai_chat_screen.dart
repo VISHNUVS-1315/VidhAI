@@ -493,7 +493,15 @@ ${fileContext.trim()}'''
     await _tts.stop();
     final lang = await _getLanguage();
     _recorder.onText = (t) {
-      if (mounted) setState(() => _liveTranscript = t);
+      if (!mounted) return;
+      setState(() {
+        _liveTranscript = t;
+        _controller.value = _controller.value.copyWith(
+          text: t,
+          selection: TextSelection.collapsed(offset: t.length),
+          composing: TextRange.empty,
+        );
+      });
     };
     final started = await _recorder.start(lang);
     if (!mounted) return;
@@ -529,7 +537,11 @@ ${fileContext.trim()}'''
   }
 
   Future<void> _cancelRecording() async {
-    setState(() => _recording = false);
+    setState(() {
+      _recording = false;
+      _liveTranscript = '';
+      _controller.clear();
+    });
     await _ampSub?.cancel();
     _ampSub = null;
     await _recorder.cancel();
