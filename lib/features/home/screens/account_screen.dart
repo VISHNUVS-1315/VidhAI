@@ -6,6 +6,8 @@ import 'package:vidhai/core/theme/theme_controller.dart';
 import 'package:vidhai/core/theme/vidhai_theme.dart';
 import 'package:vidhai/locale/locale.dart';
 import 'package:vidhai/services/data_service.dart';
+import 'package:vidhai/services/ai/tts_service.dart';
+import 'package:vidhai/services/ai/voice_preferences_service.dart';
 import 'package:vidhai/data/models/user_profile.dart';
 import 'package:vidhai/features/account/screens/edit_profile_screen.dart';
 import 'package:vidhai/features/account/screens/language_settings_screen.dart';
@@ -38,6 +40,9 @@ class _AccountScreenState extends State<AccountScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+    AiVoicePreferences.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _loadProfile() async {
@@ -225,6 +230,14 @@ class _AccountScreenState extends State<AccountScreen> {
                       ),
                     ),
                     _buildMenuItem(
+                      Icons.record_voice_over_outlined,
+                      loc.t('change_ai_voice'),
+                      subtitle: loc.t(
+                        AiVoicePreferences.instance.selected.titleKey,
+                      ),
+                      onTap: () => _showAiVoiceSheet(context),
+                    ),
+                    _buildMenuItem(
                       Icons.brightness_6_outlined,
                       loc.appearance,
                       onTap: () => _showAppearanceSheet(context),
@@ -266,7 +279,12 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String label, {VoidCallback? onTap}) {
+  Widget _buildMenuItem(
+    IconData icon,
+    String label, {
+    String? subtitle,
+    VoidCallback? onTap,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -280,12 +298,193 @@ class _AccountScreenState extends State<AccountScreen> {
           label,
           style: TextStyle(color: _text, fontSize: 15),
         ),
+        subtitle: subtitle == null
+            ? null
+            : Text(
+                subtitle,
+                style: TextStyle(color: _muted, fontSize: 12),
+              ),
         trailing: Icon(
           directionalIcon(context, Icons.chevron_right),
           color: _muted,
         ),
       ),
     );
+  }
+
+  Future<void> _showAiVoiceSheet(BuildContext context) async {
+    final preferences = AiVoicePreferences.instance;
+    await preferences.ensureLoaded();
+    if (!context.mounted) return;
+
+    final loc = AppLocalizations.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: _cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(ctx).height * 0.78,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: _muted.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      loc.t('change_ai_voice'),
+                      style: TextStyle(
+                        color: _text,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      loc.t('change_ai_voice_desc'),
+                      style: TextStyle(color: _muted, fontSize: 13, height: 1.35),
+                    ),
+                    const SizedBox(height: 16),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: AiVoicePreferences.profiles.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (ctx, index) {
+                          final profile =
+                              AiVoicePreferences.profiles[index];
+                          final selected =
+                              preferences.selectedId == profile.id;
+                          return InkWell(
+                            onTap: () async {
+                              await TtsService.instance.stop();
+                              await preferences.select(profile.id);
+                              if (mounted) setState(() {});
+                              setSheetState(() {});
+                              await TtsService.instance.speak(
+                                loc.t('ai_voice_preview'),
+                                language: loc.languageCode,
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? _accent.withValues(alpha: 0.11)
+                                    : _bgColor.withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: selected
+                                      ? _accent
+                                      : _muted.withValues(alpha: 0.16),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: _accent.withValues(alpha: 0.10),
+                                    ),
+                                    child: Icon(
+                                      Icons.graphic_eq_rounded,
+                                      color: _accent,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          loc.t(profile.titleKey),
+                                          style: TextStyle(
+                                            color: _text,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          loc.t(profile.subtitleKey),
+                                          style: TextStyle(
+                                            color: _muted,
+                                            fontSize: 12,
+                                            height: 1.25,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () async {
+                                      await TtsService.instance.stop();
+                                      if (preferences.selectedId !=
+                                          profile.id) {
+                                        await preferences.select(profile.id);
+                                        if (mounted) setState(() {});
+                                        setSheetState(() {});
+                                      }
+                                      await TtsService.instance.speak(
+                                        loc.t('ai_voice_preview'),
+                                        language: loc.languageCode,
+                                      );
+                                    },
+                                    icon: Icon(
+                                      Icons.play_circle_outline_rounded,
+                                      color: _accent,
+                                    ),
+                                    tooltip: loc.t('preview_voice'),
+                                  ),
+                                  if (selected)
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      color: _accent,
+                                      size: 22,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   void _showAppearanceSheet(BuildContext context) {
