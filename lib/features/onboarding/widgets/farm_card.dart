@@ -503,7 +503,7 @@ class _FarmCardState extends State<FarmCard> {
     }
 
     await _voiceService.startListening(
-      localeId: 'en_US',
+      localeId: VoiceService.getLocaleForLanguage(loc.languageCode),
       onResult: (text, confidence) {
         if (field == VoiceField.farmName) {
           _nameController.text = text.trim();
