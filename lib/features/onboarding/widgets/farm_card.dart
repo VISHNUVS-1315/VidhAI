@@ -117,6 +117,11 @@ class _FarmCardState extends State<FarmCard> {
     _farmLocation = d?.farmLocation;
     _soilAiResult = d?.soilAiResult;
     _voiceService.initialize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _registerAssistantFields();
   }
 
