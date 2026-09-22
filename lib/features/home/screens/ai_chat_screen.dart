@@ -1015,7 +1015,8 @@ ${fileContext.trim()}'''
                 : _buildMessageList(),
           ),
           _buildAttachmentChips(),
-          if (_recording) _buildRecordingBar() else _buildComposer(),
+          if (_recording) _buildRecordingBar(),
+          _buildComposer(),
         ],
       ),
     );
@@ -1564,7 +1565,14 @@ ${fileContext.trim()}'''
             ),
           ),
           const SizedBox(width: 2),
-          if (_isTyping || _streamActive)
+          if (_recording)
+            IconButton(
+              onPressed: _confirmRecording,
+              icon: const Icon(Icons.check_circle_rounded),
+              color: x.brand,
+              tooltip: loc.yes,
+            )
+          else if (_isTyping || _streamActive)
             _buildStopButton(x)
           else if (hasText)
             _buildSendButton(x)
