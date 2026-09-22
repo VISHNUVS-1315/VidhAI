@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import 'voice_preferences_service.dart';
+
 abstract class VoiceOutputBackend {
   String get name;
   Future<bool> speak(String text, {String? language});
@@ -43,8 +45,6 @@ class DeviceTtsVoiceOutput implements VoiceOutputBackend {
       _setSpeaking(false);
     });
 
-    await _tts.setSpeechRate(0.5);
-    await _tts.setPitch(1.0);
     await _tts.setVolume(1.0);
     await _tts.awaitSpeakCompletion(false);
     _initialized = true;
@@ -56,9 +56,72 @@ class DeviceTtsVoiceOutput implements VoiceOutputBackend {
     onSpeakingChanged?.call(value);
   }
 
-  Future<bool> _setBestLanguage(String languageCode) async {
+  int _voiceQualityScore(Map<String, dynamic> voice) {
+    final name = (voice['name'] ?? '').toString().toLowerCase();
+    var score = 0;
+    if (name.contains('natural')) score += 100;
+    if (name.contains('neural')) score += 95;
+    if (name.contains('enhanced')) score += 90;
+    if (name.contains('premium')) score += 85;
+    if (name.contains('network')) score += 70;
+    if (name.contains('google')) score += 20;
+    return score;
+  }
+
+  Future<bool> _configureVoice(String languageCode) async {
+    final prefs = AiVoicePreferences.instance;
+    await prefs.ensureLoaded();
+    final profile = prefs.selected;
+
+    await _tts.setSpeechRate(profile.speechRate);
+    await _tts.setPitch(profile.pitch);
+
     final primary = VoiceOutputService.ttsLanguageCode(languageCode);
-    final base = primary.split('-').first;
+    final normalizedPrimary = primary.toLowerCase().replaceAll('_', '-');
+    final base = normalizedPrimary.split('-').first;
+
+    try {
+      final rawVoices = await _tts.getVoices;
+      final voices = <Map<String, dynamic>>[];
+      if (rawVoices is List) {
+        for (final item in rawVoices) {
+          if (item is Map) {
+            voices.add(Map<String, dynamic>.from(item));
+          }
+        }
+      }
+
+      final matching = voices.where((voice) {
+        final locale =
+            (voice['locale'] ?? '').toString().toLowerCase().replaceAll('_', '-');
+        return locale == normalizedPrimary || locale.startsWith('$base-');
+      }).toList()
+        ..sort((a, b) {
+          final quality =
+              _voiceQualityScore(b).compareTo(_voiceQualityScore(a));
+          if (quality != 0) return quality;
+          return (a['name'] ?? '')
+              .toString()
+              .compareTo((b['name'] ?? '').toString());
+        });
+
+      if (matching.isNotEmpty) {
+        final chosen = matching[profile.voiceSlot % matching.length];
+        final name = chosen['name']?.toString();
+        final locale = chosen['locale']?.toString();
+        if (name != null &&
+            name.isNotEmpty &&
+            locale != null &&
+            locale.isNotEmpty) {
+          final result = await _tts.setVoice({'name': name, 'locale': locale});
+          if (result == 1) return true;
+        }
+      }
+    } catch (_) {
+      // Voice enumeration differs between platform TTS engines; language
+      // selection below is the safe fallback.
+    }
+
     final candidates = <String>[
       primary,
       base,
@@ -92,7 +155,7 @@ class DeviceTtsVoiceOutput implements VoiceOutputBackend {
       } catch (_) {}
       _setSpeaking(false);
 
-      final languageSet = await _setBestLanguage(language ?? 'en');
+      final languageSet = await _configureVoice(language ?? 'en');
       if (!languageSet) {
         onError?.call('No on-device TTS voice is available.');
         return false;
