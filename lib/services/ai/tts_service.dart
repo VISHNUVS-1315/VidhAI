@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:vidhai/services/ai/voice_output_service.dart';
 
@@ -36,13 +38,24 @@ class TtsService with ChangeNotifier {
     );
     if (!started) return false;
 
-    // TtsService is used by chat/assistant flows that expect await speak() to
-    // mean "speech finished". Live Voice talks to VoiceOutputService directly
-    // and therefore still gets non-blocking start + speakingChanges for barge-in.
-    if (_router.speaking) {
-      await _router.speakingChanges.firstWhere((speaking) => !speaking);
+    // Subscribe before checking the current flag so a very fast platform
+    // completion cannot be missed between the state check and the listener.
+    final done = Completer<void>();
+    late final StreamSubscription<bool> sub;
+    sub = _router.speakingChanges.listen((speaking) {
+      if (!speaking && !done.isCompleted) done.complete();
+    });
+    if (!_router.speaking && !done.isCompleted) done.complete();
+
+    try {
+      await done.future.timeout(const Duration(seconds: 90));
+      return true;
+    } on TimeoutException {
+      await _router.stop();
+      return false;
+    } finally {
+      await sub.cancel();
     }
-    return true;
   }
 
   /// Stop the exact backend that is currently speaking.
