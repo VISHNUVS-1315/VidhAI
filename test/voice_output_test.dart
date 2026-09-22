@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:vidhai/services/ai/voice_output_service.dart';
+import 'package:vidhai/services/ai/voice_preferences_service.dart';
 
 void main() {
   setUp(() {
@@ -42,5 +43,14 @@ void main() {
   test('voice output is device-only', () {
     expect(VoiceOutputService.instance.name, 'deviceTts');
     expect(VoiceOutputService.instance.activeBackend, 'deviceTts');
+  });
+
+  test('offers seven app-wide AI voice styles', () {
+    expect(AiVoicePreferences.profiles.length, 7);
+    expect(
+      AiVoicePreferences.profiles.map((p) => p.id).toSet().length,
+      7,
+    );
+    expect(AiVoicePreferences.profiles.first.id, 'natural');
   });
 }
