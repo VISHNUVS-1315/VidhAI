@@ -59,9 +59,11 @@ class VoiceService {
 
     await _speech.listen(
       onResult: (SpeechRecognitionResult result) {
+        final text = result.recognizedWords.trim();
+        if (text.isNotEmpty) {
+          onResult(text, result.confidence);
+        }
         if (result.finalResult) {
-          final confidence = result.confidence;
-          onResult(result.recognizedWords, confidence);
           onListeningComplete();
         }
       },
@@ -69,7 +71,9 @@ class VoiceService {
         localeId: localeId,
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 3),
+        partialResults: true,
         cancelOnError: true,
+        listenMode: ListenMode.dictation,
       ),
     );
   }
