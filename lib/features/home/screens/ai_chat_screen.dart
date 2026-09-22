@@ -553,6 +553,9 @@ ${fileContext.trim()}'''
     setState(() => _speakingIndex = index);
     final lang = await _getLanguage();
     await _tts.speak(text, language: lang);
+    if (mounted && _speakingIndex == index) {
+      setState(() => _speakingIndex = -1);
+    }
   }
 
   // ── History ────────────────────────────────────────────────────────────
