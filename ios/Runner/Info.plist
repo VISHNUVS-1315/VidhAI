@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>VidhAI uses the microphone when you choose voice input.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>VidhAI converts your speech into text for voice-assisted features.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
