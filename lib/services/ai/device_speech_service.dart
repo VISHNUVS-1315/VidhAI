@@ -44,6 +44,8 @@ class DeviceSpeechService implements VoiceCapturer {
   bool _initialized = false;
   String _latestText = '';
   String? _lastError;
+  String _lastStatus = '';
+  Completer<void>? _finalResult;
 
   @override
   Stream<double> get onAmplitude => _amplitude.stream;
@@ -56,14 +58,22 @@ class DeviceSpeechService implements VoiceCapturer {
 
   Future<bool> _ensureInitialized() async {
     if (_initialized) return true;
-    _initialized = await _speech.initialize(
-      onError: (error) {
-        _lastError = error.errorMsg;
-      },
-      onStatus: (_) {},
-      debugLogging: false,
-    );
-    return _initialized;
+    try {
+      _initialized = await _speech.initialize(
+        onError: (error) {
+          _lastError = error.errorMsg;
+        },
+        onStatus: (status) {
+          _lastStatus = status;
+        },
+        debugLogging: false,
+      );
+      return _initialized;
+    } catch (e) {
+      _lastError = e.toString();
+      _initialized = false;
+      return false;
+    }
   }
 
   @override
@@ -90,9 +100,16 @@ class DeviceSpeechService implements VoiceCapturer {
 
   void _onResult(SpeechRecognitionResult result) {
     final text = result.recognizedWords.trim();
-    if (text.isEmpty) return;
-    _latestText = text;
-    if (!_transcript.isClosed) _transcript.add(text);
+    if (text.isNotEmpty) {
+      _latestText = text;
+      if (!_transcript.isClosed) _transcript.add(text);
+    }
+    if (result.finalResult) {
+      final completer = _finalResult;
+      if (completer != null && !completer.isCompleted) {
+        completer.complete();
+      }
+    }
   }
 
   @override
@@ -102,6 +119,9 @@ class DeviceSpeechService implements VoiceCapturer {
 
     _latestText = '';
     _lastError = null;
+    _lastStatus = '';
+    _finalResult = Completer<void>();
+
     try {
       await _speech.listen(
         onResult: _onResult,
@@ -117,7 +137,20 @@ class DeviceSpeechService implements VoiceCapturer {
           if (!_amplitude.isClosed) _amplitude.add(level);
         },
       );
-      return _speech.isListening;
+
+      // Some Android recognizers update isListening/status a moment after
+      // listen() returns. Give the platform a short window before deciding the
+      // microphone failed to start.
+      for (var i = 0; i < 8; i++) {
+        if (_speech.isListening || _lastStatus == 'listening') return true;
+        if (_lastError != null) return false;
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+
+      // If the platform accepted listen() and reported no error, keep the
+      // session alive. A recognizer that genuinely failed will surface through
+      // onError and the empty-transcript path below.
+      return _lastError == null;
     } catch (e) {
       _lastError = e.toString();
       return false;
@@ -127,14 +160,29 @@ class DeviceSpeechService implements VoiceCapturer {
   @override
   Future<VoiceCaptureResult> stopAndTranscribe({String? language}) async {
     try {
+      final finalResult = _finalResult;
       if (_speech.isListening) {
         await _speech.stop();
-        await Future<void>.delayed(const Duration(milliseconds: 180));
       }
+
+      // Android speech recognizers often deliver the final words shortly
+      // after stop(). Waiting for that callback prevents losing the last word
+      // or returning an empty transcript too early.
+      if (finalResult != null && !finalResult.isCompleted) {
+        await Future.any<void>([
+          finalResult.future,
+          Future<void>.delayed(const Duration(milliseconds: 900)),
+        ]);
+      } else {
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+      }
+      _finalResult = null;
+
       final text = _latestText.trim();
       if (text.isEmpty) {
         return VoiceCaptureResult(
-          error: _lastError ?? 'Could not understand the speech. Please try again.',
+          error:
+              _lastError ?? 'Could not understand the speech. Please try again.',
           provider: 'device-speech',
         );
       }
@@ -144,7 +192,8 @@ class DeviceSpeechService implements VoiceCapturer {
         provider: 'device-speech',
       );
     } catch (e) {
-      return VoiceCaptureResult(
+      _finalResult = null;
+      return const VoiceCaptureResult(
         error: 'Voice input failed. Please try again.',
         provider: 'device-speech',
       );
@@ -155,6 +204,8 @@ class DeviceSpeechService implements VoiceCapturer {
   Future<void> cancel() async {
     _latestText = '';
     _lastError = null;
+    _lastStatus = '';
+    _finalResult = null;
     try {
       await _speech.cancel();
     } catch (_) {}
