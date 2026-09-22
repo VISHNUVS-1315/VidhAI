@@ -34,11 +34,7 @@ class DeviceTtsVoiceOutput implements VoiceOutputBackend {
 
   Future<void> _ensureInit() async {
     if (_initialized) return;
-    _initialized = true;
-    await _tts.setSpeechRate(0.5);
-    await _tts.setPitch(1.0);
-    await _tts.setVolume(1.0);
-    await _tts.awaitSpeakCompletion(false);
+
     _tts.setStartHandler(() => _setSpeaking(true));
     _tts.setCompletionHandler(() => _setSpeaking(false));
     _tts.setCancelHandler(() => _setSpeaking(false));
@@ -46,6 +42,12 @@ class DeviceTtsVoiceOutput implements VoiceOutputBackend {
       onError?.call(message);
       _setSpeaking(false);
     });
+
+    await _tts.setSpeechRate(0.5);
+    await _tts.setPitch(1.0);
+    await _tts.setVolume(1.0);
+    await _tts.awaitSpeakCompletion(false);
+    _initialized = true;
   }
 
   void _setSpeaking(bool value) {
@@ -54,21 +56,52 @@ class DeviceTtsVoiceOutput implements VoiceOutputBackend {
     onSpeakingChanged?.call(value);
   }
 
+  Future<bool> _setBestLanguage(String languageCode) async {
+    final primary = VoiceOutputService.ttsLanguageCode(languageCode);
+    final base = primary.split('-').first;
+    final candidates = <String>[
+      primary,
+      base,
+      if (primary != 'en-IN') 'en-IN',
+      'en-US',
+    ];
+
+    final tried = <String>{};
+    for (final candidate in candidates) {
+      if (!tried.add(candidate)) continue;
+      try {
+        final result = await _tts.setLanguage(candidate);
+        if (result == 1) return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
   @override
   Future<bool> speak(String text, {String? language}) async {
     final clean = text.trim();
     if (clean.isEmpty) return false;
+
     try {
       await _ensureInit();
-      final lang = VoiceOutputService.ttsLanguageCode(language ?? 'en');
-      final languageSet = await _tts.setLanguage(lang);
-      if (languageSet != 1) {
-        final fallback = await _tts.setLanguage('en-IN');
-        if (fallback != 1) {
-          onError?.call('No on-device TTS voice for $lang');
-          return false;
-        }
+
+      // Do not let two replies overlap. stop() also resets the speaking state
+      // if the previous platform completion callback was missed.
+      try {
+        await _tts.stop();
+      } catch (_) {}
+      _setSpeaking(false);
+
+      final languageSet = await _setBestLanguage(language ?? 'en');
+      if (!languageSet) {
+        onError?.call('No on-device TTS voice is available.');
+        return false;
       }
+
+      // Mark speaking before invoking the platform method. Some Android TTS
+      // engines fire their start callback after speak() already returned; this
+      // keeps chat/assistant state consistent during that small race window.
+      _setSpeaking(true);
       final result = await _tts.speak(clean);
       if (result != 1) {
         onError?.call('On-device TTS could not start.');
@@ -129,12 +162,13 @@ class VoiceOutputService extends ChangeNotifier implements VoiceSynthesizer {
   Stream<bool> get speakingChanges => _speakingEvents.stream;
 
   @override
-  String get activeBackend => _isSpeaking ? _device.name : _device.name;
+  String get activeBackend => _device.name;
 
   String? get lastError => _lastError;
 
   @override
   Future<bool> speak(String text, {String? language}) {
+    _lastError = null;
     return _device.speak(text, language: language);
   }
 
@@ -145,6 +179,7 @@ class VoiceOutputService extends ChangeNotifier implements VoiceSynthesizer {
     String? language,
     String? engine,
   }) {
+    _lastError = null;
     return _device.speak(text, language: language);
   }
 
