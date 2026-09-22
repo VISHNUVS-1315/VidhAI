@@ -109,7 +109,13 @@ class AiVoicePreferences extends ChangeNotifier {
   }
 
   Future<void> select(String id) async {
-    final profile = profiles.where((p) => p.id == id).firstOrNull;
+    AiVoiceProfile? profile;
+    for (final candidate in profiles) {
+      if (candidate.id == id) {
+        profile = candidate;
+        break;
+      }
+    }
     if (profile == null || profile.id == _selectedId) return;
     _selectedId = profile.id;
     _loaded = true;
