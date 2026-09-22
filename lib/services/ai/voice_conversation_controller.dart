@@ -355,14 +355,27 @@ class VoiceConversationController extends ChangeNotifier {
     if (!playing || !_running) return;
     final completer = Completer<void>();
     StreamSubscription<bool>? speakSub;
+    Timer? safetyTimer;
 
     void finish() {
+      safetyTimer?.cancel();
       speakSub?.cancel();
       if (!completer.isCompleted) completer.complete();
     }
 
     speakSub = _synthesizer.speakingChanges.listen((speaking) {
       if (!speaking) finish();
+    });
+
+    // Check after subscribing to avoid missing a fast completion event.
+    if (!_synthesizer.speaking) {
+      finish();
+      return;
+    }
+
+    safetyTimer = Timer(const Duration(seconds: 90), () {
+      unawaited(_synthesizer.stop());
+      finish();
     });
 
     if (_bargeInEnabled) {
