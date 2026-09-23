@@ -47,10 +47,20 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
     final args = ModalRoute.of(context)?.settings.arguments;
     FarmProfile? farm;
     CropSetupQuestionnaire? questionnaire;
+    List<CropRecommendationResult>? preloadedResults;
+    bool? preloadedWasOnline;
     try {
       if (args is Map<String, dynamic>) {
         farm = args['farm'] as FarmProfile?;
         questionnaire = args['questionnaire'] as CropSetupQuestionnaire?;
+        final rawPreloaded = args['preloadedResults'];
+        if (rawPreloaded is List<CropRecommendationResult>) {
+          preloadedResults = rawPreloaded;
+        } else if (rawPreloaded is List) {
+          preloadedResults =
+              rawPreloaded.whereType<CropRecommendationResult>().toList();
+        }
+        preloadedWasOnline = args['wasOnline'] as bool?;
         if (farm == null) {
           final farms = await DataService().loadFarms();
           final match = farms.where((f) => f.farmId == args['farmId']);
@@ -87,6 +97,15 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
       return;
     }
 
+    if (preloadedResults != null && preloadedResults!.isNotEmpty) {
+      setState(() {
+        _top10 = preloadedResults!;
+        _offline = !(preloadedWasOnline ?? true);
+        _isLoading = false;
+      });
+      return;
+    }
+
     try {
       final results = await CropRecommendationService.instance.getRecommendations(
         farm: farm,
@@ -95,7 +114,7 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
       if (!mounted) return;
       setState(() {
         _top10 = results;
-        _offline = results.isNotEmpty;
+        _offline = !CropBackendService.instance.wasLastCallOnline;
         _isLoading = false;
       });
     } catch (e) {
@@ -417,6 +436,31 @@ class _CropRecommendationScreenState extends State<CropRecommendationScreen> {
               .replaceAll('{season}', season.isNotEmpty ? season : '-'),
           style: TextStyle(color: colors.onSurfaceMuted, fontSize: 13),
         ),
+        const SizedBox(height: 8),
+        if ((_questionnaire?.cropCategoryPreference ?? '').isNotEmpty &&
+            _questionnaire!.cropCategoryPreference != 'No preference')
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: colors.brandDeep.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '${loc.t('crop_category_preference')}: '
+                '${_questionnaire!.cropCategoryPreference}',
+                style: TextStyle(
+                  color: colors.brandDeep,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
         const SizedBox(height: 4),
         if (_offline)
           Padding(
