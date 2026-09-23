@@ -1,14 +1,29 @@
 import 'dart:async';
-import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:vidhai/core/theme/vidhai_theme.dart';
+import 'package:vidhai/data/models/crop_models.dart';
+import 'package:vidhai/data/models/farm_profile.dart';
 import 'package:vidhai/locale/locale.dart';
+import 'package:vidhai/services/ai/ai_context_builder.dart';
+import 'package:vidhai/services/crop_backend_service.dart';
+import 'package:vidhai/services/data_service.dart';
 
+/// Performs the real AI crop analysis before opening the recommendation page.
+///
+/// This screen deliberately does not fall back to the deterministic/local crop
+/// engine. A recommendation shown after this screen is therefore a response
+/// from `/crop/ai-recommend` for the farmer's current inputs and farm context,
+/// not a placeholder or a generic cached shortlist.
 class RecommendationLoadingScreen extends StatefulWidget {
   final String? farmId;
-  final dynamic questionnaire;
-  const RecommendationLoadingScreen(
-      {super.key, this.farmId, this.questionnaire});
+  final CropSetupQuestionnaire? questionnaire;
+
+  const RecommendationLoadingScreen({
+    super.key,
+    this.farmId,
+    this.questionnaire,
+  });
 
   @override
   State<RecommendationLoadingScreen> createState() =>
@@ -16,325 +31,311 @@ class RecommendationLoadingScreen extends StatefulWidget {
 }
 
 class _RecommendationLoadingScreenState
-    extends State<RecommendationLoadingScreen> with TickerProviderStateMixin {
-  late AnimationController _rotationController;
-  late AnimationController _pulseController;
-  late AnimationController _leafController;
-
-  int _currentTextIndex = 0;
-  double _progress = 0.0;
+    extends State<RecommendationLoadingScreen> {
   Timer? _textTimer;
-  Timer? _progressTimer;
-  Timer? _navigationTimer;
+  int _currentTextIndex = 0;
+  bool _running = false;
+  String? _error;
 
   VidhAIColorsX get colors => VidhAIColorsX(context);
 
   @override
   void initState() {
     super.initState();
-
-    _rotationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat();
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-
-    _leafController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
-
-    _textTimer = Timer.periodic(const Duration(milliseconds: 900), (timer) {
-      if (mounted) {
-        setState(() {
-          _currentTextIndex = (_currentTextIndex + 1) % 4;
-        });
-      }
+    _textTimer = Timer.periodic(const Duration(milliseconds: 1400), (_) {
+      if (!mounted || !_running) return;
+      setState(() => _currentTextIndex = (_currentTextIndex + 1) % 5);
     });
-
-    _progressTimer = Timer.periodic(const Duration(milliseconds: 60), (timer) {
-      if (mounted) {
-        setState(() {
-          _progress += 0.0055;
-          if (_progress > 1.0) _progress = 1.0;
-        });
-      }
-    });
-
-    _navigationTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed(
-          '/crop_recommendation',
-          arguments: {
-            'farmId': widget.farmId,
-            'questionnaire': widget.questionnaire,
-          },
-        );
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _analyse());
   }
 
   @override
   void dispose() {
-    _rotationController.dispose();
-    _pulseController.dispose();
-    _leafController.dispose();
     _textTimer?.cancel();
-    _progressTimer?.cancel();
-    _navigationTimer?.cancel();
     super.dispose();
+  }
+
+  Map<String, dynamic> _buildAiInput(
+    CropSetupQuestionnaire questionnaire,
+    String language,
+  ) {
+    final input = Map<String, dynamic>.from(questionnaire.toMap());
+    input['language'] = language;
+    return input;
+  }
+
+  Map<String, dynamic> _buildFlatAiContext(
+    AiContextSnapshot snapshot,
+    CropSetupQuestionnaire questionnaire,
+  ) {
+    final context = <String, dynamic>{
+      ...snapshot.farmMap,
+      'season': snapshot.season,
+      'month': snapshot.now.month,
+      'weather': snapshot.weather,
+      'market': snapshot.marketContext,
+      'cropHistory': snapshot.cropHistory
+          .take(8)
+          .map((crop) => <String, dynamic>{
+                'crop': crop.cropName,
+                'category': crop.category,
+                'status': crop.status,
+                'plantingDate':
+                    crop.plantingDate.toIso8601String().substring(0, 10),
+                if (crop.endDate != null)
+                  'endDate': crop.endDate!.toIso8601String().substring(0, 10),
+              })
+          .toList(),
+    };
+
+    // Farmer-entered/confirmed values must win over a stale saved profile.
+    if (questionnaire.soilType.trim().isNotEmpty) {
+      context['soilType'] = questionnaire.soilType.trim();
+    }
+    if (questionnaire.irrigationSystem.trim().isNotEmpty) {
+      context['irrigationType'] = questionnaire.irrigationSystem.trim();
+    }
+    if (questionnaire.waterSource.trim().isNotEmpty) {
+      context['waterSource'] = questionnaire.waterSource.trim();
+    }
+    if (questionnaire.waterAvailability.trim().isNotEmpty) {
+      context['waterAvailability'] = questionnaire.waterAvailability.trim();
+    }
+    if (questionnaire.currentSeason.trim().isNotEmpty) {
+      context['season'] = questionnaire.currentSeason.trim();
+    }
+    if (questionnaire.farmLocation.trim().isNotEmpty) {
+      context['farmerProvidedLocation'] = questionnaire.farmLocation.trim();
+    }
+    if (questionnaire.farmSize.trim().isNotEmpty) {
+      context['farmerProvidedFarmSize'] = questionnaire.farmSize.trim();
+    }
+    if (questionnaire.lastCrop.trim().isNotEmpty) {
+      context['farmerProvidedLastCrop'] = questionnaire.lastCrop.trim();
+    }
+
+    return context;
+  }
+
+  Future<void> _analyse() async {
+    if (_running) return;
+
+    final questionnaire = widget.questionnaire;
+    final farmId = widget.farmId?.trim() ?? '';
+    if (questionnaire == null || farmId.isEmpty) {
+      setState(() => _error = 'invalid_input');
+      return;
+    }
+
+    setState(() {
+      _running = true;
+      _error = null;
+      _currentTextIndex = 0;
+    });
+
+    try {
+      final dataService = DataService();
+      final farms = await dataService.loadFarms();
+      FarmProfile? farm;
+      for (final item in farms) {
+        if (item.farmId == farmId) {
+          farm = item;
+          break;
+        }
+      }
+      if (farm == null) {
+        throw StateError('farm_not_found');
+      }
+
+      final language = await dataService.getSelectedLanguage();
+      final snapshot = await AIContextBuilder().build(
+        farm: farm,
+        languageCode: language,
+      );
+
+      final results = await CropBackendService.instance.fetchAIRecommendations(
+        context: _buildFlatAiContext(snapshot, questionnaire),
+        input: _buildAiInput(questionnaire, language),
+      );
+
+      if (!mounted) return;
+      if (results == null || results.isEmpty) {
+        setState(() {
+          _running = false;
+          _error = 'ai_unavailable';
+        });
+        return;
+      }
+
+      Navigator.of(context).pushReplacementNamed(
+        '/crop_recommendation',
+        arguments: {
+          'farm': farm,
+          'farmId': farmId,
+          'questionnaire': questionnaire,
+          'preloadedResults': results,
+          'wasOnline': true,
+        },
+      );
+    } catch (e) {
+      debugPrint('[RecommendationLoadingScreen] live AI analysis failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _running = false;
+        _error = 'ai_unavailable';
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    final loadingTexts = [
-      loc.loadingText1,
-      loc.loadingText2,
-      loc.loadingText3,
-      loc.loadingText4
+    final loadingTexts = <String>[
+      loc.t('rec_loading_soil'),
+      loc.t('rec_loading_weather'),
+      loc.t('rec_loading_market'),
+      loc.t('rec_loading_crops'),
+      loc.t('loading_text_4'),
     ];
 
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: 0.9 + (_pulseController.value * 0.3),
-                    child: child,
-                  );
-                },
-                child: AnimatedBuilder(
-                  animation: _rotationController,
-                  builder: (context, child) {
-                    return Transform.rotate(
-                      angle: _rotationController.value * 2 * pi,
-                      child: child,
-                    );
-                  },
-                  child: CustomPaint(
-                    size: const Size(150, 150),
-                    painter: _AgricultureLoaderPainter(
-                      leafPhase: _leafController.value,
-                      brandColor: colors.brandDeep,
-                      surfaceColor: colors.surface,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 48),
-              Text(
-                loc.recLoading,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: colors.onBackground,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: 28,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
-                  transitionBuilder: (child, anim) => FadeTransition(
-                    opacity: anim,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.3),
-                        end: Offset.zero,
-                      ).animate(anim),
-                      child: child,
-                    ),
-                  ),
-                  child: Text(
-                    loadingTexts[_currentTextIndex],
-                    key: ValueKey<int>(_currentTextIndex),
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: colors.brandDeep,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 64),
-                child: Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: _progress,
-                        minHeight: 8,
-                        backgroundColor: colors.surface,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          colors.brandDeep,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Center(
+            child: _error == null
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 92,
+                        height: 92,
+                        decoration: BoxDecoration(
+                          color: colors.brandDeep.withValues(alpha: 0.10),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 42,
+                          color: colors.brandDeep,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '${(_progress * 100).toInt()}%',
-                      style: TextStyle(
-                        color: colors.onSurfaceMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(height: 26),
+                      Text(
+                        loc.t('rec_loading_heading'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.onBackground,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 60),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(4, (index) {
-                  final isActive = index == _currentTextIndex;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: isActive ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: isActive ? colors.brandDeep : colors.surface,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  );
-                }),
-              ),
-            ],
+                      const SizedBox(height: 12),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: Text(
+                          loadingTexts[_currentTextIndex],
+                          key: ValueKey(_currentTextIndex),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: colors.brandDeep,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: 34,
+                        height: 34,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: colors.brandDeep,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        loc.t('cp_ai_note'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.onSurfaceMuted,
+                          fontSize: 11.5,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  )
+                : _buildError(loc),
           ),
         ),
       ),
     );
   }
-}
 
-class _AgricultureLoaderPainter extends CustomPainter {
-  final double leafPhase;
-  final Color brandColor;
-  final Color surfaceColor;
-
-  _AgricultureLoaderPainter({
-    required this.leafPhase,
-    required this.brandColor,
-    required this.surfaceColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    final bgPaint = Paint()
-      ..color = surfaceColor
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, radius, bgPaint);
-
-    final ringPaint = Paint()
-      ..color = surfaceColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
-    canvas.drawCircle(center, radius - 8, ringPaint);
-
-    final accentPaint = Paint()
-      ..color = brandColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-    final sweepAngle = 2 * pi * 0.35;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius - 8),
-      -pi / 2,
-      sweepAngle,
-      false,
-      accentPaint,
+  Widget _buildError(AppLocalizations loc) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            color: colors.warning.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.cloud_off_rounded,
+            color: colors.warning,
+            size: 34,
+          ),
+        ),
+        const SizedBox(height: 18),
+        Text(
+          loc.t('ai_recommendation_failed'),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: colors.onBackground,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Live AI did not return a recommendation. No generic crop result was substituted.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: colors.onSurfaceMuted,
+            fontSize: 12.5,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _analyse,
+            icon: const Icon(Icons.refresh_rounded),
+            label: Text(loc.retry),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.brandDeep,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            loc.cancel,
+            style: TextStyle(color: colors.onSurfaceMuted),
+          ),
+        ),
+      ],
     );
-
-    final stemPaint = Paint()
-      ..color = brandColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    final stemStart = Offset(center.dx, center.dy + 20);
-    final stemEnd = Offset(center.dx, center.dy - 18);
-    canvas.drawLine(stemStart, stemEnd, stemPaint);
-
-    final leafPaint = Paint()
-      ..color = brandColor
-      ..style = PaintingStyle.fill;
-
-    final leafOffset = 4.0 * sin(leafPhase * pi);
-
-    final leftLeaf = Path()
-      ..moveTo(center.dx, center.dy - 8)
-      ..quadraticBezierTo(
-        center.dx - 22 - leafOffset,
-        center.dy - 22,
-        center.dx - 6,
-        center.dy - 30,
-      )
-      ..quadraticBezierTo(
-        center.dx - 2,
-        center.dy - 16,
-        center.dx,
-        center.dy - 8,
-      );
-    canvas.drawPath(leftLeaf, leafPaint);
-
-    final rightLeaf = Path()
-      ..moveTo(center.dx, center.dy - 12)
-      ..quadraticBezierTo(
-        center.dx + 22 + leafOffset,
-        center.dy - 26,
-        center.dx + 6,
-        center.dy - 34,
-      )
-      ..quadraticBezierTo(
-        center.dx + 2,
-        center.dy - 20,
-        center.dx,
-        center.dy - 12,
-      );
-    canvas.drawPath(rightLeaf, leafPaint);
-
-    final soilPaint = Paint()
-      ..color = const Color(0xFF6D4C41)
-      ..style = PaintingStyle.fill;
-    final soilRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(center.dx, center.dy + 26),
-        width: 40,
-        height: 10,
-      ),
-      const Radius.circular(5),
-    );
-    canvas.drawRRect(soilRect, soilPaint);
-
-    final glowPaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          brandColor.withValues(alpha: 0.15),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromCircle(center: center, radius: radius));
-    canvas.drawCircle(center, radius, glowPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _AgricultureLoaderPainter oldDelegate) {
-    return oldDelegate.leafPhase != leafPhase;
   }
 }
