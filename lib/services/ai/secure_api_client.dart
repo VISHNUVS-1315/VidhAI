@@ -29,8 +29,35 @@ class SecureApiClient {
   static const _baseUrl = AppConfig.aiBackendUrl;
   static const _timeout = Duration(seconds: 150);
 
-  /// Client backing an in-flight SSE stream, so Stop/Cancel can abort it.
+  /// Reuse transports so repeated chat turns avoid a fresh DNS/TLS handshake.
+  http.Client _regularClient = http.Client();
   http.Client? _streamClient;
+
+  DateTime? _lastWarmUp;
+
+  /// Starts waking the Render backend before the user sends a chat message.
+  /// This is fire-and-forget by callers and never blocks the UI.
+  Future<void> warmUp() async {
+    final now = DateTime.now();
+    final last = _lastWarmUp;
+    if (last != null && now.difference(last) < const Duration(minutes: 10)) {
+      return;
+    }
+    _lastWarmUp = now;
+
+    try {
+      await _regularClient
+          .get(Uri.parse('$_baseUrl/health'))
+          .timeout(const Duration(seconds: 12));
+    } catch (_) {
+      // A sleeping free Render service can outlive this timeout; the request
+      // still triggers its wake-up, which is the useful part.
+    }
+  }
+
+  http.Client _newStreamClientIfNeeded() {
+    return _streamClient ??= http.Client();
+  }
 
   Future<Map<String, String>> _authHeaders({bool forceRefresh = false}) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -56,7 +83,7 @@ class SecureApiClient {
 
     Future<http.Response> send({bool forceRefresh = false}) async {
       final headers = await _authHeaders(forceRefresh: forceRefresh);
-      return http
+      return _regularClient
           .post(
             uri,
             headers: {
@@ -119,8 +146,7 @@ class SecureApiClient {
 
     var forceRefresh = false;
     for (var attempt = 0; attempt < 2; attempt++) {
-      final client = http.Client();
-      _streamClient = client;
+      final client = _newStreamClientIfNeeded();
 
       http.StreamedResponse? response;
       try {
@@ -134,8 +160,6 @@ class SecureApiClient {
         response =
             await client.send(request).timeout(timeout ?? _timeout);
       } catch (e) {
-        _streamClient = null;
-        client.close();
         if (e is SecureApiException) rethrow;
         throw SecureApiException(
           'Network error (${e.runtimeType}).',
@@ -148,8 +172,6 @@ class SecureApiClient {
           debugPrint(
               '[SecureApiClient:$debugTag] 401 on stream; refreshing token and retrying once.');
         }
-        client.close();
-        _streamClient = null;
         forceRefresh = true;
         continue;
       }
@@ -164,20 +186,13 @@ class SecureApiClient {
             message = decoded['error'] as String;
           }
         } catch (_) {}
-        client.close();
-        _streamClient = null;
         throw SecureApiException(
           message,
           statusCode: response.statusCode,
         );
       }
 
-      try {
-        yield* SecureApiClient.decodeSse(response.stream);
-      } finally {
-        client.close();
-        _streamClient = null;
-      }
+      yield* SecureApiClient.decodeSse(response.stream);
       return;
     }
     throw const SecureApiException(
@@ -223,7 +238,7 @@ class SecureApiClient {
 
     Future<http.Response> send({bool forceRefresh = false}) async {
       final headers = await _authHeaders(forceRefresh: forceRefresh);
-      return http.get(uri, headers: headers).timeout(_timeout);
+      return _regularClient.get(uri, headers: headers).timeout(_timeout);
     }
 
     var response = await send();
@@ -266,7 +281,7 @@ class SecureApiClient {
           filename: filename,
         ),
       );
-      final streamed = await request.send().timeout(_timeout);
+      final streamed = await _regularClient.send(request).timeout(_timeout);
       return http.Response.fromStream(streamed);
     }
 
