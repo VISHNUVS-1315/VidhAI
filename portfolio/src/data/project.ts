@@ -45,7 +45,7 @@ export interface EngineeringChallenge {
 }
 
 export const VIDHAI_APK_URL =
-  'https://raw.githubusercontent.com/VISHNUVS-1315/VidhAI-Public/main/releases/VidhAI-v1.0.0.apk';
+  'https://github.com/VISHNUVS-1315/VidhAI/releases/download/latest-apk/VidhAI-latest.apk';
 
 export const PROJECT_CONFIG = {
   name: 'VidhAI',
