@@ -13,7 +13,7 @@
 
 ### 📱 Public Android Build
 
-[![Download APK](https://img.shields.io/badge/Download-VidhAI%20v1.0.0%20APK-42572A?style=for-the-badge&logo=android&logoColor=white)](https://raw.githubusercontent.com/VISHNUVS-1315/VidhAI-Public/main/releases/VidhAI-v1.0.0.apk)
+[![Download APK](https://img.shields.io/badge/Download-VidhAI%20v1.0.0%20APK-42572A?style=for-the-badge&logo=android&logoColor=white)](https://raw.githubusercontent.com/VISHNUVS-1315/VidhAI/main/releases/VidhAI-latest.apk)
 
 **Portfolio:** https://vishnuvs-1315.github.io/VidhAI-Public/
 
@@ -441,12 +441,12 @@ Expected local output:
 build/app/outputs/flutter-apk/app-release.apk
 ```
 
-### Current public APK
+### Current repository APK
 
 **VidhAI v1.0.0**  
-https://raw.githubusercontent.com/VISHNUVS-1315/VidhAI-Public/main/releases/VidhAI-v1.0.0.apk
+https://raw.githubusercontent.com/VISHNUVS-1315/VidhAI/main/releases/VidhAI-latest.apk
 
-> The source repository can receive improvements after the packaged public APK is published. Publish a new APK whenever the submission build is intentionally refreshed.
+> The installable release APK is stored directly in this repository under `releases/VidhAI-latest.apk`.
 
 ---
 
@@ -454,7 +454,7 @@ https://raw.githubusercontent.com/VISHNUVS-1315/VidhAI-Public/main/releases/Vidh
 
 - **Public showcase repository:** https://github.com/VISHNUVS-1315/VidhAI-Public
 - **Project portfolio:** https://vishnuvs-1315.github.io/VidhAI-Public/
-- **Direct APK:** https://raw.githubusercontent.com/VISHNUVS-1315/VidhAI-Public/main/releases/VidhAI-v1.0.0.apk
+- **Direct APK:** https://raw.githubusercontent.com/VISHNUVS-1315/VidhAI/main/releases/VidhAI-latest.apk
 
 ---
 
