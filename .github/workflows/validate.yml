@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   backend:
@@ -68,13 +68,14 @@ jobs:
       - name: Build debug APK
         run: flutter build apk --debug
 
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: vidhai-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
-          retention-days: 7
+      - name: Publish latest APK release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-debug.apk VidhAI-latest.apk
+          gh release view latest-apk >/dev/null 2>&1 || \
+            gh release create latest-apk --title "VidhAI Latest APK" --notes "Latest VidhAI Android APK built from the current main branch."
+          gh release upload latest-apk VidhAI-latest.apk --clobber
 
       - name: Test
         run: flutter test
