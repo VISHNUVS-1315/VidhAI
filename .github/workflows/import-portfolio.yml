@@ -1,0 +1,46 @@
+name: Import VidhAI portfolio source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/import-portfolio.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout VidhAI
+        uses: actions/checkout@v4
+        with:
+          path: target
+
+      - name: Checkout portfolio source
+        uses: actions/checkout@v4
+        with:
+          repository: VISHNUVS-1315/vidhai-portfolio
+          ref: main
+          path: source
+
+      - name: Copy portfolio into VidhAI
+        run: |
+          rm -rf target/portfolio
+          mkdir -p target/portfolio
+          rsync -a --exclude='.git/' source/ target/portfolio/
+
+      - name: Commit imported portfolio
+        working-directory: target
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portfolio
+          if git diff --cached --quiet; then
+            echo "Portfolio already up to date."
+            exit 0
+          fi
+          git commit -m "chore: import VidhAI portfolio source [skip ci]"
+          git push
