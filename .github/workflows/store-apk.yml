@@ -1,0 +1,68 @@
+name: Store APK in VidhAI repo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/store-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-store:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Prepare repository APK
+        shell: bash
+        run: |
+          mkdir -p releases
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          SIZE=$(stat -c%s "$APK")
+          LIMIT=$((95 * 1024 * 1024))
+
+          rm -f releases/VidhAI-latest.apk
+          rm -f releases/VidhAI-arm64-v8a.apk releases/VidhAI-armeabi-v7a.apk releases/VidhAI-x86_64.apk
+
+          if [ "$SIZE" -le "$LIMIT" ]; then
+            cp "$APK" releases/VidhAI-latest.apk
+            echo "Stored universal release APK: $SIZE bytes"
+          else
+            echo "Universal APK is too large for normal Git storage; building split APKs."
+            flutter build apk --release --split-per-abi
+            cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk releases/VidhAI-arm64-v8a.apk
+            cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk releases/VidhAI-armeabi-v7a.apk
+            cp build/app/outputs/flutter-apk/app-x86_64-release.apk releases/VidhAI-x86_64.apk
+          fi
+
+          ls -lh releases/*.apk
+
+      - name: Commit APK into source repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f releases/*.apk
+          if git diff --cached --quiet; then
+            echo "APK already up to date."
+            exit 0
+          fi
+          git commit -m "build: store latest VidhAI APK in source repo [skip ci]"
+          git push
